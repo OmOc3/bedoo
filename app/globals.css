@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: oklch(0.982 0.008 145);
+  --foreground: oklch(0.24 0.018 165);
+  --muted: oklch(0.55 0.018 165);
+  --surface: oklch(0.996 0.004 145);
+  --surface-subtle: oklch(0.955 0.012 145);
+  --border: oklch(0.88 0.014 145);
+  --primary: oklch(0.48 0.105 158);
+  --primary-strong: oklch(0.38 0.095 158);
+  --primary-soft: oklch(0.91 0.04 158);
+  --danger: oklch(0.54 0.16 28);
+  --danger-soft: oklch(0.94 0.035 28);
+  --warning: oklch(0.72 0.13 82);
+  --focus: oklch(0.62 0.14 194);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  direction: rtl;
+  min-height: 100%;
+  background: var(--background);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background:
+    linear-gradient(180deg, oklch(0.996 0.004 145 / 0.88), oklch(0.982 0.008 145 / 0.96)),
+    var(--background);
+  color: var(--foreground);
+  font-family: "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.25s;
+    animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+  }
+}
