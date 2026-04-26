@@ -1,0 +1,13 @@
+.DS_Store
+.env*.local
+.next/
+node_modules/
+out/
+dist/
+coverage/
+data/*.db
+data/*.db-*
+.npm-cache/
+*.log
+*.tsbuildinfo
+ui-debug.log

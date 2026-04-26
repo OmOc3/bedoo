@@ -1,0 +1,182 @@
+import { BRAND } from "@/lib/brand";
+import {
+  roleLabels as sharedRoleLabels,
+  roleLabelsEnglish as sharedRoleLabelsEnglish,
+  statusOptionLabels as sharedStatusOptionLabels,
+  statusOptionLabelsEnglish as sharedStatusOptionLabelsEnglish,
+} from "@/lib/shared/constants";
+
+export const statusOptionLabels = sharedStatusOptionLabels;
+export const statusOptionLabelsEnglish = sharedStatusOptionLabelsEnglish;
+export const roleLabels = sharedRoleLabels;
+export const roleLabelsEnglish = sharedRoleLabelsEnglish;
+
+const ar = {
+  appName: BRAND.name,
+  appNameArabic: BRAND.nameArabic,
+  appTitle: "إدارة محطات الطعوم",
+  brandTagline: BRAND.taglineArabic,
+  brand: {
+    name: BRAND.name,
+    nameArabic: BRAND.nameArabic,
+    tagline: BRAND.tagline,
+    taglineArabic: BRAND.taglineArabic,
+  },
+  actions: {
+    backToLogin: "العودة لتسجيل الدخول",
+    login: "تسجيل الدخول",
+    logout: "تسجيل الخروج",
+    retry: "إعادة المحاولة",
+  },
+  auth: {
+    email: "البريد الإلكتروني",
+    emailPlaceholder: "name@company.com",
+    genericLoginError: "تعذر تسجيل الدخول. تحقق من البيانات وحاول مرة أخرى.",
+    inactiveAccount: "تعذر تسجيل الدخول. تحقق من البيانات وحاول مرة أخرى.",
+    invalidEmail: "أدخل بريدًا إلكترونيًا صحيحًا.",
+    loginTitle: "تسجيل دخول الفريق",
+    loginSubtitle: "استخدم حساب الشركة للمتابعة.",
+    missingProfile: "تعذر تسجيل الدخول. تحقق من البيانات وحاول مرة أخرى.",
+    password: "كلمة المرور",
+    passwordPlaceholder: "••••••••",
+    passwordRequired: "كلمة المرور مطلوبة.",
+    rateLimited: "تم إيقاف المحاولات مؤقتًا. حاول لاحقًا.",
+    sessionExpired: "انتهت الجلسة. سجل الدخول مرة أخرى.",
+    signingIn: "جار تسجيل الدخول...",
+    logoutError: "تعذر تسجيل الخروج. حاول مرة أخرى.",
+  },
+  dashboard: {
+    managerTitle: "لوحة المدير",
+    supervisorTitle: "لوحة المشرف",
+    phaseBadge: "المرحلة الأولى",
+    protectedRoute: "مسار محمي",
+    authReady: "تم تفعيل الدخول الآمن",
+    securityReady: "الصلاحيات تعمل حسب الدور",
+    placeholderBody: "هذه الصفحة جاهزة للتحقق من الصلاحيات وسيتم استكمال أدواتها في المراحل التالية.",
+  },
+  insights: {
+    title: "موجز ذكي",
+    subtitle: "قراءة سريعة لأهم المخاطر التشغيلية والفرص استنادًا إلى بيانات المحطات والتقارير.",
+    generate: "توليد الموجز",
+    generating: "جار توليد الموجز...",
+    generatedAt: "آخر تحديث",
+    alerts: "تنبيهات",
+    recommendations: "إجراءات مقترحة",
+    unavailable: "تعذر توليد الموجز الآن.",
+    sourceGemini: "مدعوم بواسطة Gemini",
+    sourceFallback: "ملخص محلي احتياطي",
+    missingKey: "المفتاح GEMINI_API_KEY غير مضبوط، لذلك تم عرض ملخص محلي بدل Gemini.",
+  },
+  errors: {
+    accessDenied: "ليست لديك صلاحية للوصول إلى هذه الصفحة.",
+    accessDeniedTitle: "وصول غير مصرح",
+    unexpected: "حدث خطأ غير متوقع. حاول مرة أخرى.",
+  },
+  scan: {
+    title: "مسح رمز المحطة",
+    subtitle: "افتح رابط المحطة من رمز QR للانتقال إلى نموذج الفحص.",
+    loginCta: "تسجيل دخول الفني",
+    phaseNotice: "سيتم تفعيل نموذج الفحص في المرحلة الثالثة.",
+  },
+  theme: {
+    dark: "الوضع الداكن",
+    light: "الوضع الفاتح",
+  },
+  legal: {
+    allRightsReserved: "جميع الحقوق محفوظة.",
+    copyright: "حقوق النشر",
+    privacy: "سياسة الخصوصية",
+    terms: "شروط الاستخدام",
+  },
+  validation: {
+    requiredEmail: "البريد الإلكتروني مطلوب.",
+  },
+} as const;
+
+const en = {
+  appName: BRAND.name,
+  appNameArabic: BRAND.nameArabic,
+  appTitle: "Bait Station Field Management",
+  brandTagline: BRAND.tagline,
+  brand: {
+    name: BRAND.name,
+    nameArabic: BRAND.nameArabic,
+    tagline: BRAND.tagline,
+    taglineArabic: BRAND.taglineArabic,
+  },
+  actions: {
+    backToLogin: "Back to login",
+    login: "Sign in",
+    logout: "Sign out",
+    retry: "Try again",
+  },
+  auth: {
+    email: "Email",
+    emailPlaceholder: "name@company.com",
+    genericLoginError: "Unable to sign in. Check your details and try again.",
+    inactiveAccount: "Unable to sign in. Check your details and try again.",
+    invalidEmail: "Enter a valid email address.",
+    loginTitle: "Team sign in",
+    loginSubtitle: "Use your company account to continue.",
+    missingProfile: "Unable to sign in. Check your details and try again.",
+    password: "Password",
+    passwordPlaceholder: "Password",
+    passwordRequired: "Password is required.",
+    rateLimited: "Attempts are paused temporarily. Try again later.",
+    sessionExpired: "Your session has expired. Sign in again.",
+    signingIn: "Signing in...",
+    logoutError: "Unable to sign out. Try again.",
+  },
+  dashboard: {
+    managerTitle: "Manager dashboard",
+    supervisorTitle: "Supervisor dashboard",
+    phaseBadge: "Phase one",
+    protectedRoute: "Protected route",
+    authReady: "Secure sign-in is active",
+    securityReady: "Permissions follow the user role",
+    placeholderBody: "This page is ready for permission checks and will receive its tools in the next phases.",
+  },
+  insights: {
+    title: "Smart brief",
+    subtitle: "A quick read on operational risks and opportunities based on station and report data.",
+    generate: "Generate brief",
+    generating: "Generating brief...",
+    generatedAt: "Last updated",
+    alerts: "Alerts",
+    recommendations: "Recommended actions",
+    unavailable: "Unable to generate the brief right now.",
+    sourceGemini: "Powered by Gemini",
+    sourceFallback: "Local fallback summary",
+    missingKey: "GEMINI_API_KEY is not configured, so a local summary is shown instead of Gemini.",
+  },
+  errors: {
+    accessDenied: "You do not have permission to access this page.",
+    accessDeniedTitle: "Unauthorized access",
+    unexpected: "An unexpected error occurred. Try again.",
+  },
+  scan: {
+    title: "Scan station code",
+    subtitle: "Open the station link from the QR code to continue to the inspection form.",
+    loginCta: "Technician sign in",
+    phaseNotice: "The inspection form will be enabled in phase three.",
+  },
+  theme: {
+    dark: "Dark mode",
+    light: "Light mode",
+  },
+  legal: {
+    allRightsReserved: "All rights reserved.",
+    copyright: "Copyright",
+    privacy: "Privacy Policy",
+    terms: "Terms of Use",
+  },
+  validation: {
+    requiredEmail: "Email is required.",
+  },
+} as const;
+
+export const i18n = {
+  ...ar,
+  ar,
+  en,
+} as const;

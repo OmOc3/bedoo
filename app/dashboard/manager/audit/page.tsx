@@ -1,0 +1,165 @@
+import type { Metadata } from "next";
+import { DashboardNav } from "@/components/layout/nav";
+import { PageHeader } from "@/components/layout/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { requireRole } from "@/lib/auth/server-session";
+import { listAuditLogs } from "@/lib/db/repositories";
+import type { AppTimestamp } from "@/types";
+
+interface AuditPageProps {
+  searchParams: Promise<{
+    action?: string;
+    actorUid?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    entityType?: string;
+  }>;
+}
+
+export const metadata: Metadata = {
+  title: "سجل العمليات",
+};
+
+const pageSize = 75;
+
+function parseDate(value: string | undefined, endOfDay = false): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  if (endOfDay) {
+    date.setHours(23, 59, 59, 999);
+  }
+
+  return date;
+}
+
+function formatTimestamp(timestamp?: AppTimestamp): string {
+  if (!timestamp) {
+    return "غير متاح";
+  }
+
+  return new Intl.DateTimeFormat("ar-EG", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(timestamp.toDate());
+}
+
+function metadataSummary(metadata: Record<string, unknown> | undefined): string {
+  if (!metadata) {
+    return "لا توجد بيانات إضافية";
+  }
+
+  return Object.entries(metadata)
+    .slice(0, 4)
+    .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(", ") : String(value)}`)
+    .join("، ");
+}
+
+export default async function ManagerAuditPage({ searchParams }: AuditPageProps) {
+  const params = await searchParams;
+  await requireRole(["manager"]);
+
+  const dateFrom = parseDate(params.dateFrom);
+  const dateTo = parseDate(params.dateTo, true);
+  const logs = await listAuditLogs({
+    action: params.action,
+    actorUid: params.actorUid,
+    entityType: params.entityType,
+    dateFrom,
+    dateTo,
+    limit: pageSize,
+  });
+
+  return (
+    <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
+      <section className="mx-auto max-w-7xl space-y-6">
+        <PageHeader
+          backHref="/dashboard/manager"
+          description="قراءة أثر العمليات الحساسة حسب المستخدم، الإجراء، ونوع الكيان."
+          title="سجل العمليات"
+        />
+        <DashboardNav role="manager" />
+
+        <form className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-control md:grid-cols-5" dir="rtl">
+          <input
+            className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+            defaultValue={params.action ?? ""}
+            name="action"
+            placeholder="الإجراء"
+          />
+          <input
+            className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+            defaultValue={params.entityType ?? ""}
+            name="entityType"
+            placeholder="نوع الكيان"
+          />
+          <input
+            className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+            defaultValue={params.actorUid ?? ""}
+            name="actorUid"
+            placeholder="UID المستخدم"
+          />
+          <input
+            className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+            defaultValue={params.dateFrom ?? ""}
+            name="dateFrom"
+            type="date"
+          />
+          <div className="flex gap-2">
+            <input
+              className="min-h-11 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+              defaultValue={params.dateTo ?? ""}
+              name="dateTo"
+              type="date"
+            />
+            <button className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-600" type="submit">
+              فلترة
+            </button>
+          </div>
+        </form>
+
+        {logs.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
+            <EmptyState description="لا توجد عمليات مطابقة للفلاتر الحالية." title="لا توجد سجلات" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-control">
+            <table className="w-full min-w-[980px]">
+              <thead className="border-b border-slate-200 bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">الوقت</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">الإجراء</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">الفاعل</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">الكيان</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">بيانات</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {logs.map((log) => (
+                  <tr className="hover:bg-slate-50" key={log.logId}>
+                    <td className="px-4 py-3 text-sm text-slate-700">{formatTimestamp(log.createdAt)}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-slate-900">{log.action}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700" dir="ltr">
+                      {log.actorUid}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {log.entityType}: <span dir="ltr">{log.entityId}</span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-500">{metadataSummary(log.metadata)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
