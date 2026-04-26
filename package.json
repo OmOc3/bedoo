@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "seed:users": "node scripts/seed-demo-users.mjs",
+    "mobile:start": "npm --prefix mobile run start",
+    "mobile:web": "npm --prefix mobile run web",
+    "mobile:lint": "npm --prefix mobile run lint",
+    "mobile:typecheck": "npm --prefix mobile exec -- tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

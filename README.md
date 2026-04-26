@@ -2,6 +2,8 @@
 
 Bedoo is an Arabic RTL bait station management system for pest control companies. It helps field technicians submit station inspection reports by QR code, while supervisors and managers review operations from role-protected dashboards.
 
+Brand identity rules live in `BRAND.md`.
+
 ## Tech Stack
 
 - Next.js 15 App Router
@@ -9,10 +11,12 @@ Bedoo is an Arabic RTL bait station management system for pest control companies
 - TypeScript strict mode
 - Firebase Auth, Firestore, Storage
 - Firebase Admin SDK for all server mutations
+- Gemini API for manager operational insights
 - Zod 4.1
 - React Hook Form
 - Tailwind CSS 3.4
 - qrcode
+- Expo SDK 55 mobile companion app in `mobile/`
 
 ## Roles
 
@@ -34,7 +38,7 @@ Bedoo is an Arabic RTL bait station management system for pest control companies
 - `/dashboard/manager/stations/[stationId]`: station details and QR code.
 - `/dashboard/manager/stations/[stationId]/edit`: edit station.
 - `/dashboard/manager/reports`: manager report list and review actions.
-- `/dashboard/manager/analytics`: zone, technician, and status analytics.
+- `/dashboard/manager/analytics`: zone, technician, status analytics, and optional Gemini operational summary.
 - `/dashboard/manager/users`: user role and active status management.
 - `/offline`: offline fallback for installed PWA usage.
 - `/manifest.webmanifest`: PWA manifest.
@@ -58,15 +62,20 @@ Copy `.env.example` to `.env.local` and fill the values. Do not commit real secr
 - `FIREBASE_ADMIN_PRIVATE_KEY`
 - `ROLE_COOKIE_SECRET`
 - `SESSION_MAX_AGE_SECONDS`
+- `GEMINI_API_KEY`
+- `EXPO_PUBLIC_BEDOO_WEB_BASE_URL`
 
 ## Run Locally
 
 ```bash
 npm install
 npm run dev
+npm run seed:users
 npm run typecheck
 npm run lint
 npm run build
+npm run mobile:start
+npm run mobile:web
 ```
 
 `npm run build` requires valid Firebase and auth environment variables. Missing environment variables should be fixed in local deployment configuration, not with fake values in code.
@@ -107,16 +116,21 @@ firebase deploy --only storage
 - Optional before/after report photo upload through Admin SDK and locked Storage rules.
 - Optional station GPS coordinates.
 - Manager analytics by zone, technician, and status frequency.
+- Gemini-powered manager insights with local fallback when `GEMINI_API_KEY` is not configured.
+- Light/dark mode identity across the web app.
+- Expo mobile companion app for field technicians.
 - PWA manifest and offline fallback page.
 - Audit logs for station, report, and user mutations.
 - Firestore client writes locked by default.
 
 ## Known Limitations
 
-- Firebase Auth user creation is not implemented in the UI. Use Firebase Console for now.
+- Firebase Auth user creation is available from the manager users screen and from `npm run seed:users`.
+- Demo users can be bootstrapped with `npm run seed:users`.
 - GPS coordinates are entered manually. Map picker/display is not implemented yet.
 - No push notifications.
 - Offline mode is a fallback shell only. Report submission still requires network connectivity.
+- Mobile app opens the secure web reporting flow and does not store Admin SDK or Gemini secrets.
 
 ## Next Recommended Tasks
 
@@ -124,4 +138,5 @@ firebase deploy --only storage
 2. Add Firebase Auth user invite flow when account creation policy is approved.
 3. Add push notifications for pending review reports.
 4. Add true offline draft queue for technicians.
-5. Add richer analytics trends by date range.
+5. Add native camera QR scanning to the Expo app with `expo-camera`.
+6. Add richer analytics trends by date range.

@@ -17,7 +17,9 @@ export const roleLabels: Record<UserRole, string> = {
 
 export const i18n = {
   appName: "Bedoo",
+  appNameArabic: "بيدو",
   appTitle: "إدارة محطات الطعوم",
+  brandTagline: "تشغيل ميداني واضح لمحطات الطعوم وفرق الفحص",
   actions: {
     backToLogin: "العودة لتسجيل الدخول",
     login: "تسجيل الدخول",
@@ -50,6 +52,19 @@ export const i18n = {
     securityReady: "الصلاحيات تعمل حسب الدور",
     placeholderBody: "هذه الصفحة جاهزة للتحقق من الصلاحيات وسيتم استكمال أدواتها في المراحل التالية.",
   },
+  insights: {
+    title: "موجز ذكي",
+    subtitle: "قراءة سريعة لأهم المخاطر التشغيلية والفرص استنادًا إلى بيانات المحطات والتقارير.",
+    generate: "توليد الموجز",
+    generating: "جار توليد الموجز...",
+    generatedAt: "آخر تحديث",
+    alerts: "تنبيهات",
+    recommendations: "إجراءات مقترحة",
+    unavailable: "تعذر توليد الموجز الآن.",
+    sourceGemini: "مدعوم بواسطة Gemini",
+    sourceFallback: "ملخص محلي احتياطي",
+    missingKey: "المفتاح GEMINI_API_KEY غير مضبوط، لذلك تم عرض ملخص محلي بدل Gemini.",
+  },
   errors: {
     accessDenied: "ليست لديك صلاحية للوصول إلى هذه الصفحة.",
     accessDeniedTitle: "وصول غير مصرح",
@@ -60,6 +75,10 @@ export const i18n = {
     subtitle: "افتح رابط المحطة من رمز QR للانتقال إلى نموذج الفحص.",
     loginCta: "تسجيل دخول الفني",
     phaseNotice: "سيتم تفعيل نموذج الفحص في المرحلة الثالثة.",
+  },
+  theme: {
+    dark: "الوضع الداكن",
+    light: "الوضع الفاتح",
   },
   validation: {
     requiredEmail: "البريد الإلكتروني مطلوب.",

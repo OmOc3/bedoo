@@ -4,15 +4,124 @@ import { FieldValue } from "firebase-admin/firestore";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server-session";
 import { USERS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
-import { updateUserRoleSchema } from "@/lib/validation/users";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { createUserSchema, updateUserRoleSchema } from "@/lib/validation/users";
 import { writeAuditLog } from "@/lib/audit";
 import type { AppUser } from "@/types";
 
 export interface UserActionResult {
+  createdUid?: string;
   error?: string;
   fieldErrors?: Record<string, string[] | undefined>;
   success?: boolean;
+}
+
+function optionalAuthErrorCode(error: unknown): string | null {
+  if (typeof error === "object" && error !== null && "code" in error && typeof error.code === "string") {
+    return error.code;
+  }
+
+  return null;
+}
+
+function requiredString(formData: FormData, key: string): string {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value : "";
+}
+
+async function getAuthUserByEmail(email: string) {
+  try {
+    return await adminAuth().getUserByEmail(email);
+  } catch (error: unknown) {
+    if (optionalAuthErrorCode(error) === "auth/user-not-found") {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+export async function createUserAccountAction(formData: FormData): Promise<UserActionResult> {
+  const session = await requireRole(["manager"]);
+  const parsed = createUserSchema.safeParse({
+    displayName: requiredString(formData, "displayName"),
+    email: requiredString(formData, "email"),
+    password: requiredString(formData, "password"),
+    role: formData.get("role"),
+  });
+
+  if (!parsed.success) {
+    return {
+      error: "تحقق من بيانات المستخدم وحاول مرة أخرى.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const email = parsed.data.email.trim().toLowerCase();
+  const existingAuthUser = await getAuthUserByEmail(email);
+
+  if (existingAuthUser) {
+    return { error: "هذا البريد مستخدم بالفعل." };
+  }
+
+  let createdUid: string | null = null;
+
+  try {
+    const authUser = await adminAuth().createUser({
+      email,
+      password: parsed.data.password,
+      displayName: parsed.data.displayName,
+      emailVerified: true,
+      disabled: false,
+    });
+
+    createdUid = authUser.uid;
+
+    await adminDb().collection(USERS_COL).doc(authUser.uid).set({
+      uid: authUser.uid,
+      email,
+      displayName: parsed.data.displayName,
+      role: parsed.data.role,
+      createdAt: FieldValue.serverTimestamp(),
+      isActive: true,
+    });
+
+    await writeAuditLog({
+      actorUid: session.uid,
+      actorRole: session.role,
+      action: "user.create",
+      entityType: "user",
+      entityId: authUser.uid,
+      metadata: {
+        email,
+        role: parsed.data.role,
+      },
+    });
+
+    revalidatePath("/dashboard/manager/users");
+
+    return {
+      createdUid: authUser.uid,
+      success: true,
+    };
+  } catch (error: unknown) {
+    if (createdUid) {
+      await adminAuth().deleteUser(createdUid).catch(() => undefined);
+    }
+
+    const errorCode = optionalAuthErrorCode(error);
+
+    if (errorCode === "auth/email-already-exists") {
+      return { error: "هذا البريد مستخدم بالفعل." };
+    }
+
+    if (errorCode === "auth/invalid-password") {
+      return { error: "كلمة المرور لا تحقق متطلبات Firebase." };
+    }
+
+    return { error: "تعذر إنشاء المستخدم. تحقق من إعدادات Firebase وحاول مرة أخرى." };
+  }
 }
 
 export async function toggleUserActiveAction(targetUid: string): Promise<UserActionResult> {
@@ -31,6 +140,10 @@ export async function toggleUserActiveAction(targetUid: string): Promise<UserAct
 
   const user = snapshot.data() as Partial<AppUser>;
   const nextIsActive = !user.isActive;
+
+  await adminAuth().updateUser(targetUid, {
+    disabled: !nextIsActive,
+  });
 
   await userRef.update({
     isActive: nextIsActive,

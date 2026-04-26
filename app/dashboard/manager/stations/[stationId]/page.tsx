@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { notFound } from "next/navigation";
 import { DashboardNav } from "@/components/layout/nav";
@@ -19,6 +20,20 @@ interface StationDetailPageProps {
 export const metadata: Metadata = {
   title: "تفاصيل المحطة",
 };
+
+async function getBaseUrl(): Promise<string | null> {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+
+  if (baseUrl) {
+    return baseUrl.replace(/\/$/, "");
+  }
+
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+
+  return host ? `${protocol}://${host}`.replace(/\/$/, "") : null;
+}
 
 function formatTimestamp(timestamp?: FirestoreTimestamp): string {
   if (!timestamp) {
@@ -59,7 +74,8 @@ export default async function StationDetailPage({ params }: StationDetailPagePro
   }
 
   const station = stationFromData(snapshot.id, snapshot.data() as Partial<Station>);
-  const qrCodeValue = station.qrCodeValue || `${process.env.NEXT_PUBLIC_BASE_URL}/station/${station.stationId}/report`;
+  const baseUrl = await getBaseUrl();
+  const qrCodeValue = station.qrCodeValue || (baseUrl ? `${baseUrl}/station/${station.stationId}/report` : `/station/${station.stationId}/report`);
   const qrDataUrl = await QRCode.toDataURL(qrCodeValue, {
     margin: 2,
     width: 320,

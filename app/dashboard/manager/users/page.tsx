@@ -3,6 +3,7 @@ import Link from "next/link";
 import { toggleUserActiveAction } from "@/app/actions/users";
 import { DashboardNav } from "@/components/layout/nav";
 import { PageHeader } from "@/components/layout/page-header";
+import { CreateUserForm } from "@/components/users/create-user-form";
 import { UserRoleForm } from "@/components/users/user-role-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requireRole } from "@/lib/auth/server-session";
@@ -44,15 +45,16 @@ export default async function ManagerUsersPage() {
             </Link>
           }
           backHref="/dashboard/manager"
-          description="تفعيل المستخدمين وتعديل أدوارهم. إنشاء حسابات Firebase Auth يتم من Firebase Console حاليًا."
+          description="إنشاء المستخدمين، تفعيلهم، وتعديل أدوارهم من خلال الباك اند."
           title="إدارة المستخدمين"
         />
         <DashboardNav role="manager" />
 
-        {/* TODO: Firebase Auth user creation — use Firebase Console for now */}
+        <CreateUserForm />
+
         {users.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white">
-            <EmptyState description="أضف المستخدمين من Firebase Console ثم أنشئ وثائقهم في users." title="لا يوجد مستخدمون" />
+            <EmptyState description="ابدأ بإنشاء أول مستخدم من النموذج أعلاه." title="لا يوجد مستخدمون" />
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">

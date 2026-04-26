@@ -92,3 +92,13 @@ export interface LoginSuccessResponse {
 export interface SessionSuccessResponse {
   redirectTo: string;
 }
+
+export interface AiInsightsResult {
+  summary: string;
+  alerts: string[];
+  recommendations: string[];
+  generatedAt: string;
+  source: "gemini" | "fallback";
+  model?: string;
+  note?: string;
+}

@@ -2,6 +2,7 @@
 
 import { FieldValue } from "firebase-admin/firestore";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/server-session";
 import { STATIONS_COL } from "@/lib/collections";
@@ -58,11 +59,19 @@ function optionalCoordinates(formData: FormData): { lat: number; lng: number } |
   };
 }
 
-function getBaseUrl(): string {
+async function getBaseUrl(): Promise<string> {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
 
   if (!baseUrl) {
-    throw new Error("Missing environment variable: NEXT_PUBLIC_BASE_URL");
+    const requestHeaders = await headers();
+    const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+    const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+
+    if (!host) {
+      throw new Error("Unable to determine application origin.");
+    }
+
+    return `${protocol}://${host}`.replace(/\/$/, "");
   }
 
   return baseUrl.replace(/\/$/, "");
@@ -85,13 +94,14 @@ export async function createStationAction(formData: FormData): Promise<StationAc
   }
 
   const ref = adminDb().collection(STATIONS_COL).doc();
+  const baseUrl = await getBaseUrl();
   const stationData = {
     stationId: ref.id,
     label: parsed.data.label,
     location: parsed.data.location,
     ...(parsed.data.zone ? { zone: parsed.data.zone } : {}),
     ...(parsed.data.coordinates ? { coordinates: parsed.data.coordinates } : {}),
-    qrCodeValue: `${getBaseUrl()}/station/${ref.id}/report`,
+    qrCodeValue: `${baseUrl}/station/${ref.id}/report`,
     isActive: true,
     totalReports: 0,
     createdAt: FieldValue.serverTimestamp(),
