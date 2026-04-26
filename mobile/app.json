@@ -26,6 +26,12 @@
     "plugins": [
       "expo-router",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "يحتاج Bedoo إلى الكاميرا لمسح رمز QR الخاص بالمحطة."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#020617",

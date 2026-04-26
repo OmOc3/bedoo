@@ -7,6 +7,7 @@ import { toggleStationStatusAction } from "@/app/actions/stations";
 import { requireRole } from "@/lib/auth/server-session";
 import { STATIONS_COL } from "@/lib/collections";
 import { adminDb } from "@/lib/firebase-admin";
+import { getStationHealth } from "@/lib/station-health";
 import type { FirestoreTimestamp, Station } from "@/types";
 
 export const metadata: Metadata = {
@@ -97,6 +98,9 @@ export default async function ManagerStationsPage() {
                     الحالة
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                    الصحة
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     آخر زيارة
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -108,50 +112,59 @@ export default async function ManagerStationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {stations.map((station) => (
-                  <tr className="transition-colors hover:bg-slate-50" key={station.stationId}>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900">{station.label}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{station.location}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{station.zone ?? "غير محدد"}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={
-                          station.isActive
-                            ? "inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700"
-                            : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
-                        }
-                      >
-                        {station.isActive ? "نشطة" : "غير نشطة"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{formatTimestamp(station.lastVisitedAt)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{station.totalReports}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Link
-                          className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline"
-                          href={`/dashboard/manager/stations/${station.stationId}`}
-                        >
-                          عرض
-                        </Link>
-                        <Link
-                          className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline"
-                          href={`/dashboard/manager/stations/${station.stationId}/edit`}
-                        >
-                          تعديل
-                        </Link>
-                        <form action={toggleStationStatusAction.bind(null, station.stationId, station.isActive)}>
-                          <button
-                            className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline"
-                            type="submit"
+                {stations.map((station) => {
+                  const health = getStationHealth(station);
+
+                  return (
+                      <tr className="transition-colors hover:bg-slate-50" key={station.stationId}>
+                        <td className="px-4 py-3 text-sm font-medium text-slate-900">{station.label}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{station.location}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{station.zone ?? "غير محدد"}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={
+                              station.isActive
+                                ? "inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700"
+                                : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
+                            }
                           >
-                            {station.isActive ? "تعطيل" : "تفعيل"}
-                          </button>
-                        </form>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            {station.isActive ? "نشطة" : "غير نشطة"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${health.toneClassName}`}>
+                            {health.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{formatTimestamp(station.lastVisitedAt)}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{station.totalReports}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <Link
+                              className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline"
+                              href={`/dashboard/manager/stations/${station.stationId}`}
+                            >
+                              عرض
+                            </Link>
+                            <Link
+                              className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline"
+                              href={`/dashboard/manager/stations/${station.stationId}/edit`}
+                            >
+                              تعديل
+                            </Link>
+                            <form action={toggleStationStatusAction.bind(null, station.stationId, station.isActive)}>
+                              <button
+                                className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline"
+                                type="submit"
+                              >
+                                {station.isActive ? "تعطيل" : "تفعيل"}
+                              </button>
+                            </form>
+                          </div>
+                        </td>
+                      </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

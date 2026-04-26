@@ -27,6 +27,14 @@ export default function AppTabs() {
         />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="drafts">
+        <NativeTabs.Trigger.Label>المسودات</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          src={require('@/assets/images/tabIcons/explore.png')}
+          renderingMode="template"
+        />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="settings">
         <NativeTabs.Trigger.Label>الإعدادات</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon

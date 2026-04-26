@@ -32,8 +32,8 @@ export default function HomeScreen() {
               <SecondaryButton onPress={() => Linking.openURL(`${WebBaseUrl}/scan`)}>
                 فتح صفحة المسح
               </SecondaryButton>
-              <SecondaryButton onPress={() => Linking.openURL(`${WebBaseUrl}/login`)}>
-                دخول الويب
+              <SecondaryButton onPress={() => router.push('/drafts')}>
+                المسودات
               </SecondaryButton>
             </View>
           </Card>

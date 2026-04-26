@@ -31,14 +31,17 @@ Brand identity rules live in `BRAND.md`.
 - `/scan`: QR scan instructions and manual station entry.
 - `/station/[stationId]/report`: technician report form.
 - `/dashboard/supervisor`: supervisor summary dashboard.
+- `/dashboard/supervisor/tasks`: operational tasks for pending reviews and stations needing follow-up.
 - `/dashboard/supervisor/reports`: supervisor report list and filters.
 - `/dashboard/manager`: manager summary dashboard.
+- `/dashboard/manager/tasks`: operational tasks for pending reviews, stale stations, and inactive stations.
 - `/dashboard/manager/stations`: station list.
 - `/dashboard/manager/stations/new`: create station.
 - `/dashboard/manager/stations/[stationId]`: station details and QR code.
 - `/dashboard/manager/stations/[stationId]/edit`: edit station.
 - `/dashboard/manager/reports`: manager report list and review actions.
 - `/dashboard/manager/analytics`: zone, technician, status analytics, and optional Gemini operational summary.
+- `/dashboard/manager/audit`: read-only audit log viewer with filters.
 - `/dashboard/manager/users`: user role and active status management.
 - `/offline`: offline fallback for installed PWA usage.
 - `/manifest.webmanifest`: PWA manifest.
@@ -115,10 +118,12 @@ firebase deploy --only storage
 - CSV export for reports.
 - Optional before/after report photo upload through Admin SDK and locked Storage rules.
 - Optional station GPS coordinates.
+- Station health indicators based on active state, visit recency, and report count.
+- Today tasks pages for managers and supervisors.
 - Manager analytics by zone, technician, and status frequency.
 - Gemini-powered manager insights with local fallback when `GEMINI_API_KEY` is not configured.
 - Light/dark mode identity across the web app.
-- Expo mobile companion app for field technicians.
+- Expo mobile companion app for field technicians with native QR scanning and local drafts.
 - PWA manifest and offline fallback page.
 - Audit logs for station, report, and user mutations.
 - Firestore client writes locked by default.
@@ -130,13 +135,13 @@ firebase deploy --only storage
 - GPS coordinates are entered manually. Map picker/display is not implemented yet.
 - No push notifications.
 - Offline mode is a fallback shell only. Report submission still requires network connectivity.
-- Mobile app opens the secure web reporting flow and does not store Admin SDK or Gemini secrets.
+- Mobile drafts store only station/report draft data locally and do not store Admin SDK, Gemini, or session secrets.
 
 ## Next Recommended Tasks
 
 1. Add map picker and map display for station coordinates.
 2. Add Firebase Auth user invite flow when account creation policy is approved.
 3. Add push notifications for pending review reports.
-4. Add true offline draft queue for technicians.
-5. Add native camera QR scanning to the Expo app with `expo-camera`.
-6. Add richer analytics trends by date range.
+4. Add authenticated native report submission API for the Expo app.
+5. Add richer analytics trends by date range.
+6. Add configurable station follow-up thresholds.

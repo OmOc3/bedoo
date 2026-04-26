@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BrandLockup } from "@/components/layout/brand";
 import { ManualStationEntry } from "@/components/station/manual-station-entry";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { getCurrentSession } from "@/lib/auth/server-session";
 import { i18n } from "@/lib/i18n";
 
@@ -13,12 +15,16 @@ export default async function ScanInstructionsPage() {
 
   return (
     <main className="flex min-h-dvh items-center bg-slate-50 px-4 py-12 text-right sm:px-6" dir="rtl">
-      <section className="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
-        <div className="mb-5 grid h-14 w-14 grid-cols-2 gap-1 rounded-xl bg-teal-50 p-3">
-          <span className="rounded-sm bg-teal-700" />
-          <span className="rounded-sm bg-teal-700 opacity-70" />
-          <span className="rounded-sm bg-teal-700 opacity-70" />
-          <span className="rounded-sm border-2 border-teal-700" />
+      <section className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-control sm:p-6">
+        <div className="mb-6 flex items-start justify-between gap-3">
+          <BrandLockup />
+          <ThemeToggle />
+        </div>
+        <div className="mb-5 grid h-14 w-14 grid-cols-2 gap-1 rounded-xl border border-teal-100 bg-teal-50 p-3 dark:border-slate-700 dark:bg-slate-900">
+          <span className="rounded-sm bg-teal-700 dark:bg-teal-400" />
+          <span className="rounded-sm bg-teal-700 opacity-70 dark:bg-teal-400" />
+          <span className="rounded-sm bg-teal-700 opacity-70 dark:bg-teal-400" />
+          <span className="rounded-sm border-2 border-teal-700 dark:border-teal-400" />
         </div>
         <h1 className="text-2xl font-bold text-slate-900">{i18n.scan.title}</h1>
         <p className="mt-3 text-base leading-7 text-slate-600">

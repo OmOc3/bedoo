@@ -26,6 +26,9 @@ export default function AppTabs() {
           <TabTrigger name="scan" href="/scan" asChild>
             <TabButton>المسح</TabButton>
           </TabTrigger>
+          <TabTrigger name="drafts" href="/drafts" asChild>
+            <TabButton>المسودات</TabButton>
+          </TabTrigger>
           <TabTrigger name="settings" href="/settings" asChild>
             <TabButton>الإعدادات</TabButton>
           </TabTrigger>

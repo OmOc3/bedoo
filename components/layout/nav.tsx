@@ -18,15 +18,18 @@ interface NavItem {
 
 const managerItems: NavItem[] = [
   { href: "/dashboard/manager", label: "لوحة المدير" },
+  { href: "/dashboard/manager/tasks", label: "مهام اليوم" },
   { href: "/dashboard/manager/stations", label: "المحطات" },
   { href: "/dashboard/manager/reports", label: "التقارير" },
   { href: "/dashboard/manager/analytics", label: "التحليلات" },
+  { href: "/dashboard/manager/audit", label: "السجل" },
   { href: "/dashboard/manager/users", label: "المستخدمون" },
   { href: "/dashboard/supervisor", label: "لوحة المشرف" },
 ];
 
 const supervisorItems: NavItem[] = [
   { href: "/dashboard/supervisor", label: "لوحة المشرف" },
+  { href: "/dashboard/supervisor/tasks", label: "مهام اليوم" },
   { href: "/dashboard/supervisor/reports", label: "التقارير" },
 ];
 
