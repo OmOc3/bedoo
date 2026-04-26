@@ -13,8 +13,24 @@ import { isRecord } from "@/lib/utils";
 import { loginFormSchema, type LoginFormValues } from "@/lib/validation/auth";
 import type { ApiErrorResponse, LoginSuccessResponse } from "@/types";
 
+function isAuthenticatedUserResponse(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.uid === "string" &&
+    typeof value.email === "string" &&
+    typeof value.displayName === "string" &&
+    (value.role === "technician" || value.role === "supervisor" || value.role === "manager") &&
+    value.isActive === true
+  );
+}
+
 function isLoginSuccessResponse(value: unknown): value is LoginSuccessResponse {
-  return isRecord(value) && typeof value.redirectTo === "string" && typeof value.customToken === "string";
+  return (
+    isRecord(value) &&
+    typeof value.redirectTo === "string" &&
+    typeof value.customToken === "string" &&
+    isAuthenticatedUserResponse(value.user)
+  );
 }
 
 function isApiErrorResponse(value: unknown): value is ApiErrorResponse {

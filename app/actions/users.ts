@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server-session";
 import { USERS_COL } from "@/lib/collections";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
-import { createUserSchema, updateUserRoleSchema } from "@/lib/validation/users";
+import { createUserSchema, updateUserAccessCodeSchema, updateUserRoleSchema } from "@/lib/validation/users";
 import { writeAuditLog } from "@/lib/audit";
 import type { AppUser } from "@/types";
 
@@ -117,7 +117,7 @@ export async function createUserAccountAction(formData: FormData): Promise<UserA
     }
 
     if (errorCode === "auth/invalid-password") {
-      return { error: "كلمة المرور لا تحقق متطلبات Firebase." };
+      return { error: "كود الدخول لا يحقق متطلبات Firebase." };
     }
 
     return { error: "تعذر إنشاء المستخدم. تحقق من إعدادات Firebase وحاول مرة أخرى." };
@@ -210,6 +210,62 @@ export async function updateUserRoleAction(targetUid: string, formData: FormData
     metadata: {
       previousRole: user.role,
       nextRole: parsed.data.role,
+    },
+  });
+
+  revalidatePath("/dashboard/manager/users");
+
+  return { success: true };
+}
+
+export async function updateUserAccessCodeAction(targetUid: string, formData: FormData): Promise<UserActionResult> {
+  const session = await requireRole(["manager"]);
+  const parsed = updateUserAccessCodeSchema.safeParse({
+    password: requiredString(formData, "password"),
+  });
+
+  if (!parsed.success) {
+    return {
+      error: "تحقق من كود الدخول وحاول مرة أخرى.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const userRef = adminDb().collection(USERS_COL).doc(targetUid);
+  const snapshot = await userRef.get();
+
+  if (!snapshot.exists) {
+    return { error: "المستخدم غير موجود" };
+  }
+
+  const user = snapshot.data() as Partial<AppUser>;
+
+  try {
+    await adminAuth().updateUser(targetUid, {
+      password: parsed.data.password,
+    });
+  } catch (error: unknown) {
+    if (optionalAuthErrorCode(error) === "auth/invalid-password") {
+      return { error: "كود الدخول لا يحقق متطلبات Firebase." };
+    }
+
+    return { error: "تعذر تحديث كود الدخول. تحقق من إعدادات Firebase وحاول مرة أخرى." };
+  }
+
+  await userRef.update({
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedBy: session.uid,
+  });
+
+  await writeAuditLog({
+    actorUid: session.uid,
+    actorRole: session.role,
+    action: "user.access_code_change",
+    entityType: "user",
+    entityId: targetUid,
+    metadata: {
+      email: user.email,
+      role: user.role,
     },
   });
 

@@ -9,28 +9,28 @@ import { Platform } from 'react-native';
 
 export const Colors = {
   light: {
-    text: '#0f172a',
-    background: '#f8fafc',
-    backgroundElement: '#ffffff',
+    text: '#17181f',
+    background: '#f5f8fb',
+    backgroundElement: '#fffbfd',
     backgroundSelected: '#ccfbf1',
-    accent: '#0284c7',
-    border: '#e2e8f0',
+    accent: '#0f766e',
+    border: '#dfe7f0',
     danger: '#dc2626',
     dangerSoft: '#fee2e2',
     dangerStrong: '#dc2626',
-    info: '#0284c7',
+    info: '#2563eb',
     infoSoft: '#e0f2fe',
-    onPrimary: '#f8fafc',
+    onPrimary: '#fffbfd',
     primary: '#0f766e',
     primaryLight: '#14b8a6',
     primarySoft: '#ccfbf1',
     primaryStrong: '#0f766e',
-    surfaceCard: '#ffffff',
+    surfaceCard: '#fffbfd',
     surfaceCardDark: '#1e293b',
     success: '#16a34a',
     successSoft: '#dcfce7',
     successStrong: '#16a34a',
-    textSecondary: '#64748b',
+    textSecondary: '#6b7280',
     warning: '#d97706',
     warningSoft: '#fef3c7',
     warningStrong: '#d97706',
@@ -142,9 +142,9 @@ export const Spacing = {
 
 export const Radius = {
   sm: 8,
-  md: 14,
-  lg: 20,
-  xl: 28,
+  md: 12,
+  lg: 16,
+  xl: 24,
   full: 9999,
 } as const;
 
@@ -152,18 +152,10 @@ export const TouchTarget = 52;
 
 export const Shadow = {
   sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    boxShadow: '0 1px 3px rgba(15, 23, 42, 0.10)',
   },
   md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    boxShadow: '0 10px 24px rgba(15, 23, 42, 0.14)',
   },
 } as const;
 
@@ -176,8 +168,8 @@ export const Brand = {
   appTitle: 'إدارة محطات الطعوم',
   tagline: 'تشغيل ميداني واضح لمحطات الطعوم وفرق الفحص',
   taglineEnglish: 'Clear field operations for bait stations and inspection teams',
-  companyName: '',
-  companyNameArabic: '',
+  companyName: 'Mawqi3 Ltd.',
+  companyNameArabic: 'موقعي المحدودة',
   foundedYear: 2025,
   copyrightYear: () => new Date().getFullYear(),
   scheme: 'mawqi3',

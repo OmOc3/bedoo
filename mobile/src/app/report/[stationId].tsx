@@ -1,22 +1,12 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, type AppStateStatus } from 'react-native';
+import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, type AppStateStatus } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  BrandHeader,
-  Card,
-  InputField,
-  PrimaryButton,
-  ScreenShell,
-  SecondaryButton,
-  StationSummary,
-  StatusBadge,
-  SyncBanner,
-  useToast,
-} from '@/components/mawqi3-ui';
+import { Mawqi3Icon } from '@/components/icons';
+import { InputField, MobileTopBar, PrimaryButton, ScreenShell, SecondaryButton, SyncBanner, useToast } from '@/components/mawqi3-ui';
 import { ThemedText } from '@/components/themed-text';
-import { BottomTabInset, Spacing } from '@/constants/theme';
+import { BottomTabInset, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { StatusOptions } from '@/constants/status-options';
 import { useLanguage } from '@/contexts/language-context';
 import { useStation } from '@/hooks/use-station';
@@ -31,6 +21,50 @@ function getParamValue(value: string | string[] | undefined): string {
   }
 
   return value ?? '';
+}
+
+function StatusOptionRow({ label, onPress, selected }: { label: string; onPress: () => void; selected: boolean }) {
+  const theme = useTheme();
+
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: selected }}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.statusRow,
+        {
+          backgroundColor: selected ? theme.primarySoft : theme.backgroundElement,
+          borderColor: selected ? theme.primaryLight : theme.border,
+          opacity: pressed ? 0.82 : 1,
+        },
+      ]}>
+      <View style={[styles.checkbox, { backgroundColor: selected ? theme.primary : theme.backgroundElement, borderColor: selected ? theme.primary : theme.border }]}>
+        {selected ? <Mawqi3Icon color={theme.onPrimary} name="check" size={18} /> : null}
+      </View>
+      <ThemedText type="smallBold" style={styles.statusLabel}>
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+function PhotoPlaceholder() {
+  const theme = useTheme();
+
+  return (
+    <View style={[styles.photoBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+      <View style={[styles.photoIcon, { backgroundColor: theme.background }]}>
+        <Mawqi3Icon color={theme.textSecondary} name="camera" size={34} />
+      </View>
+      <ThemedText type="smallBold" style={{ color: theme.primary }}>
+        إضافة صورة
+      </ThemedText>
+      <ThemedText type="small" themeColor="textSecondary" style={styles.photoHint}>
+        التقط صورة للمحطة أو النشاط المكتشف...
+      </ThemedText>
+    </View>
+  );
 }
 
 export default function StationReportScreen() {
@@ -234,64 +268,82 @@ export default function StationReportScreen() {
             contentInsetAdjustmentBehavior="automatic"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <BrandHeader subtitle={strings.report.subtitle} />
+            <MobileTopBar leftIcon="arrow-left" leftLabel={strings.actions.back} onLeftPress={() => router.back()} title="تقرير فحص" />
 
-            {stationLoading ? (
-              <SyncBanner body={stationId} title={strings.report.stationLoading} tone="info" />
-            ) : station ? (
-              <StationSummary station={station} />
-            ) : (
-              <SyncBanner body={stationError ?? stationId} title={strings.report.stationUnavailable} tone="danger" />
-            )}
+            <View style={[styles.stationCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+              <View style={[styles.stationIcon, { backgroundColor: theme.primarySoft }]}>
+                <Mawqi3Icon color={theme.primary} name="target" size={32} />
+              </View>
+              <View style={styles.stationCopy}>
+                <ThemedText type="title" style={styles.stationTitle}>
+                  {station?.label ?? `محطة رقم: #${stationId || '-'}`}
+                </ThemedText>
+                <View style={[styles.locationRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                  <Mawqi3Icon color={theme.textSecondary} name="map-pin" size={18} />
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {station?.location ?? stationError ?? 'الموقع غير متاح'}
+                  </ThemedText>
+                </View>
+              </View>
+            </View>
+
+            {stationLoading ? <SyncBanner body={stationId} title={strings.report.stationLoading} tone="info" /> : null}
 
             {station?.isActive === false ? (
               <SyncBanner body={strings.report.inactiveStationHint} title={strings.report.stationInactive} tone="danger" />
             ) : null}
 
-            <Card>
-              <View style={styles.sectionHeader}>
-                <ThemedText type="title">{strings.report.statusTitle}</ThemedText>
-                <ThemedText selectable type="small" themeColor="textSecondary">
-                  {strings.report.stationLabel} {stationId || '-'}
-                </ThemedText>
-              </View>
-              <View style={[styles.statusGrid, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+            {!stationLoading && !station && stationError ? (
+              <SyncBanner body={stationError} title={strings.report.stationUnavailable} tone="warning" />
+            ) : null}
+
+            <View style={styles.section}>
+              <ThemedText type="title" style={styles.sectionTitle}>
+                حالة المحطة
+              </ThemedText>
+              <View style={styles.statusList}>
                 {StatusOptions.map((option) => (
-                  <SecondaryButton key={option.value} selected={status.includes(option.value)} onPress={() => toggleStatus(option.value)}>
-                    {statusOptionLabels[option.value]}
-                  </SecondaryButton>
+                  <StatusOptionRow
+                    key={option.value}
+                    label={statusOptionLabels[option.value]}
+                    onPress={() => toggleStatus(option.value)}
+                    selected={status.includes(option.value)}
+                  />
                 ))}
               </View>
-              {status.length > 0 ? (
-                <View style={styles.selectedStatuses}>
-                  {status.map((item) => (
-                    <StatusBadge key={item} status={item} />
-                  ))}
-                </View>
-              ) : null}
-            </Card>
+            </View>
 
-            <Card>
+            <View style={styles.section}>
+              <ThemedText type="title" style={styles.sectionTitle}>
+                ملاحظات إضافية
+              </ThemedText>
               <InputField
                 label={strings.report.notesLabel}
                 multiline
                 onChangeText={setNotes}
-                placeholder={strings.report.notesPlaceholder}
+                placeholder="أدخل أي ملاحظات حول حالة المحطة أو النشاط المكتشف..."
                 style={styles.notes}
                 value={notes}
               />
+            </View>
 
-              {error ? <ThemedText selectable style={{ color: theme.danger }}>{error}</ThemedText> : null}
+            <View style={styles.section}>
+              <ThemedText type="title" style={styles.sectionTitle}>
+                التوثيق المرئي
+              </ThemedText>
+              <PhotoPlaceholder />
+            </View>
 
-              <View style={[styles.actions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
-                <SecondaryButton disabled={isSaving} onPress={() => void saveReportDraft()}>
-                  {strings.report.saveOffline}
-                </SecondaryButton>
-                <PrimaryButton disabled={isSaving} loading={isSaving} onPress={() => void submitReport()}>
-                  {isSaving ? strings.actions.saving : strings.report.submit}
-                </PrimaryButton>
-              </View>
-            </Card>
+            {error ? <ThemedText selectable style={{ color: theme.danger }}>{error}</ThemedText> : null}
+
+            <View style={styles.actions}>
+              <SecondaryButton disabled={isSaving} icon="clipboard-check" onPress={() => void saveReportDraft()} stretch>
+                {strings.report.saveOffline}
+              </SecondaryButton>
+              <PrimaryButton disabled={isSaving} icon="send" loading={isSaving} onPress={() => void submitReport()}>
+                {isSaving ? strings.actions.saving : strings.report.submit}
+              </PrimaryButton>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -301,32 +353,98 @@ export default function StationReportScreen() {
 
 const styles = StyleSheet.create({
   actions: {
-    gap: Spacing.two,
+    gap: Spacing.md,
+    paddingTop: Spacing.sm,
+  },
+  checkbox: {
+    alignItems: 'center',
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    height: 34,
+    justifyContent: 'center',
+    width: 34,
   },
   keyboardView: {
     flex: 1,
   },
+  locationRow: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
   notes: {
-    minHeight: 132,
+    minHeight: 156,
+  },
+  photoBox: {
+    alignItems: 'center',
+    borderRadius: Radius.lg,
+    borderStyle: 'dashed',
+    borderWidth: 2,
+    gap: Spacing.sm,
+    minHeight: 188,
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  photoHint: {
+    textAlign: 'center',
+  },
+  photoIcon: {
+    alignItems: 'center',
+    borderRadius: Radius.full,
+    height: 64,
+    justifyContent: 'center',
+    width: 64,
   },
   safeArea: {
     flex: 1,
     width: '100%',
   },
   scrollContent: {
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.four,
+    gap: Spacing.lg,
+    paddingBottom: BottomTabInset + Spacing.xl,
   },
-  sectionHeader: {
-    gap: Spacing.one,
+  section: {
+    gap: Spacing.md,
   },
-  selectedStatuses: {
+  sectionTitle: {
+    fontSize: Typography.fontSize.lg,
+  },
+  stationCard: {
+    alignItems: 'center',
+    borderRadius: Radius.lg,
+    borderWidth: 1,
     flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: Spacing.two,
+    gap: Spacing.md,
+    minHeight: 112,
+    padding: Spacing.lg,
   },
-  statusGrid: {
-    flexWrap: 'wrap',
-    gap: Spacing.two,
+  stationCopy: {
+    flex: 1,
+    gap: Spacing.sm,
+  },
+  stationIcon: {
+    alignItems: 'center',
+    borderRadius: Radius.full,
+    height: 66,
+    justifyContent: 'center',
+    width: 66,
+  },
+  stationTitle: {
+    textAlign: 'right',
+  },
+  statusLabel: {
+    flex: 1,
+    fontSize: Typography.fontSize.md,
+  },
+  statusList: {
+    gap: Spacing.md,
+  },
+  statusRow: {
+    alignItems: 'center',
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    flexDirection: 'row-reverse',
+    gap: Spacing.md,
+    minHeight: TouchTarget + 18,
+    paddingHorizontal: Spacing.md,
   },
 });

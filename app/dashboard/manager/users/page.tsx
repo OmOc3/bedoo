@@ -4,6 +4,7 @@ import { toggleUserActiveAction } from "@/app/actions/users";
 import { DashboardNav } from "@/components/layout/nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { CreateUserForm } from "@/components/users/create-user-form";
+import { UserAccessCodeForm } from "@/components/users/user-access-code-form";
 import { UserRoleForm } from "@/components/users/user-role-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requireRole } from "@/lib/auth/server-session";
@@ -120,7 +121,8 @@ export default async function ManagerUsersPage() {
                             {user.isActive ? "تعطيل" : "تفعيل"}
                           </button>
                         </form>
-                        {isCurrentUser ? <p className="mt-2 text-xs text-slate-500">لا يمكنك تعديل حسابك الحالي.</p> : null}
+                        <UserAccessCodeForm targetUid={user.uid} />
+                        {isCurrentUser ? <p className="mt-2 text-xs text-slate-500">لا يمكنك تعطيل حسابك أو تغيير دورك الحالي.</p> : null}
                       </td>
                     </tr>
                   );

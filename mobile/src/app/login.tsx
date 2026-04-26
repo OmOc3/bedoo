@@ -1,71 +1,70 @@
-import * as ExpoLinking from 'expo-linking';
 import { router } from 'expo-router';
-import { signInWithCustomToken } from 'firebase/auth';
-import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet } from 'react-native';
+import { FirebaseError } from 'firebase/app';
+import { signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import { useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandHeader, Card, InputField, PrimaryButton, ScreenShell, SecondaryButton, useToast } from '@/components/mawqi3-ui';
+import { Mawqi3Icon, type Mawqi3IconName } from '@/components/icons';
+import { PrimaryButton, ScreenShell, useToast } from '@/components/mawqi3-ui';
 import { ThemedText } from '@/components/themed-text';
-import { BottomTabInset, Spacing, WebBaseUrl } from '@/constants/theme';
+import { BottomTabInset, Fonts, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
 import { useTheme } from '@/hooks/use-theme';
+import { loadMobileUserProfile } from '@/lib/auth';
+import { getMobileHomeRoute } from '@/lib/auth-routes';
 import { errorHaptic, successHaptic } from '@/lib/haptics';
-import { ApiClientError, apiPost, getApiBaseUrl } from '@/lib/sync/api-client';
 import { auth } from '@/lib/sync/firebase';
-import type { LoginSuccessResponse } from '@/lib/sync/types';
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function buildForgotPasswordUrl(baseUrl: string, email: string): string {
-  const returnTo = ExpoLinking.createURL('/');
-  const query = new URLSearchParams({
-    email,
-    returnTo,
-    mode: 'forgot-password',
-    source: 'mobile',
-  });
+function LoginField({ icon, label, style, ...props }: TextInputProps & { icon: Mawqi3IconName; label: string }) {
+  const theme = useTheme();
 
-  return `${baseUrl.replace(/\/$/, '')}/login?${query.toString()}`;
+  return (
+    <View style={styles.fieldGroup}>
+      <ThemedText type="smallBold" style={styles.fieldLabel}>
+        {label}
+      </ThemedText>
+      <View style={[styles.inputShell, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+        <TextInput
+          placeholderTextColor={theme.textSecondary}
+          style={[styles.input, { color: theme.text, writingDirection: 'ltr' }, style]}
+          textAlign="left"
+          {...props}
+        />
+        <Mawqi3Icon color={theme.textSecondary} name={icon} size={24} />
+      </View>
+    </View>
+  );
 }
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [accessCode, setAccessCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
-  const [webAppUrl, setWebAppUrl] = useState(WebBaseUrl);
   const { strings } = useLanguage();
   const theme = useTheme();
   const { showToast } = useToast();
 
-  useEffect(() => {
-    let isMounted = true;
-
-    void getApiBaseUrl().then((value) => {
-      if (isMounted) {
-        setWebAppUrl(value);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
   function mapAuthError(errorValue: unknown): string {
-    if (errorValue instanceof ApiClientError) {
-      if (errorValue.status === 429) {
-        return strings.auth.rateLimited;
-      }
-
-      if (errorValue.status === 0) {
+    if (errorValue instanceof FirebaseError) {
+      if (errorValue.code === 'auth/network-request-failed') {
         return strings.auth.networkError;
       }
 
-      return errorValue.message || strings.auth.genericLoginError;
+      if (errorValue.code === 'auth/user-disabled') {
+        return strings.auth.userDisabled;
+      }
+
+      return strings.auth.invalidCredentials;
+    }
+
+    if (errorValue instanceof Error && errorValue.message === strings.auth.missingProfile) {
+      return strings.auth.missingProfile;
     }
 
     return strings.auth.genericLoginError;
@@ -84,8 +83,8 @@ export default function LoginScreen() {
       return;
     }
 
-    if (!password) {
-      setError(strings.auth.passwordRequired);
+    if (!accessCode.trim()) {
+      setError(strings.auth.accessCodeRequired);
       return;
     }
 
@@ -93,35 +92,25 @@ export default function LoginScreen() {
     setIsSigningIn(true);
 
     try {
-      const result = await apiPost<LoginSuccessResponse, { email: string; password: string }>(
-        '/api/auth/login',
-        {
-          email: cleanEmail,
-          password,
-        },
-        { authenticated: false },
-      );
+      const credential = await signInWithEmailAndPassword(auth, cleanEmail, accessCode.trim());
+      const profile = await loadMobileUserProfile(credential.user);
 
-      await signInWithCustomToken(auth, result.customToken);
+      if (!profile) {
+        await firebaseSignOut(auth);
+        throw new Error(strings.auth.missingProfile);
+      }
+
       await successHaptic();
-      setPassword('');
-      router.replace('/(tabs)');
+      setAccessCode('');
+      router.replace(getMobileHomeRoute(profile.role));
     } catch (loginError: unknown) {
+      await firebaseSignOut(auth).catch(() => undefined);
       const message = mapAuthError(loginError);
       setError(message);
       showToast(message, 'error');
       await errorHaptic();
     } finally {
       setIsSigningIn(false);
-    }
-  }
-
-  async function openForgotPassword(): Promise<void> {
-    try {
-      await Linking.openURL(buildForgotPasswordUrl(webAppUrl, email.trim()));
-    } catch {
-      showToast(strings.errors.unexpected, 'error');
-      await errorHaptic();
     }
   }
 
@@ -134,41 +123,63 @@ export default function LoginScreen() {
             contentInsetAdjustmentBehavior="automatic"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <BrandHeader subtitle={strings.auth.loginSubtitle} />
+            <View style={[styles.loginCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+              <View style={[styles.loginHero, { backgroundColor: theme.surfaceCard }]}>
+                <View style={[styles.logoCircle, { backgroundColor: theme.primaryLight }]}>
+                  <Mawqi3Icon color={theme.onPrimary} name="map-pin" size={32} strokeWidth={2.6} />
+                </View>
+                <ThemedText type="subtitle" style={styles.brandTitle}>
+                  {strings.appNameArabic}
+                </ThemedText>
+                <ThemedText type="title" themeColor="textSecondary" style={styles.loginTitle}>
+                  {strings.auth.loginTitle}
+                </ThemedText>
+                <ThemedText themeColor="textSecondary" style={styles.loginSubtitle}>
+                  {strings.auth.loginSubtitle}
+                </ThemedText>
+              </View>
 
-            <Card>
-              <ThemedText type="title">{strings.auth.loginTitle}</ThemedText>
+              <View style={styles.loginForm}>
+                <LoginField
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoCorrect={false}
+                  icon="mail"
+                  inputMode="email"
+                  label={strings.auth.email}
+                  onChangeText={setEmail}
+                  placeholder={strings.auth.emailPlaceholder}
+                  value={email}
+                />
 
-              <InputField
-                autoCapitalize="none"
-                autoComplete="email"
-                autoCorrect={false}
-                inputMode="email"
-                label={strings.auth.email}
-                onChangeText={setEmail}
-                placeholder={strings.auth.emailPlaceholder}
-                style={styles.ltrInput}
-                value={email}
-              />
+                <LoginField
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  icon="key"
+                  label={strings.auth.accessCode}
+                  onChangeText={setAccessCode}
+                  placeholder={strings.auth.accessCodePlaceholder}
+                  secureTextEntry
+                  value={accessCode}
+                />
 
-              <InputField
-                autoCapitalize="none"
-                autoComplete="password"
-                label={strings.auth.password}
-                onChangeText={setPassword}
-                placeholder={strings.auth.passwordPlaceholder}
-                secureTextEntry
-                style={styles.ltrInput}
-                value={password}
-              />
+                {error ? (
+                  <ThemedText selectable style={{ color: theme.danger }}>
+                    {error}
+                  </ThemedText>
+                ) : null}
 
-              {error ? <ThemedText style={{ color: theme.danger }}>{error}</ThemedText> : null}
-
-              <PrimaryButton disabled={isSigningIn} loading={isSigningIn} onPress={() => void submitLogin()}>
+                <PrimaryButton disabled={isSigningIn} icon="login" loading={isSigningIn} onPress={() => void submitLogin()}>
                 {isSigningIn ? strings.auth.signingIn : strings.actions.login}
               </PrimaryButton>
-              <SecondaryButton onPress={() => void openForgotPassword()}>{strings.auth.forgotPassword}</SecondaryButton>
-            </Card>
+              </View>
+
+              <View style={[styles.loginFooter, { borderTopColor: theme.border }]}>
+                <ThemedText type="small" themeColor="textSecondary" style={styles.footerText}>
+                  تواجه مشكلة في تسجيل الدخول؟ <ThemedText type="linkPrimary">اتصل بالدعم الفني</ThemedText>
+                </ThemedText>
+              </View>
+            </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -177,18 +188,84 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  ltrInput: {
-    textAlign: 'left',
+  brandTitle: {
+    fontSize: Typography.fontSize.xxl,
+    textAlign: 'center',
+  },
+  fieldGroup: {
+    gap: Spacing.sm,
+  },
+  fieldLabel: {
+    fontSize: Typography.fontSize.base,
+    textAlign: 'right',
+  },
+  footerText: {
+    textAlign: 'center',
+  },
+  input: {
+    flex: 1,
+    fontFamily: Fonts.sans,
+    fontSize: Typography.fontSize.base,
+    minHeight: TouchTarget,
+    paddingHorizontal: Spacing.md,
+  },
+  inputShell: {
+    alignItems: 'center',
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    minHeight: 58,
+    paddingHorizontal: Spacing.md,
   },
   keyboardView: {
     flex: 1,
+  },
+  loginCard: {
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  loginFooter: {
+    borderTopWidth: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+  },
+  loginForm: {
+    gap: Spacing.lg,
+    padding: Spacing.lg,
+  },
+  loginHero: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xxl,
+  },
+  loginSubtitle: {
+    textAlign: 'center',
+  },
+  loginTitle: {
+    fontFamily: Fonts.sans,
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.regular,
+    textAlign: 'center',
+  },
+  logoCircle: {
+    alignItems: 'center',
+    borderRadius: Radius.full,
+    height: 56,
+    justifyContent: 'center',
+    width: 56,
   },
   safeArea: {
     flex: 1,
     width: '100%',
   },
   scrollContent: {
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.four,
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingBottom: BottomTabInset + Spacing.lg,
+    paddingTop: Spacing.lg,
   },
 });

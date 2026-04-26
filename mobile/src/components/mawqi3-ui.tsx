@@ -4,6 +4,7 @@ import {
   Animated,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -17,6 +18,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { Mawqi3Icon, type Mawqi3IconName } from '@/components/icons';
 import { Fonts, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
 import { useTheme } from '@/hooks/use-theme';
@@ -31,8 +33,10 @@ type ToastVariant = 'success' | 'warning' | 'error' | 'info';
 
 interface LoadingButtonProps extends PressableProps {
   children: ReactNode;
+  icon?: Mawqi3IconName;
   loading?: boolean;
   selected?: boolean;
+  stretch?: boolean;
 }
 
 interface CardProps {
@@ -245,6 +249,7 @@ export function Card({ accessibilityLabel, children, disabled, onPress, style, v
 export function PrimaryButton({
   children,
   disabled,
+  icon,
   loading = false,
   onPress,
   onPressIn,
@@ -252,6 +257,7 @@ export function PrimaryButton({
   ...props
 }: LoadingButtonProps) {
   const theme = useTheme();
+  const { isRtl } = useLanguage();
   const { pressIn, pressOut, scale } = usePressScale(0.96);
   const isDisabled = disabled || loading;
 
@@ -276,12 +282,13 @@ export function PrimaryButton({
           styles.button,
           {
             backgroundColor: isDisabled ? theme.backgroundSelected : theme.primary,
+            flexDirection: isRtl ? 'row-reverse' : 'row',
             opacity: isDisabled ? 0.68 : 1,
           },
           pressed && !isDisabled ? styles.pressed : null,
         ]}
         {...props}>
-        {loading ? <ActivityIndicator color={theme.onPrimary} /> : null}
+        {loading ? <ActivityIndicator color={theme.onPrimary} /> : icon ? <Mawqi3Icon color={theme.onPrimary} name={icon} size={22} /> : null}
         <ThemedText style={[styles.buttonText, { color: theme.onPrimary }]}>{children}</ThemedText>
       </Pressable>
     </Animated.View>
@@ -291,19 +298,22 @@ export function PrimaryButton({
 export function SecondaryButton({
   children,
   disabled,
+  icon,
   loading = false,
   onPress,
   selected = false,
+  stretch = false,
   onPressIn,
   onPressOut,
   ...props
 }: LoadingButtonProps) {
   const theme = useTheme();
+  const { isRtl } = useLanguage();
   const { pressIn, pressOut, scale } = usePressScale(0.96);
   const isDisabled = disabled || loading;
 
   return (
-    <Animated.View style={[styles.secondaryButtonWrap, { transform: [{ scale }] }]}>
+    <Animated.View style={[styles.secondaryButtonWrap, stretch ? styles.secondaryButtonWrapStretch : null, { transform: [{ scale }] }]}>
       <Pressable
         accessibilityRole="button"
         disabled={isDisabled}
@@ -324,12 +334,13 @@ export function SecondaryButton({
           {
             backgroundColor: selected ? theme.primarySoft : theme.surfaceCard,
             borderColor: selected ? theme.primary : theme.border,
+            flexDirection: isRtl ? 'row-reverse' : 'row',
             opacity: isDisabled ? 0.62 : 1,
           },
           pressed && !isDisabled ? styles.pressed : null,
         ]}
         {...props}>
-        {loading ? <ActivityIndicator color={theme.primary} /> : null}
+        {loading ? <ActivityIndicator color={theme.primary} /> : icon ? <Mawqi3Icon color={selected ? theme.primary : theme.textSecondary} name={icon} size={20} /> : null}
         <ThemedText type="smallBold" style={{ color: selected ? theme.primary : theme.text }}>
           {children}
         </ThemedText>
@@ -346,11 +357,14 @@ export function IconButton({
   onPress,
   onPressIn,
   onPressOut,
+  variant = 'surface',
   ...props
-}: Omit<LoadingButtonProps, 'children'> & { icon: string; label: string }) {
+}: Omit<LoadingButtonProps, 'children' | 'icon'> & { icon: Mawqi3IconName; label: string; variant?: 'primary' | 'surface' | 'ghost' }) {
   const theme = useTheme();
   const { pressIn, pressOut, scale } = usePressScale(0.94);
   const isDisabled = disabled || loading;
+  const isPrimary = variant === 'primary';
+  const iconColor = isPrimary ? theme.onPrimary : variant === 'ghost' ? theme.primary : theme.textSecondary;
 
   return (
     <Animated.View style={{ transform: [{ scale }] }}>
@@ -373,19 +387,56 @@ export function IconButton({
         style={({ pressed }) => [
           styles.iconButton,
           {
-            backgroundColor: theme.primary,
+            backgroundColor: isPrimary ? theme.primary : variant === 'surface' ? theme.backgroundElement : 'transparent',
+            borderColor: variant === 'surface' ? theme.border : 'transparent',
             opacity: isDisabled ? 0.62 : 1,
           },
           pressed && !isDisabled ? styles.pressed : null,
         ]}
         {...props}>
         {loading ? (
-          <ActivityIndicator color={theme.onPrimary} />
+          <ActivityIndicator color={iconColor} />
         ) : (
-          <ThemedText style={[styles.iconButtonText, { color: theme.onPrimary }]}>{icon}</ThemedText>
+          <Mawqi3Icon color={iconColor} name={icon} size={23} />
         )}
       </Pressable>
     </Animated.View>
+  );
+}
+
+export function MobileTopBar({
+  leftIcon,
+  leftLabel,
+  onLeftPress,
+  onRightPress,
+  rightIcon,
+  rightLabel,
+  title,
+}: {
+  leftIcon?: Mawqi3IconName;
+  leftLabel?: string;
+  onLeftPress?: () => void;
+  onRightPress?: () => void;
+  rightIcon?: Mawqi3IconName;
+  rightLabel?: string;
+  title: string;
+}) {
+  return (
+    <View style={styles.topBar}>
+      {leftIcon ? (
+        <IconButton icon={leftIcon} label={leftLabel ?? title} onPress={onLeftPress} variant="ghost" />
+      ) : (
+        <View style={styles.topBarSpacer} />
+      )}
+      <ThemedText type="title" style={styles.topBarTitle}>
+        {title}
+      </ThemedText>
+      {rightIcon ? (
+        <IconButton icon={rightIcon} label={rightLabel ?? title} onPress={onRightPress} variant="surface" />
+      ) : (
+        <View style={styles.topBarSpacer} />
+      )}
+    </View>
   );
 }
 
@@ -402,12 +453,15 @@ export function StatTile({
 }) {
   const theme = useTheme();
   const trendColor = trend === 'up' ? theme.successStrong : trend === 'down' ? theme.dangerStrong : theme.textSecondary;
+  const trendArrow = trend === 'up' ? '↑' : trend === 'down' ? '↓' : '';
 
   return (
     <Card style={styles.statTile}>
       <View style={styles.statHeader}>
         {icon ? <ThemedText style={styles.statIcon}>{icon}</ThemedText> : null}
-        <SyncIndicator status={trend === 'neutral' ? 'pending' : trend === 'up' ? 'synced' : 'failed'} />
+        <ThemedText type="smallBold" style={{ color: trendColor }}>
+          {trendArrow}
+        </ThemedText>
       </View>
       <ThemedText type="small" themeColor="textSecondary">
         {label}
@@ -498,7 +552,7 @@ export function SyncBanner({
         </ThemedText>
       </View>
       {actionLabel && onAction ? (
-        <SecondaryButton loading={loading} onPress={onAction}>
+        <SecondaryButton loading={loading} onPress={onAction} stretch>
           {actionLabel}
         </SecondaryButton>
       ) : null}
@@ -507,11 +561,11 @@ export function SyncBanner({
 }
 
 export function StationSummary({ station }: { station: Station }) {
-  const { strings } = useLanguage();
+  const { isRtl, strings } = useLanguage();
 
   return (
     <Card>
-      <View style={styles.summaryHeader}>
+      <View style={[styles.summaryHeader, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
         <View style={styles.summaryCopy}>
           <ThemedText type="title">{station.label}</ThemedText>
           <ThemedText selectable themeColor="textSecondary">
@@ -520,7 +574,7 @@ export function StationSummary({ station }: { station: Station }) {
         </View>
         <StatusChip label={station.isActive ? strings.report.stationActive : strings.report.stationInactive} tone={station.isActive ? 'success' : 'danger'} />
       </View>
-      <View style={styles.metaRow}>
+      <View style={[styles.metaRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
         <StatusChip label={`${strings.report.stationLabel} ${station.stationId}`} tone="info" />
         {station.zone ? <StatusChip label={station.zone} /> : null}
       </View>
@@ -575,7 +629,7 @@ export function ReportCard({
   status: StatusOption[];
   syncStatus?: ReportSyncStatus;
 }) {
-  const { language, strings } = useLanguage();
+  const { isRtl, language, strings } = useLanguage();
   const locale = languageDateLocales[language];
   const dateLabel = createdAt
     ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(createdAt))
@@ -594,7 +648,7 @@ export function ReportCard({
         </View>
         {syncLabel ? <StatusChip label={syncLabel} tone={syncTone(syncStatus)} /> : null}
       </View>
-      <View style={styles.metaRow}>
+      <View style={[styles.metaRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
         {status.map((item) => (
           <StatusBadge key={item} status={item} />
         ))}
@@ -696,7 +750,7 @@ export function EmptyState({
   );
 }
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children, topOffset = 56 }: { children: ReactNode; topOffset?: number }) {
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const translateY = useRef(new Animated.Value(-96)).current;
   const showToast = useCallback(
@@ -723,7 +777,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {toast ? <ToastBanner toast={toast} translateY={translateY} /> : null}
+      {toast ? <ToastBanner toast={toast} topOffset={topOffset} translateY={translateY} /> : null}
     </ToastContext.Provider>
   );
 }
@@ -738,7 +792,7 @@ export function useToast() {
   return value;
 }
 
-function ToastBanner({ toast, translateY }: { toast: ToastMessage; translateY: Animated.Value }) {
+function ToastBanner({ toast, topOffset, translateY }: { toast: ToastMessage; topOffset: number; translateY: Animated.Value }) {
   const theme = useTheme();
   const color =
     toast.variant === 'success'
@@ -758,6 +812,7 @@ function ToastBanner({ toast, translateY }: { toast: ToastMessage; translateY: A
         {
           backgroundColor: theme.surfaceCard,
           borderColor: color,
+          top: topOffset,
           transform: [{ translateY }],
         },
       ]}>
@@ -812,7 +867,9 @@ export function BottomSheet({
             },
           ]}>
           {title ? <ThemedText type="title">{title}</ThemedText> : null}
-          {children}
+          <ScrollView contentContainerStyle={styles.bottomSheetScrollContent} showsVerticalScrollIndicator={false}>
+            {children}
+          </ScrollView>
         </Animated.View>
       </View>
     </Modal>
@@ -836,6 +893,9 @@ const styles = StyleSheet.create({
   bottomSheetRoot: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  bottomSheetScrollContent: {
+    gap: Spacing.md,
   },
   brandCopy: {
     flex: 1,
@@ -879,7 +939,6 @@ const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
     borderRadius: Radius.md,
-    flexDirection: 'row',
     gap: Spacing.sm,
     justifyContent: 'center',
     minHeight: TouchTarget,
@@ -895,9 +954,9 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: Radius.lg,
     borderWidth: 1,
-    gap: Spacing.sm,
+    gap: Spacing.md,
     overflow: 'hidden',
-    padding: Spacing.md,
+    padding: Spacing.lg,
     position: 'relative',
   },
   content: {
@@ -905,7 +964,7 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     maxWidth: 800,
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.lg,
+    paddingTop: 0,
     width: '100%',
   },
   fieldGroup: {
@@ -953,6 +1012,7 @@ const styles = StyleSheet.create({
   iconButton: {
     alignItems: 'center',
     borderRadius: Radius.full,
+    borderWidth: 1,
     height: TouchTarget,
     justifyContent: 'center',
     width: TouchTarget,
@@ -970,15 +1030,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: Radius.md,
     borderWidth: 1,
-    flexDirection: 'row',
     gap: Spacing.sm,
     justifyContent: 'center',
     minHeight: TouchTarget,
     minWidth: TouchTarget,
     paddingHorizontal: Spacing.md,
   },
-  secondaryButtonWrap: {
-    flex: 1,
+  secondaryButtonWrap: {},
+  secondaryButtonWrapStretch: {
+    alignSelf: 'stretch',
   },
   shell: {
     alignItems: 'center',
@@ -1014,12 +1074,10 @@ const styles = StyleSheet.create({
   },
   summaryHeader: {
     alignItems: 'flex-start',
-    flexDirection: 'row-reverse',
     gap: Spacing.md,
     justifyContent: 'space-between',
   },
   metaRow: {
-    flexDirection: 'row-reverse',
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },
@@ -1057,7 +1115,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     position: 'absolute',
     right: Spacing.md,
-    top: Spacing.lg,
     zIndex: 50,
   },
   toastDot: {
@@ -1067,6 +1124,22 @@ const styles = StyleSheet.create({
   },
   toastText: {
     flex: 1,
+  },
+  topBar: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 64,
+    width: '100%',
+  },
+  topBarSpacer: {
+    height: TouchTarget,
+    width: TouchTarget,
+  },
+  topBarTitle: {
+    flex: 1,
+    fontSize: Typography.fontSize.xl,
+    textAlign: 'center',
   },
   wordmarkRow: {
     alignItems: 'baseline',

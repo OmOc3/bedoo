@@ -12,7 +12,7 @@ export interface BearerSession {
   user: AppUser;
 }
 
-function getBearerToken(request: NextRequest): string | null {
+export function getBearerToken(request: NextRequest): string | null {
   const authorization = request.headers.get("authorization");
 
   if (!authorization) {

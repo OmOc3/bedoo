@@ -1,18 +1,21 @@
 import { router } from 'expo-router';
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import type { ReactNode } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandHeader, Card, InputField, ScreenShell, SecondaryButton, useToast } from '@/components/mawqi3-ui';
+import { Mawqi3Icon, type Mawqi3IconName } from '@/components/icons';
+import { InputField, MobileTopBar, ScreenShell, SecondaryButton, useToast } from '@/components/mawqi3-ui';
 import { ThemedText } from '@/components/themed-text';
-import { BottomTabInset, Brand, Spacing, WebBaseUrl } from '@/constants/theme';
+import { BottomTabInset, Brand, Fonts, Radius, Shadow, Spacing, TouchTarget, Typography, WebBaseUrl } from '@/constants/theme';
 import { useKeepAwakeMode } from '@/contexts/keep-awake-context';
 import { useLanguage } from '@/contexts/language-context';
 import { useTextScale } from '@/contexts/text-scale-context';
 import { type ThemeMode, useThemeMode } from '@/contexts/theme-context';
+import { useTheme } from '@/hooks/use-theme';
+import { signOut, useCurrentUser } from '@/lib/auth';
 import { errorHaptic, successHaptic } from '@/lib/haptics';
 import { getApiBaseUrl, setApiBaseUrl } from '@/lib/sync/api-client';
-import { signOut } from '@/lib/auth';
 import { type Language } from '@/lib/i18n';
 
 const modes: ThemeMode[] = ['system', 'light', 'dark'];
@@ -26,21 +29,60 @@ const modeLabelKeys: Record<ThemeMode, 'themeSystem' | 'themeLight' | 'themeDark
   light: 'themeLight',
   dark: 'themeDark',
 };
-const resolvedThemeLabelKeys: Record<'light' | 'dark', 'themeLight' | 'themeDark'> = {
-  light: 'themeLight',
-  dark: 'themeDark',
-};
 
-const directionRow = {
-  ltr: 'row',
-  rtl: 'row-reverse',
-} as const;
+function SettingsCard({ children, title }: { children: ReactNode; title: string }) {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.section}>
+      <ThemedText type="title" style={styles.sectionTitle}>
+        {title}
+      </ThemedText>
+      <View style={[styles.settingsCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>{children}</View>
+    </View>
+  );
+}
+
+function SettingsRow({
+  children,
+  icon,
+  subtitle,
+  title,
+}: {
+  children?: ReactNode;
+  icon: Mawqi3IconName;
+  subtitle?: string;
+  title: string;
+}) {
+  const theme = useTheme();
+
+  return (
+    <View style={styles.settingsRow}>
+      <View style={[styles.rowIcon, { backgroundColor: theme.background }]}>
+        <Mawqi3Icon color={theme.textSecondary} name={icon} size={25} />
+      </View>
+      <View style={styles.rowCopy}>
+        <ThemedText type="smallBold" style={styles.rowTitle}>
+          {title}
+        </ThemedText>
+        {subtitle ? (
+          <ThemedText type="small" themeColor="textSecondary">
+            {subtitle}
+          </ThemedText>
+        ) : null}
+      </View>
+      {children}
+    </View>
+  );
+}
 
 export default function SettingsScreen() {
   const { mode, resolvedTheme, setMode } = useThemeMode();
   const { keepAwakeEnabled, setKeepAwakeEnabled } = useKeepAwakeMode();
   const { largeTextEnabled, setLargeTextEnabled } = useTextScale();
-  const { direction, language, needsRestart, setLanguage, strings } = useLanguage();
+  const { language, needsRestart, roleLabels, setLanguage, strings } = useLanguage();
+  const currentUser = useCurrentUser();
+  const theme = useTheme();
   const t = strings.settings;
   const legal = strings.legal;
   const [webAppUrl, setWebAppUrlState] = useState(WebBaseUrl);
@@ -68,7 +110,7 @@ export default function SettingsScreen() {
     }
 
     await setApiBaseUrl(cleanUrl);
-    showToast(strings.actions.save, 'success');
+    showToast('تم حفظ رابط البوابة.', 'success');
   }
 
   async function logout(): Promise<void> {
@@ -83,110 +125,140 @@ export default function SettingsScreen() {
     }
   }
 
+  const profile = currentUser?.profile;
+
   return (
     <ScreenShell>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent} contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false}>
-          <BrandHeader subtitle={t.subtitle} />
+          <MobileTopBar
+            leftIcon="menu"
+            leftLabel="القائمة"
+            onLeftPress={() => router.push('/(tabs)')}
+            rightIcon="user"
+            rightLabel="الحساب"
+            title={t.title}
+          />
 
-          <Card>
-            <ThemedText type="title">{t.languageTitle}</ThemedText>
-            <View style={[styles.modeRow, { flexDirection: directionRow[direction] }]}>
-              {languageOptions.map((item) => (
-                <SecondaryButton key={item} selected={language === item} onPress={() => void setLanguage(item)}>
-                  {t[languageLabelKeys[item]]}
-                </SecondaryButton>
-              ))}
+          <View style={[styles.profileCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+            <View style={[styles.avatar, { backgroundColor: theme.surfaceCardDark }]}>
+              <Mawqi3Icon color={theme.onPrimary} name="user" size={30} />
             </View>
+            <View style={styles.profileCopy}>
+              <ThemedText type="title">{profile?.displayName ?? 'مستخدم Mawqi3'}</ThemedText>
+              <ThemedText themeColor="textSecondary">{profile ? roleLabels[profile.role] : 'فريق ميداني'}</ThemedText>
+            </View>
+            <View style={[styles.editCircle, { backgroundColor: theme.background }]}>
+              <Mawqi3Icon color={theme.text} name="edit" size={22} />
+            </View>
+          </View>
+
+          <SettingsCard title="إعدادات التطبيق">
+            <SettingsRow icon="globe" title={t.languageTitle}>
+              <View style={styles.segmented}>
+                {languageOptions.map((item) => (
+                  <SecondaryButton key={item} selected={language === item} onPress={() => void setLanguage(item)}>
+                    {t[languageLabelKeys[item]]}
+                  </SecondaryButton>
+                ))}
+              </View>
+            </SettingsRow>
             {needsRestart ? (
-              <ThemedText type="small" themeColor="textSecondary">
+              <ThemedText type="small" themeColor="textSecondary" style={styles.restartHint}>
                 {t.languageRestartHint}
               </ThemedText>
             ) : null}
-          </Card>
+            <View style={[styles.rowDivider, { backgroundColor: theme.border }]} />
+            <SettingsRow icon="moon" subtitle={`${t.themeCurrent}: ${resolvedTheme === 'dark' ? t.themeDark : t.themeLight}`} title={t.themeTitle}>
+              <View style={styles.segmented}>
+                {modes.map((item) => (
+                  <SecondaryButton key={item} selected={mode === item} onPress={() => setMode(item)}>
+                    {t[modeLabelKeys[item]]}
+                  </SecondaryButton>
+                ))}
+              </View>
+            </SettingsRow>
+            <View style={[styles.rowDivider, { backgroundColor: theme.border }]} />
+            <SettingsRow icon="type" title={t.largeTextTitle}>
+              <Switch
+                onValueChange={setLargeTextEnabled}
+                thumbColor={theme.backgroundElement}
+                trackColor={{ false: theme.border, true: theme.primaryLight }}
+                value={largeTextEnabled}
+              />
+            </SettingsRow>
+          </SettingsCard>
 
-          <Card>
-            <ThemedText type="title">{t.themeTitle}</ThemedText>
-            <ThemedText themeColor="textSecondary">
-              {t.themeCurrent}: {t[resolvedThemeLabelKeys[resolvedTheme]]}
-            </ThemedText>
-            <View style={[styles.modeRow, { flexDirection: directionRow[direction] }]}>
-              {modes.map((item) => (
-                <SecondaryButton key={item} selected={mode === item} onPress={() => setMode(item)}>
-                  {t[modeLabelKeys[item]]}
-                </SecondaryButton>
-              ))}
-            </View>
-          </Card>
-
-          <Card>
-            <ThemedText type="title">{t.largeTextTitle}</ThemedText>
-            <ThemedText themeColor="textSecondary">{t.largeTextBody}</ThemedText>
-            <View style={[styles.modeRow, { flexDirection: directionRow[direction] }]}> 
-              <SecondaryButton selected={largeTextEnabled} onPress={() => setLargeTextEnabled(true)}>
-                {t.enabled}
-              </SecondaryButton>
-              <SecondaryButton selected={!largeTextEnabled} onPress={() => setLargeTextEnabled(false)}>
-                {t.disabled}
-              </SecondaryButton>
-            </View>
-          </Card>
-
-          <Card>
-            <ThemedText type="title">{t.keepAwakeTitle}</ThemedText>
-            <ThemedText themeColor="textSecondary">{t.keepAwakeBody}</ThemedText>
-            <View style={[styles.modeRow, { flexDirection: directionRow[direction] }]}> 
-              <SecondaryButton selected={keepAwakeEnabled} onPress={() => setKeepAwakeEnabled(true)}>
-                {t.enabled}
-              </SecondaryButton>
-              <SecondaryButton selected={!keepAwakeEnabled} onPress={() => setKeepAwakeEnabled(false)}>
-                {t.disabled}
-              </SecondaryButton>
-            </View>
-          </Card>
-
-          <Card>
-            <ThemedText type="smallBold">{t.webAppTitle}</ThemedText>
-            <InputField
-              autoCapitalize="none"
-              autoCorrect={false}
-              label={t.webAppUrlLabel}
-              onChangeText={setWebAppUrlState}
-              placeholder={t.webAppUrlPlaceholder}
-              value={webAppUrl}
-            />
-            <View style={[styles.actions, { flexDirection: directionRow[direction] }]}>
+          <SettingsCard title="البيانات والمزامنة">
+            <SettingsRow icon="sun" subtitle={t.keepAwakeBody} title={t.keepAwakeTitle}>
+              <Switch
+                onValueChange={setKeepAwakeEnabled}
+                thumbColor={theme.backgroundElement}
+                trackColor={{ false: theme.border, true: theme.primaryLight }}
+                value={keepAwakeEnabled}
+              />
+            </SettingsRow>
+            <View style={[styles.rowDivider, { backgroundColor: theme.border }]} />
+            <SettingsRow icon="link" title={t.webAppTitle} />
+            <View style={styles.webUrlRow}>
               <SecondaryButton onPress={() => void saveWebAppUrl()}>{strings.actions.save}</SecondaryButton>
-              <SecondaryButton onPress={() => Linking.openURL(`${webAppUrl.replace(/\/$/, '')}/dashboard/supervisor`)}>
+              <View style={styles.webInput}>
+                <InputField
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  label={t.webAppUrlLabel}
+                  onChangeText={setWebAppUrlState}
+                  placeholder={t.webAppUrlPlaceholder}
+                  value={webAppUrl}
+                />
+              </View>
+            </View>
+            <View style={styles.portalLinks}>
+              <SecondaryButton icon="dashboard" onPress={() => Linking.openURL(`${webAppUrl.replace(/\/$/, '')}/dashboard/supervisor`)}>
                 {t.supervisorPortal}
               </SecondaryButton>
-              <SecondaryButton onPress={() => Linking.openURL(`${webAppUrl.replace(/\/$/, '')}/dashboard/manager`)}>
+              <SecondaryButton icon="dashboard" onPress={() => Linking.openURL(`${webAppUrl.replace(/\/$/, '')}/dashboard/manager`)}>
                 {t.managerPortal}
               </SecondaryButton>
             </View>
-          </Card>
+          </SettingsCard>
 
-          <Card>
-            <ThemedText type="smallBold">{t.securityTitle}</ThemedText>
-            <ThemedText themeColor="textSecondary">{t.securityBody}</ThemedText>
-          </Card>
-
-          <Card variant="danger">
-            <ThemedText type="smallBold">{t.logoutTitle}</ThemedText>
-            <ThemedText themeColor="textSecondary">{t.logoutBody}</ThemedText>
-            <SecondaryButton onPress={() => void logout()}>{t.logoutCta}</SecondaryButton>
-          </Card>
-
-          <Card>
-            <ThemedText type="smallBold">{t.legalTitle}</ThemedText>
-            <View style={[styles.actions, { flexDirection: directionRow[direction] }]}>
-              <SecondaryButton onPress={() => router.push('/legal/terms')}>{legal.terms}</SecondaryButton>
-              <SecondaryButton onPress={() => router.push('/legal/privacy')}>{legal.privacy}</SecondaryButton>
-            </View>
-            <ThemedText type="small" themeColor="textSecondary">
-              © 2025 {Brand.companyName || '[Company Name]'} — {legal.allRightsReserved}
+          <View style={styles.section}>
+            <ThemedText type="title" style={styles.sectionTitle}>
+              الحساب والأمان
             </ThemedText>
-          </Card>
+            <View style={[styles.securityCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+              <Mawqi3Icon color={theme.textSecondary} name="shield" size={28} />
+              <ThemedText themeColor="textSecondary" style={styles.securityText}>
+                {t.securityBody}
+              </ThemedText>
+            </View>
+          </View>
+
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void logout()}
+            style={({ pressed }) => [
+              styles.logoutButton,
+              { borderColor: theme.danger, opacity: pressed ? 0.76 : 1 },
+            ]}>
+            <Mawqi3Icon color={theme.danger} name="logout" size={26} />
+            <ThemedText type="title" style={[styles.logoutText, { color: theme.danger }]}>
+              {t.logoutCta}
+            </ThemedText>
+          </Pressable>
+
+          <View style={styles.legalRow}>
+            <Pressable accessibilityRole="link" onPress={() => router.push('/legal/terms')}>
+              <ThemedText type="linkPrimary">{legal.terms}</ThemedText>
+            </Pressable>
+            <Pressable accessibilityRole="link" onPress={() => router.push('/legal/privacy')}>
+              <ThemedText type="linkPrimary">{legal.privacy}</ThemedText>
+            </Pressable>
+            <ThemedText type="small" themeColor="textSecondary">
+              © 2025 {Brand.companyName} · {legal.allRightsReserved}
+            </ThemedText>
+          </View>
         </ScrollView>
       </SafeAreaView>
     </ScreenShell>
@@ -194,20 +266,128 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  actions: {
-    flexDirection: 'row-reverse',
-    gap: Spacing.two,
+  avatar: {
+    alignItems: 'center',
+    borderRadius: Radius.full,
+    height: 74,
+    justifyContent: 'center',
+    width: 74,
   },
-  modeRow: {
+  editCircle: {
+    alignItems: 'center',
+    borderRadius: Radius.full,
+    height: 42,
+    justifyContent: 'center',
+    width: 42,
+  },
+  legalRow: {
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  logoutButton: {
+    alignItems: 'center',
+    borderRadius: Radius.lg,
+    borderWidth: 2,
     flexDirection: 'row-reverse',
-    gap: Spacing.two,
+    gap: Spacing.md,
+    justifyContent: 'center',
+    minHeight: 78,
+  },
+  logoutText: {
+    fontSize: Typography.fontSize.lg,
+  },
+  portalLinks: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  profileCard: {
+    alignItems: 'center',
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    flexDirection: 'row-reverse',
+    gap: Spacing.lg,
+    minHeight: 132,
+    padding: Spacing.lg,
+  },
+  profileCopy: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  restartHint: {
+    paddingHorizontal: Spacing.md,
+  },
+  rowCopy: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  rowDivider: {
+    height: 1,
+    marginHorizontal: -Spacing.lg,
+  },
+  rowIcon: {
+    alignItems: 'center',
+    borderRadius: Radius.full,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  rowTitle: {
+    fontSize: Typography.fontSize.base,
   },
   safeArea: {
     flex: 1,
     width: '100%',
   },
   scrollContent: {
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.four,
+    gap: Spacing.lg,
+    paddingBottom: BottomTabInset + Spacing.xl,
+  },
+  section: {
+    gap: Spacing.md,
+  },
+  sectionTitle: {
+    fontFamily: Fonts.sansMedium,
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  securityCard: {
+    alignItems: 'flex-start',
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    flexDirection: 'row-reverse',
+    gap: Spacing.md,
+    padding: Spacing.lg,
+  },
+  securityText: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  segmented: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    justifyContent: 'flex-start',
+  },
+  settingsCard: {
+    borderRadius: Radius.lg,
+    borderWidth: 1,
+    gap: Spacing.md,
+    padding: Spacing.lg,
+  },
+  settingsRow: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: Spacing.md,
+    minHeight: TouchTarget,
+  },
+  webInput: {
+    flex: 1,
+    minWidth: 190,
+  },
+  webUrlRow: {
+    alignItems: 'flex-end',
+    flexDirection: 'row-reverse',
+    gap: Spacing.sm,
   },
 });

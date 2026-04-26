@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_MAX_AGE_MS } from "@/lib/auth/constants";
+import { toAuthenticatedUserResponse } from "@/lib/auth/public-user";
 import { checkLoginRateLimit, recordFailedLogin, resetLoginRateLimit } from "@/lib/auth/rate-limit";
 import { getRoleRedirect } from "@/lib/auth/redirects";
 import { createSignedRoleCookie } from "@/lib/auth/role-cookie";
@@ -160,6 +161,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorR
     const response = NextResponse.json<LoginSuccessResponse>({
       redirectTo: getRoleRedirect(appUser.role),
       customToken,
+      user: toAuthenticatedUserResponse(appUser),
     });
 
     setAuthCookies(response, sessionCookie, roleCookie);

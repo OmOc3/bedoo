@@ -42,11 +42,13 @@ Brand identity rules live in `BRAND.md`.
 - `/dashboard/manager/reports`: manager report list and review actions.
 - `/dashboard/manager/analytics`: zone, technician, status analytics, and optional Gemini operational summary.
 - `/dashboard/manager/audit`: read-only audit log viewer with filters.
-- `/dashboard/manager/users`: user role and active status management.
+- `/dashboard/manager/users`: user role, active status, and mobile access code management.
 - `/offline`: offline fallback for installed PWA usage.
 - `/manifest.webmanifest`: PWA manifest.
 - `/api/auth/login`: login endpoint.
 - `/api/auth/session`: session cookie endpoint.
+- `/api/mobile/me`: authenticated mobile profile endpoint.
+- `/api/mobile/web-session`: one-time handoff from the Expo app to the web dashboard for managers and supervisors.
 - `/api/reports/export`: CSV export for managers and supervisors.
 
 ## Environment Variables
@@ -114,7 +116,7 @@ firebase deploy --only storage
 - Manager station CRUD with generated QR links.
 - Technician report submission from station QR links.
 - Supervisor dashboard and filtered report list.
-- Manager dashboard, report review, and user management.
+- Manager dashboard, report review, and user management with generated mobile access codes.
 - CSV export for reports.
 - Optional before/after report photo upload through Admin SDK and locked Storage rules.
 - Optional station GPS coordinates.
@@ -123,7 +125,7 @@ firebase deploy --only storage
 - Manager analytics by zone, technician, and status frequency.
 - Gemini-powered manager insights with local fallback when `GEMINI_API_KEY` is not configured.
 - Light/dark mode identity across the web app.
-- Expo mobile companion app for field technicians with native QR scanning and local drafts.
+- Expo mobile companion app with native QR scanning and local drafts for technicians, plus secure web dashboard handoff for managers and supervisors.
 - PWA manifest and offline fallback page.
 - Audit logs for station, report, and user mutations.
 - Firestore client writes locked by default.
@@ -135,7 +137,8 @@ firebase deploy --only storage
 - GPS coordinates are entered manually. Map picker/display is not implemented yet.
 - No push notifications.
 - Offline mode is a fallback shell only. Report submission still requires network connectivity.
-- Mobile drafts store only station/report draft data locally and do not store Admin SDK, Gemini, or session secrets.
+- Mobile drafts store only station/report draft data locally and do not store Admin SDK or Gemini secrets.
+- Mobile sign-in uses Firebase Auth directly with email and access code. On a real phone, set `EXPO_PUBLIC_MAWQI3_WEB_BASE_URL` to a reachable LAN or deployed HTTPS address for manager/supervisor portal handoff and report sync.
 
 ## Next Recommended Tasks
 

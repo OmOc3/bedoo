@@ -4,7 +4,7 @@ import { Stack } from 'expo-router/stack';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, I18nManager, StyleSheet, View } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { BrandHeader, ScreenShell, ToastProvider } from '@/components/mawqi3-ui';
@@ -14,7 +14,11 @@ import { LanguageProvider } from '@/contexts/language-context';
 import { TextScaleProvider } from '@/contexts/text-scale-context';
 import { ThemeModeProvider, useThemeMode } from '@/contexts/theme-context';
 import { AuthProvider, useAuthReady, useCurrentUser } from '@/lib/auth';
+import { getMobileHomeRoute } from '@/lib/auth-routes';
 import { SyncProvider } from '@/lib/sync/report-sync';
+
+I18nManager.allowRTL(true);
+I18nManager.forceRTL(true);
 
 export default function TabLayout() {
   return (
@@ -31,10 +35,10 @@ export default function TabLayout() {
 function Mawqi3Layout() {
   const { resolvedTheme } = useThemeMode();
   const [fontsLoaded, fontError] = useFonts({
-    Tajawal: 'https://raw.githubusercontent.com/googlefonts/tajawal/main/fonts/ttf/Tajawal-Regular.ttf',
-    'Tajawal-Medium': 'https://raw.githubusercontent.com/googlefonts/tajawal/main/fonts/ttf/Tajawal-Medium.ttf',
-    'Tajawal-Bold': 'https://raw.githubusercontent.com/googlefonts/tajawal/main/fonts/ttf/Tajawal-Bold.ttf',
-    'Tajawal-ExtraBold': 'https://raw.githubusercontent.com/googlefonts/tajawal/main/fonts/ttf/Tajawal-ExtraBold.ttf',
+    Tajawal: require('../../assets/fonts/Tajawal-Regular.ttf'),
+    'Tajawal-Medium': require('../../assets/fonts/Tajawal-Medium.ttf'),
+    'Tajawal-Bold': require('../../assets/fonts/Tajawal-Bold.ttf'),
+    'Tajawal-ExtraBold': require('../../assets/fonts/Tajawal-ExtraBold.ttf'),
   });
 
   return (
@@ -75,7 +79,24 @@ function useAuthRoutes(): void {
       return;
     }
 
-    if (currentUser && routeRoot === 'login') {
+    if (!currentUser) {
+      return;
+    }
+
+    const homeRoute = getMobileHomeRoute(currentUser.profile.role);
+    const isTechnicianRoute = routeRoot === '(tabs)' || routeRoot === 'report';
+
+    if (routeRoot === 'login') {
+      router.replace(homeRoute);
+      return;
+    }
+
+    if (homeRoute === '/admin-portal' && isTechnicianRoute) {
+      router.replace('/admin-portal');
+      return;
+    }
+
+    if (homeRoute === '/(tabs)' && routeRoot === 'admin-portal') {
       router.replace('/(tabs)');
     }
   }, [authReady, currentUser, segments]);
@@ -100,6 +121,7 @@ function AppStack() {
       <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" />
+        <Stack.Screen name="admin-portal" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="report/[stationId]" />
         <Stack.Screen name="legal/privacy" />

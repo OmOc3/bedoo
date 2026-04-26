@@ -85,13 +85,28 @@ export interface ApiErrorResponse {
   retryAfterSeconds?: number;
 }
 
+export interface AuthenticatedUserResponse {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  isActive: boolean;
+}
+
 export interface LoginSuccessResponse {
   redirectTo: string;
   customToken: string;
+  user: AuthenticatedUserResponse;
 }
 
 export interface SessionSuccessResponse {
   redirectTo: string;
+}
+
+export interface MobileWebSessionResponse {
+  expiresAt: string;
+  redirectTo: string;
+  url: string;
 }
 
 export interface AiInsightsResult {

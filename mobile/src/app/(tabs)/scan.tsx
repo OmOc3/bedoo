@@ -1,12 +1,13 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BottomSheet, BrandHeader, Card, InputField, PrimaryButton, ScreenShell, SecondaryButton, useToast } from '@/components/mawqi3-ui';
+import { Mawqi3Icon } from '@/components/icons';
+import { BottomSheet, InputField, MobileTopBar, PrimaryButton, ScreenShell, SecondaryButton, useToast } from '@/components/mawqi3-ui';
 import { ThemedText } from '@/components/themed-text';
-import { BottomTabInset, Spacing } from '@/constants/theme';
+import { BottomTabInset, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
 import { useTheme } from '@/hooks/use-theme';
 import { useStation } from '@/hooks/use-station';
@@ -110,68 +111,90 @@ export default function ScanScreen() {
     <ScreenShell>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent} contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false}>
-          <BrandHeader subtitle={t.subtitle} />
+          <MobileTopBar leftIcon="arrow-left" leftLabel={strings.actions.back} onLeftPress={() => router.push('/(tabs)')} title={t.title} />
 
-          <Card>
-            <ThemedText type="title">{t.title}</ThemedText>
-            <ThemedText themeColor="textSecondary">{t.manualSubtitle}</ThemedText>
-            <View style={[styles.cameraFrame, { borderColor: theme.border, backgroundColor: theme.background }]}>
-              {permission?.granted ? (
-                <>
-                  <CameraView
-                    barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                    enableTorch={isTorchEnabled}
-                    facing="back"
-                    onBarcodeScanned={handleBarcodeScanned}
-                    style={StyleSheet.absoluteFill}
-                  />
-                  <View pointerEvents="none" style={[styles.scanGuide, { borderColor: theme.primary }]} />
-                </>
-              ) : (
-                <View style={styles.permissionBox}>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {t.cameraPermissionBody}
-                  </ThemedText>
-                  <PrimaryButton onPress={requestPermission}>{t.enableCamera}</PrimaryButton>
-                </View>
-              )}
-            </View>
+          <ThemedText themeColor="textSecondary" style={styles.instruction}>
+            وجه الكاميرا نحو رمز QR الخاص بالمحطة
+          </ThemedText>
+
+          <View style={[styles.cameraFrame, Shadow.md, { backgroundColor: theme.surfaceCardDark, borderColor: theme.border }]}>
             {permission?.granted ? (
-              <SecondaryButton onPress={() => setIsTorchEnabled((current) => !current)}>
+              <>
+                <CameraView
+                  barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                  enableTorch={isTorchEnabled}
+                  facing="back"
+                  onBarcodeScanned={handleBarcodeScanned}
+                  style={StyleSheet.absoluteFill}
+                />
+                <View pointerEvents="none" style={[styles.cameraOverlay, { backgroundColor: `${theme.primary}55` }]} />
+                <View pointerEvents="none" style={[styles.scanGuide, { borderColor: theme.primaryLight }]}>
+                  <View style={[styles.scanGuideLine, { backgroundColor: theme.primaryLight }]} />
+                </View>
+              </>
+            ) : (
+              <View style={styles.permissionBox}>
+                <View style={[styles.permissionIcon, { backgroundColor: theme.primarySoft }]}>
+                  <Mawqi3Icon color={theme.primary} name="qr-code" size={34} />
+                </View>
+                <ThemedText type="small" themeColor="textSecondary" style={styles.permissionText}>
+                  {t.cameraPermissionBody}
+                </ThemedText>
+                <PrimaryButton icon="camera" onPress={requestPermission}>
+                  {t.enableCamera}
+                </PrimaryButton>
+              </View>
+            )}
+          </View>
+
+          {permission?.granted ? (
+            <View style={styles.torchRow}>
+              <SecondaryButton icon="flashlight" selected={isTorchEnabled} onPress={() => setIsTorchEnabled((current) => !current)}>
                 {isTorchEnabled ? t.torchOff : t.torchOn}
               </SecondaryButton>
-            ) : null}
-          </Card>
+            </View>
+          ) : null}
 
-          <Card>
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+
+          <View style={styles.manualSection}>
+            <ThemedText type="title" style={styles.manualTitle}>
+              أدخل رقم المحطة يدويًا
+            </ThemedText>
             <InputField
               autoCapitalize="none"
               autoCorrect={false}
               label={t.manualStationLabel}
               onChangeText={setStationId}
-              placeholder={t.manualStationPlaceholder}
+              placeholder="مثال: STN-1234"
               style={styles.input}
               value={stationId}
             />
-            {error ? <ThemedText style={{ color: theme.danger }}>{error}</ThemedText> : null}
-            <PrimaryButton onPress={() => openReport()}>{strings.actions.openReport}</PrimaryButton>
-          </Card>
+            {error ? <ThemedText selectable style={{ color: theme.danger }}>{error}</ThemedText> : null}
+            <PrimaryButton icon="file-text" onPress={() => openReport()}>
+              {strings.actions.openReport}
+            </PrimaryButton>
+          </View>
 
           {scanHistory.length > 0 ? (
-            <Card>
+            <View style={styles.historyBlock}>
               <ThemedText type="smallBold">{t.historyTitle}</ThemedText>
-              <View style={[styles.historyList, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}> 
+              <View style={[styles.historyList, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
                 {scanHistory.map((historyStationId) => (
-                  <SecondaryButton key={historyStationId} onPress={() => openPreview(historyStationId)}>
-                    {historyStationId}
-                  </SecondaryButton>
+                  <Pressable
+                    accessibilityRole="button"
+                    key={historyStationId}
+                    onPress={() => openPreview(historyStationId)}
+                    style={[styles.historyChip, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                    <ThemedText type="smallBold">{historyStationId}</ThemedText>
+                  </Pressable>
                 ))}
               </View>
-            </Card>
+            </View>
           ) : null}
-
         </ScrollView>
       </SafeAreaView>
+
       <BottomSheet onDismiss={() => setIsPreviewVisible(false)} title={t.previewTitle} visible={isPreviewVisible}>
         <View style={styles.previewContent}>
           <ThemedText type="smallBold">
@@ -208,9 +231,11 @@ export default function ScanScreen() {
             </ThemedText>
           ) : null}
 
-          <View style={[styles.actions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}> 
+          <View style={[styles.actions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
             <SecondaryButton onPress={() => setIsPreviewVisible(false)}>{strings.actions.cancel}</SecondaryButton>
-            <PrimaryButton onPress={() => openReport(previewStationId ?? '')}>{strings.actions.openReport}</PrimaryButton>
+            <PrimaryButton icon="file-text" onPress={() => openReport(previewStationId ?? '')}>
+              {strings.actions.openReport}
+            </PrimaryButton>
           </View>
         </View>
       </BottomSheet>
@@ -220,47 +245,97 @@ export default function ScanScreen() {
 
 const styles = StyleSheet.create({
   actions: {
-    flexDirection: 'row-reverse',
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   cameraFrame: {
+    alignSelf: 'center',
     aspectRatio: 1,
-    borderRadius: 18,
+    borderRadius: Radius.lg,
     borderWidth: 1,
+    maxWidth: 462,
     overflow: 'hidden',
     position: 'relative',
+    width: '75%',
+  },
+  cameraOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  divider: {
+    height: 1,
+    width: '100%',
+  },
+  historyBlock: {
+    gap: Spacing.sm,
+  },
+  historyChip: {
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    minHeight: TouchTarget,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   historyList: {
     flexWrap: 'wrap',
-    gap: Spacing.two,
+    gap: Spacing.sm,
   },
   input: {
     textAlign: 'left',
   },
+  instruction: {
+    fontSize: Typography.fontSize.md,
+    textAlign: 'center',
+  },
+  manualSection: {
+    gap: Spacing.md,
+  },
+  manualTitle: {
+    textAlign: 'center',
+  },
   permissionBox: {
+    alignItems: 'center',
     flex: 1,
-    gap: Spacing.three,
+    gap: Spacing.md,
     justifyContent: 'center',
-    padding: Spacing.three,
+    padding: Spacing.lg,
+  },
+  permissionIcon: {
+    alignItems: 'center',
+    borderRadius: Radius.full,
+    height: 72,
+    justifyContent: 'center',
+    width: 72,
+  },
+  permissionText: {
+    textAlign: 'center',
   },
   previewContent: {
-    gap: Spacing.two,
-  },
-  scanGuide: {
-    borderRadius: 18,
-    borderWidth: 3,
-    bottom: '18%',
-    left: '18%',
-    position: 'absolute',
-    right: '18%',
-    top: '18%',
+    gap: Spacing.sm,
   },
   safeArea: {
     flex: 1,
     width: '100%',
   },
+  scanGuide: {
+    borderRadius: Radius.md,
+    borderWidth: 4,
+    bottom: '12%',
+    left: '12%',
+    position: 'absolute',
+    right: '12%',
+    top: '12%',
+  },
+  scanGuideLine: {
+    height: 3,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: '50%',
+  },
   scrollContent: {
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.four,
+    gap: Spacing.lg,
+    paddingBottom: BottomTabInset + Spacing.xl,
+  },
+  torchRow: {
+    alignItems: 'center',
   },
 });

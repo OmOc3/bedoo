@@ -10,6 +10,8 @@ import { roleLabels } from "@/lib/i18n";
 import { createUserSchema, type CreateUserValues } from "@/lib/validation/users";
 import type { UserRole } from "@/types";
 
+const accessCodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
 function toFormData(values: CreateUserValues): FormData {
   const formData = new FormData();
 
@@ -23,6 +25,13 @@ function toFormData(values: CreateUserValues): FormData {
 
 function getFieldError(result: UserActionResult | null, fieldName: keyof CreateUserValues): string | undefined {
   return result?.fieldErrors?.[fieldName]?.[0];
+}
+
+function generateAccessCode(length = 10): string {
+  const values = new Uint32Array(length);
+  crypto.getRandomValues(values);
+
+  return Array.from(values, (value) => accessCodeAlphabet[value % accessCodeAlphabet.length]).join("");
 }
 
 export function CreateUserForm() {
@@ -57,7 +66,7 @@ export function CreateUserForm() {
     <form className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
       <div className="sm:col-span-2">
         <h2 className="text-lg font-semibold text-slate-800">إنشاء مستخدم جديد</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-500">ينشئ حساب Firebase Auth ويضيف وثيقة المستخدم في Firestore.</p>
+        <p className="mt-1 text-sm leading-6 text-slate-500">ينشئ حساب Firebase Auth ويضيف وثيقة المستخدم في Firestore. كود الدخول هو كلمة مرور Firebase لهذا المستخدم.</p>
       </div>
 
       {result?.error ? <p className="rounded-lg bg-red-100 px-4 py-3 text-sm font-medium text-red-700 sm:col-span-2">{result.error}</p> : null}
@@ -86,15 +95,24 @@ export function CreateUserForm() {
         {...form.register("email")}
       />
 
-      <TextField
-        autoComplete="new-password"
-        error={form.formState.errors.password?.message ?? getFieldError(result, "password")}
-        id="password"
-        label="كلمة المرور"
-        placeholder="8 أحرف أو أكثر"
-        type="password"
-        {...form.register("password")}
-      />
+      <div className="space-y-2">
+        <TextField
+          autoComplete="off"
+          error={form.formState.errors.password?.message ?? getFieldError(result, "password")}
+          id="password"
+          label="كود الدخول"
+          placeholder="مثال: A7K9P2M4"
+          {...form.register("password")}
+        />
+        <Button
+          className="w-full sm:w-auto"
+          onClick={() => form.setValue("password", generateAccessCode(), { shouldDirty: true, shouldValidate: true })}
+          type="button"
+          variant="secondary"
+        >
+          توليد كود
+        </Button>
+      </div>
 
       <div className="space-y-2">
         <label className="block text-sm font-bold text-[var(--foreground)]" htmlFor="role">

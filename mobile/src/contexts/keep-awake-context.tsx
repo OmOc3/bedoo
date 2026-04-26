@@ -11,6 +11,18 @@ const KeepAwakeContext = createContext<KeepAwakeContextValue | null>(null);
 const keepAwakeStorageKey = 'mawqi3-keep-awake';
 const keepAwakeTag = 'mawqi3-field-app';
 
+function deactivateActiveKeepAwake(): void {
+  try {
+    deactivateKeepAwake(keepAwakeTag);
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message.includes('has not activated yet')) {
+      return;
+    }
+
+    throw error;
+  }
+}
+
 export function KeepAwakeProvider({ children }: { children: ReactNode }) {
   const [keepAwakeEnabled, setKeepAwakeEnabledState] = useState(false);
 
@@ -33,12 +45,31 @@ export function KeepAwakeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (keepAwakeEnabled) {
-      void activateKeepAwakeAsync(keepAwakeTag);
+    if (!keepAwakeEnabled) {
       return;
     }
 
-    deactivateKeepAwake(keepAwakeTag);
+    let isCurrentEffect = true;
+    let didActivate = false;
+
+    async function activateKeepAwake(): Promise<void> {
+      await activateKeepAwakeAsync(keepAwakeTag);
+      didActivate = true;
+
+      if (!isCurrentEffect) {
+        deactivateActiveKeepAwake();
+      }
+    }
+
+    void activateKeepAwake().catch(() => undefined);
+
+    return () => {
+      isCurrentEffect = false;
+
+      if (didActivate) {
+        deactivateActiveKeepAwake();
+      }
+    };
   }, [keepAwakeEnabled]);
 
   const setKeepAwakeEnabled = useCallback((enabled: boolean) => {

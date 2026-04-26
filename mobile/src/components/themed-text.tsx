@@ -34,7 +34,7 @@ export function ThemedText({ style, type = 'default', themeColor, ...rest }: The
     type === 'smallBold' && styles.smallBold,
     type === 'subtitle' && styles.subtitle,
     type === 'link' && styles.link,
-    type === 'linkPrimary' && styles.linkPrimary,
+    type === 'linkPrimary' && [styles.linkPrimary, { color: theme.info }],
     type === 'code' && styles.code,
     style,
   ]) as TextStyle;
@@ -87,11 +87,10 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansMedium,
     lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
     fontSize: Typography.fontSize.sm,
-    color: '#3c87f7',
   },
   code: {
     fontFamily: Fonts.mono,
-    fontWeight: Platform.select({ android: 700 }) ?? 500,
+    fontWeight: Platform.select({ android: '700' }) ?? '500',
     fontSize: 12,
   },
 });
