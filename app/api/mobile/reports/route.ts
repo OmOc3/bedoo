@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mobileApiErrorResponse } from "@/lib/api/mobile";
 import { requireBearerRole } from "@/lib/auth/bearer-session";
-import { REPORTS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
-import type { FirestoreTimestamp, Report, StatusOption } from "@/types";
+import { listReportsForTechnician } from "@/lib/db/repositories";
+import type { AppTimestamp, Report, StatusOption } from "@/types";
 
 export const runtime = "nodejs";
 
@@ -20,7 +19,7 @@ interface MobileReportResponse {
 }
 
 function timestampToIso(value: unknown): string | undefined {
-  const timestamp = value as Partial<FirestoreTimestamp>;
+  const timestamp = value as Partial<AppTimestamp>;
 
   if (typeof timestamp?.toDate !== "function") {
     return undefined;
@@ -29,17 +28,17 @@ function timestampToIso(value: unknown): string | undefined {
   return timestamp.toDate().toISOString();
 }
 
-function reportResponse(reportId: string, data: Partial<Report>): MobileReportResponse {
+function reportResponse(report: Report): MobileReportResponse {
   return {
-    reportId: data.reportId ?? reportId,
-    stationId: data.stationId ?? "",
-    stationLabel: data.stationLabel ?? "محطة بدون اسم",
-    status: (data.status ?? []) as StatusOption[],
-    reviewStatus: data.reviewStatus ?? "pending",
-    ...(data.clientReportId ? { clientReportId: data.clientReportId } : {}),
-    ...(data.notes ? { notes: data.notes } : {}),
-    ...(data.reviewNotes ? { reviewNotes: data.reviewNotes } : {}),
-    ...(timestampToIso(data.submittedAt) ? { submittedAt: timestampToIso(data.submittedAt) } : {}),
+    reportId: report.reportId,
+    stationId: report.stationId,
+    stationLabel: report.stationLabel,
+    status: report.status,
+    reviewStatus: report.reviewStatus,
+    ...(report.clientReportId ? { clientReportId: report.clientReportId } : {}),
+    ...(report.notes ? { notes: report.notes } : {}),
+    ...(report.reviewNotes ? { reviewNotes: report.reviewNotes } : {}),
+    ...(timestampToIso(report.submittedAt) ? { submittedAt: timestampToIso(report.submittedAt) } : {}),
   };
 }
 
@@ -48,15 +47,9 @@ export async function GET(
 ): Promise<NextResponse<MobileReportResponse[] | { code: string; message: string }>> {
   try {
     const session = await requireBearerRole(request, ["technician", "manager"]);
-    const snapshot = await adminDb()
-      .collection(REPORTS_COL)
-      .where("technicianUid", "==", session.uid)
-      .orderBy("submittedAt", "desc")
-      .limit(50)
-      .get();
-    const reports = snapshot.docs.map((doc) => reportResponse(doc.id, doc.data() as Partial<Report>));
+    const reports = await listReportsForTechnician(session.uid, 50);
 
-    return NextResponse.json(reports);
+    return NextResponse.json(reports.map(reportResponse));
   } catch (error: unknown) {
     return mobileApiErrorResponse(error);
   }

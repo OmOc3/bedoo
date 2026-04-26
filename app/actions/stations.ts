@@ -1,11 +1,9 @@
 "use server";
 
-import { FieldValue } from "firebase-admin/firestore";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/server-session";
-import { STATIONS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
+import { createStationRecord, toggleStationStatusRecord, updateStationRecord } from "@/lib/db/repositories";
 import { buildStationReportUrl } from "@/lib/url/base-url";
 import { createStationSchema, updateStationSchema } from "@/lib/validation/stations";
 import { writeAuditLog } from "@/lib/audit";
@@ -75,28 +73,24 @@ export async function createStationAction(formData: FormData): Promise<StationAc
     };
   }
 
-  const ref = adminDb().collection(STATIONS_COL).doc();
-  const qrCodeValue = await buildStationReportUrl(ref.id);
-  const stationData = {
-    stationId: ref.id,
+  const stationId = crypto.randomUUID();
+  const qrCodeValue = await buildStationReportUrl(stationId);
+
+  await createStationRecord({
+    stationId,
     label: parsed.data.label,
     location: parsed.data.location,
-    ...(parsed.data.zone ? { zone: parsed.data.zone } : {}),
-    ...(parsed.data.coordinates ? { coordinates: parsed.data.coordinates } : {}),
+    zone: parsed.data.zone,
+    coordinates: parsed.data.coordinates,
     qrCodeValue,
-    isActive: true,
-    totalReports: 0,
-    createdAt: FieldValue.serverTimestamp(),
     createdBy: session.uid,
-  };
-
-  await ref.set(stationData);
+  });
   await writeAuditLog({
     actorUid: session.uid,
     actorRole: session.role,
     action: "station.create",
     entityType: "station",
-    entityId: ref.id,
+    entityId: stationId,
     metadata: {
       label: parsed.data.label,
       location: parsed.data.location,
@@ -126,16 +120,15 @@ export async function updateStationAction(stationId: string, formData: FormData)
   }
 
   const qrCodeValue = await buildStationReportUrl(stationId);
-  const updateData = {
-    ...parsed.data,
-    qrCodeValue,
-    zone: parsed.data.zone ?? FieldValue.delete(),
-    coordinates: parsed.data.coordinates ?? FieldValue.delete(),
-    updatedAt: FieldValue.serverTimestamp(),
-    updatedBy: session.uid,
-  };
 
-  await adminDb().collection(STATIONS_COL).doc(stationId).update(updateData);
+  await updateStationRecord(stationId, {
+    label: parsed.data.label,
+    location: parsed.data.location,
+    zone: parsed.data.zone,
+    coordinates: parsed.data.coordinates,
+    qrCodeValue,
+    updatedBy: session.uid,
+  });
   await writeAuditLog({
     actorUid: session.uid,
     actorRole: session.role,
@@ -157,11 +150,7 @@ export async function toggleStationStatusAction(
   const session = await requireRole(["manager"]);
   const nextIsActive = !currentIsActive;
 
-  await adminDb().collection(STATIONS_COL).doc(stationId).update({
-    isActive: nextIsActive,
-    updatedAt: FieldValue.serverTimestamp(),
-    updatedBy: session.uid,
-  });
+  await toggleStationStatusRecord(stationId, nextIsActive, session.uid);
 
   await writeAuditLog({
     actorUid: session.uid,

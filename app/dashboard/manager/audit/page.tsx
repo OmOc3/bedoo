@@ -1,12 +1,10 @@
-import { Timestamp, type DocumentData, type Query } from "firebase-admin/firestore";
 import type { Metadata } from "next";
 import { DashboardNav } from "@/components/layout/nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requireRole } from "@/lib/auth/server-session";
-import { AUDIT_LOGS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
-import type { AuditLog, FirestoreTimestamp, UserRole } from "@/types";
+import { listAuditLogs } from "@/lib/db/repositories";
+import type { AppTimestamp } from "@/types";
 
 interface AuditPageProps {
   searchParams: Promise<{
@@ -42,7 +40,7 @@ function parseDate(value: string | undefined, endOfDay = false): Date | null {
   return date;
 }
 
-function formatTimestamp(timestamp?: FirestoreTimestamp): string {
+function formatTimestamp(timestamp?: AppTimestamp): string {
   if (!timestamp) {
     return "غير متاح";
   }
@@ -51,19 +49,6 @@ function formatTimestamp(timestamp?: FirestoreTimestamp): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(timestamp.toDate());
-}
-
-function auditFromData(logId: string, data: Partial<AuditLog>): AuditLog {
-  return {
-    logId: data.logId ?? logId,
-    actorUid: data.actorUid ?? "",
-    actorRole: (data.actorRole ?? "technician") as UserRole,
-    action: data.action ?? "unknown",
-    entityType: data.entityType ?? "unknown",
-    entityId: data.entityId ?? "",
-    createdAt: data.createdAt as FirestoreTimestamp,
-    metadata: data.metadata,
-  };
 }
 
 function metadataSummary(metadata: Record<string, unknown> | undefined): string {
@@ -83,30 +68,14 @@ export default async function ManagerAuditPage({ searchParams }: AuditPageProps)
 
   const dateFrom = parseDate(params.dateFrom);
   const dateTo = parseDate(params.dateTo, true);
-  let query: Query<DocumentData> = adminDb().collection(AUDIT_LOGS_COL);
-
-  if (params.action) {
-    query = query.where("action", "==", params.action);
-  }
-
-  if (params.entityType) {
-    query = query.where("entityType", "==", params.entityType);
-  }
-
-  if (params.actorUid) {
-    query = query.where("actorUid", "==", params.actorUid);
-  }
-
-  if (dateFrom) {
-    query = query.where("createdAt", ">=", Timestamp.fromDate(dateFrom));
-  }
-
-  if (dateTo) {
-    query = query.where("createdAt", "<=", Timestamp.fromDate(dateTo));
-  }
-
-  const snapshot = await query.orderBy("createdAt", "desc").limit(pageSize).get();
-  const logs = snapshot.docs.map((doc) => auditFromData(doc.id, doc.data() as Partial<AuditLog>));
+  const logs = await listAuditLogs({
+    action: params.action,
+    actorUid: params.actorUid,
+    entityType: params.entityType,
+    dateFrom,
+    dateTo,
+    limit: pageSize,
+  });
 
   return (
     <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">

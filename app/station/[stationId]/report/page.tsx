@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ReportForm } from "@/components/station/report-form";
 import { requireRole } from "@/lib/auth/server-session";
-import { STATIONS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
-import type { Station } from "@/types";
+import { getStationById } from "@/lib/db/repositories";
 
 interface StationReportPageProps {
   params: Promise<{
@@ -35,13 +33,11 @@ function ErrorMessage({ message }: { message: string }) {
 export default async function StationReportPage({ params }: StationReportPageProps) {
   const { stationId } = await params;
   await requireRole(["technician", "manager"]);
-  const snapshot = await adminDb().collection(STATIONS_COL).doc(stationId).get();
+  const station = await getStationById(stationId);
 
-  if (!snapshot.exists) {
+  if (!station) {
     return <ErrorMessage message="المحطة غير موجودة" />;
   }
-
-  const station = snapshot.data() as Partial<Station>;
 
   if (!station.isActive) {
     return <ErrorMessage message="هذه المحطة غير نشطة" />;

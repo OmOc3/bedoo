@@ -5,16 +5,21 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { toggleStationStatusAction } from "@/app/actions/stations";
 import { requireRole } from "@/lib/auth/server-session";
-import { STATIONS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
+import { listStations } from "@/lib/db/repositories";
 import { getStationHealth } from "@/lib/station-health";
-import type { FirestoreTimestamp, Station } from "@/types";
+import type { AppTimestamp } from "@/types";
 
 export const metadata: Metadata = {
   title: "المحطات",
 };
 
-function formatTimestamp(timestamp?: FirestoreTimestamp): string {
+interface ManagerStationsPageProps {
+  searchParams: Promise<{
+    q?: string;
+  }>;
+}
+
+function formatTimestamp(timestamp?: AppTimestamp): string {
   if (!timestamp) {
     return "لم تتم الزيارة";
   }
@@ -25,36 +30,20 @@ function formatTimestamp(timestamp?: FirestoreTimestamp): string {
   }).format(timestamp.toDate());
 }
 
-function stationFromData(stationId: string, data: Partial<Station>): Station {
-  return {
-    stationId: data.stationId ?? stationId,
-    label: data.label ?? "محطة بدون اسم",
-    location: data.location ?? "غير محدد",
-    zone: data.zone,
-    coordinates: data.coordinates,
-    qrCodeValue: data.qrCodeValue ?? "",
-    isActive: data.isActive ?? false,
-    createdAt: data.createdAt as FirestoreTimestamp,
-    createdBy: data.createdBy ?? "",
-    updatedAt: data.updatedAt,
-    updatedBy: data.updatedBy,
-    lastVisitedAt: data.lastVisitedAt,
-    totalReports: data.totalReports ?? 0,
-  };
-}
-
-export default async function ManagerStationsPage() {
+export default async function ManagerStationsPage({ searchParams }: ManagerStationsPageProps) {
+  const params = await searchParams;
   await requireRole(["manager"]);
-  const snapshot = await adminDb().collection(STATIONS_COL).orderBy("createdAt", "desc").get();
-  const stations = snapshot.docs.map((doc) => stationFromData(doc.id, doc.data() as Partial<Station>));
+  const query = (params.q ?? "").trim();
+  const visibleStations = await listStations(query);
+  const stations = query ? await listStations() : visibleStations;
 
   return (
     <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
-      <section className="mx-auto max-w-7xl">
+      <section className="mx-auto max-w-7xl space-y-6">
         <PageHeader
           action={
             <Link
-              className="inline-flex items-center justify-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-600"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-control transition-colors hover:bg-teal-600"
               href="/dashboard/manager/stations/new"
             >
               إضافة محطة
@@ -65,12 +54,39 @@ export default async function ManagerStationsPage() {
         />
         <DashboardNav role="manager" />
 
+        <form
+          action="/dashboard/manager/stations"
+          className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-control sm:flex-row"
+        >
+          <input
+            className="min-h-11 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+            defaultValue={query}
+            name="q"
+            placeholder="ابحث باسم المحطة أو الموقع أو الرقم..."
+            type="search"
+          />
+          <button
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-teal-600"
+            type="submit"
+          >
+            بحث
+          </button>
+          {query ? (
+            <Link
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+              href="/dashboard/manager/stations"
+            >
+              مسح
+            </Link>
+          ) : null}
+        </form>
+
         {stations.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
             <EmptyState
               action={
                 <Link
-                  className="inline-flex items-center justify-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-600"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-teal-600"
                   href="/dashboard/manager/stations/new"
                 >
                   إضافة أول محطة
@@ -80,8 +96,13 @@ export default async function ManagerStationsPage() {
               title="لا توجد محطات"
             />
           </div>
+        ) : visibleStations.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
+            <EmptyState description="جرّب البحث باسم محطة أو موقع مختلف." title="لا توجد نتائج مطابقة" />
+          </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-control">
+            <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
               <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
@@ -112,7 +133,7 @@ export default async function ManagerStationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {stations.map((station) => {
+                {visibleStations.map((station) => {
                   const health = getStationHealth(station);
 
                   return (
@@ -167,6 +188,7 @@ export default async function ManagerStationsPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </section>

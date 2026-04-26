@@ -1,6 +1,6 @@
-import { reportFromData, stationFromData } from "@/lib/analytics";
-import { REPORTS_COL, STATIONS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
+import { eq } from "drizzle-orm";
+import { listReports, listStations, countRows } from "@/lib/db/repositories";
+import { reports, stations } from "@/lib/db/schema";
 import { getStationHealth, isStationStale } from "@/lib/station-health";
 import type { Report, Station } from "@/types";
 
@@ -13,16 +13,23 @@ export interface OperationTasks {
     pendingReports: number;
     staleStations: number;
   };
+  truncatedStationScan: boolean;
 }
 
+const stationTaskScanLimit = 500;
+
 export async function getOperationTasks(limit = 12): Promise<OperationTasks> {
-  const [stationsSnapshot, pendingReportsSnapshot] = await Promise.all([
-    adminDb().collection(STATIONS_COL).get(),
-    adminDb().collection(REPORTS_COL).where("reviewStatus", "==", "pending").orderBy("submittedAt", "desc").get(),
+  const [stationRows, pendingReports, inactiveStationsTotal, pendingReportsTotal] = await Promise.all([
+    listStations(),
+    listReports({
+      filters: { reviewStatus: "pending" },
+      limit,
+    }),
+    countRows("stations", eq(stations.isActive, false)),
+    countRows("reports", eq(reports.reviewStatus, "pending")),
   ]);
-  const stations = stationsSnapshot.docs.map((doc) => stationFromData(doc.id, doc.data() as Partial<Station>));
-  const pendingReports = pendingReportsSnapshot.docs.map((doc) => reportFromData(doc.id, doc.data() as Partial<Report>));
-  const staleStations = stations
+  const scannedStations = stationRows.slice(0, stationTaskScanLimit);
+  const staleStations = scannedStations
     .filter(isStationStale)
     .sort((a, b) => {
       const healthA = getStationHealth(a).value;
@@ -30,16 +37,17 @@ export async function getOperationTasks(limit = 12): Promise<OperationTasks> {
 
       return healthA.localeCompare(healthB);
     });
-  const inactiveStations = stations.filter((station) => !station.isActive);
+  const inactiveStations = scannedStations.filter((station) => !station.isActive);
 
   return {
     inactiveStations: inactiveStations.slice(0, limit),
     pendingReports: pendingReports.slice(0, limit),
     staleStations: staleStations.slice(0, limit),
     totals: {
-      inactiveStations: inactiveStations.length,
-      pendingReports: pendingReports.length,
+      inactiveStations: inactiveStationsTotal,
+      pendingReports: pendingReportsTotal,
       staleStations: staleStations.length,
     },
+    truncatedStationScan: stationRows.length > stationTaskScanLimit,
   };
 }

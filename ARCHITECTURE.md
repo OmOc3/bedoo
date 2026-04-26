@@ -20,4 +20,4 @@ The web PWA service worker intentionally caches only `/offline` and `/scan`. It 
 
 ## Analytics Boundary
 
-Dashboards use Firestore `count()` aggregations for summary cards. Analytics and AI insights default to a bounded 90-day report range and explicit result limits. For very large production datasets, introduce materialized stats documents and a backfill script instead of increasing page query limits.
+Dashboards use SQL aggregate queries for summary cards. Analytics and AI insights default to a bounded 90-day report range and explicit result limits. For very large production datasets, introduce materialized stats tables and a backfill script instead of increasing page query limits.

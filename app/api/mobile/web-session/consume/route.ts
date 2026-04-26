@@ -1,29 +1,11 @@
-import { createHash } from "crypto";
-import { Timestamp } from "firebase-admin/firestore";
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createSignedRoleCookie } from "@/lib/auth/role-cookie";
-import { setAuthCookies } from "@/lib/auth/session";
-import { getSessionMaxAgeMs } from "@/lib/auth/session-config";
-import { MOBILE_WEB_SESSIONS_COL } from "@/lib/collections";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
-import type { UserRole } from "@/types";
+import { setRoleCookie } from "@/lib/auth/session";
+import { getSessionMaxAgeMs, getSessionMaxAgeSeconds } from "@/lib/auth/session-config";
+import { consumeMobileWebSessionRecord } from "@/lib/db/repositories";
 
 export const runtime = "nodejs";
-
-interface MobileWebSessionDocument {
-  expiresAt?: Timestamp;
-  idToken?: string;
-  redirectTo?: string;
-  role?: UserRole;
-  uid?: string;
-}
-
-interface ConsumedMobileWebSession {
-  redirectTo: string;
-  role: UserRole;
-  uid: string;
-  idToken: string;
-}
 
 const validRedirects = new Set(["/dashboard/manager", "/dashboard/supervisor"]);
 
@@ -35,19 +17,22 @@ function loginRedirect(request: NextRequest): NextResponse {
   return NextResponse.redirect(new URL("/login", request.nextUrl.origin));
 }
 
-function isValidSessionDocument(value: MobileWebSessionDocument): value is Required<MobileWebSessionDocument> {
-  return (
-    typeof value.uid === "string" &&
-    (value.role === "manager" || value.role === "supervisor") &&
-    typeof value.redirectTo === "string" &&
-    validRedirects.has(value.redirectTo) &&
-    typeof value.idToken === "string" &&
-    value.expiresAt instanceof Timestamp
-  );
+function appendStoredAuthCookies(response: NextResponse, cookieHeader: string): void {
+  cookieHeader
+    .split(";")
+    .map((cookie) => cookie.trim())
+    .filter((cookie) => cookie.includes("better-auth") && cookie.includes("="))
+    .forEach((cookie) => {
+      const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+
+      response.headers.append(
+        "Set-Cookie",
+        `${cookie}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${getSessionMaxAgeSeconds()}${secure}`,
+      );
+    });
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
-  const sessionMaxAgeMs = getSessionMaxAgeMs();
   const token = request.nextUrl.searchParams.get("token");
 
   if (!token) {
@@ -55,46 +40,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const tokenHash = hashHandoffToken(token);
-    const consumedSession = await adminDb().runTransaction(async (tx): Promise<ConsumedMobileWebSession | null> => {
-      const ref = adminDb().collection(MOBILE_WEB_SESSIONS_COL).doc(tokenHash);
-      const snapshot = await tx.get(ref);
+    const consumedSession = await consumeMobileWebSessionRecord(hashHandoffToken(token));
 
-      if (!snapshot.exists) {
-        return null;
-      }
-
-      const data = snapshot.data() as MobileWebSessionDocument;
-
-      tx.delete(ref);
-
-      if (!isValidSessionDocument(data) || data.expiresAt.toMillis() <= Date.now()) {
-        return null;
-      }
-
-      return {
-        idToken: data.idToken,
-        redirectTo: data.redirectTo,
-        role: data.role,
-        uid: data.uid,
-      };
-    });
-
-    if (!consumedSession) {
+    if (!consumedSession || !validRedirects.has(consumedSession.redirectTo)) {
       return loginRedirect(request);
     }
 
     const response = NextResponse.redirect(new URL(consumedSession.redirectTo, request.nextUrl.origin));
-    const [sessionCookie, roleCookie] = await Promise.all([
-      adminAuth().createSessionCookie(consumedSession.idToken, { expiresIn: sessionMaxAgeMs }),
-      createSignedRoleCookie({
-        uid: consumedSession.uid,
-        role: consumedSession.role,
-        expiresAt: Date.now() + sessionMaxAgeMs,
-      }),
-    ]);
+    const roleCookie = await createSignedRoleCookie({
+      uid: consumedSession.uid,
+      role: consumedSession.role,
+      expiresAt: Date.now() + getSessionMaxAgeMs(),
+    });
 
-    setAuthCookies(response, sessionCookie, roleCookie);
+    appendStoredAuthCookies(response, consumedSession.cookieHeader);
+    setRoleCookie(response, roleCookie);
 
     return response;
   } catch (_error: unknown) {

@@ -2,8 +2,8 @@
 import { AppState, type AppStateStatus } from 'react-native';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { authClient } from '@/lib/auth-client';
 import { getQueuedDrafts, syncDraft, type DraftReport } from '@/lib/drafts';
-import { auth } from '@/lib/sync/firebase';
 
 interface SyncStatusState {
   isSyncing: boolean;
@@ -34,7 +34,9 @@ function useSyncQueueController() {
   }, []);
 
   const syncAllDrafts = useCallback(async () => {
-    if (!auth.currentUser) {
+    const session = await authClient.getSession();
+
+    if (!session.data) {
       await refreshPendingCount();
       return;
     }

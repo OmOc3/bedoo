@@ -2,12 +2,16 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signOut } from "firebase/auth";
 import { Button } from "@/components/ui/button";
-import { getFirebaseAuth } from "@/lib/firebase";
 import { i18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 
-export function LogoutButton() {
+interface LogoutButtonProps {
+  buttonClassName?: string;
+  className?: string;
+}
+
+export function LogoutButton({ buttonClassName, className }: LogoutButtonProps = {}) {
   const router = useRouter();
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +21,6 @@ export function LogoutButton() {
       setError(null);
       setIsPending(true);
       await fetch("/api/auth/session", { method: "DELETE" });
-      await signOut(getFirebaseAuth());
       router.replace("/login");
       router.refresh();
     } catch (_error: unknown) {
@@ -28,8 +31,8 @@ export function LogoutButton() {
   }
 
   return (
-    <div className="space-y-2">
-      <Button isLoading={isPending} onClick={handleLogout} variant="secondary">
+    <div className={cn("space-y-2", className)}>
+      <Button className={buttonClassName} isLoading={isPending} onClick={handleLogout} variant="secondary">
         {i18n.actions.logout}
       </Button>
       {error ? (

@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mobileApiErrorResponse } from "@/lib/api/mobile";
 import { requireBearerRole } from "@/lib/auth/bearer-session";
-import { STATIONS_COL } from "@/lib/collections";
+import { getStationById } from "@/lib/db/repositories";
 import { AppError } from "@/lib/errors";
-import { adminDb } from "@/lib/firebase-admin";
-import type { FirestoreTimestamp, Station } from "@/types";
+import type { AppTimestamp, Station } from "@/types";
 
 export const runtime = "nodejs";
 
@@ -27,7 +26,7 @@ interface MobileStationRouteContext {
 }
 
 function timestampToIso(value: unknown): string | undefined {
-  const timestamp = value as Partial<FirestoreTimestamp>;
+  const timestamp = value as Partial<AppTimestamp>;
 
   if (typeof timestamp?.toDate !== "function") {
     return undefined;
@@ -57,13 +56,13 @@ export async function GET(
   try {
     await requireBearerRole(request, ["technician", "manager"]);
     const { stationId } = await params;
-    const snapshot = await adminDb().collection(STATIONS_COL).doc(stationId).get();
+    const station = await getStationById(stationId);
 
-    if (!snapshot.exists) {
+    if (!station) {
       throw new AppError("المحطة غير موجودة.", "STATION_NOT_FOUND", 404);
     }
 
-    return NextResponse.json(stationResponse(snapshot.id, snapshot.data() as Partial<Station>));
+    return NextResponse.json(stationResponse(station.stationId, station));
   } catch (error: unknown) {
     return mobileApiErrorResponse(error);
   }

@@ -20,7 +20,7 @@ Arabic-first, concise, operational, premium but not decorative. The interface sh
 
 ## Strategic Principles
 
-- Every protected mutation stays server-side through Firebase Admin SDK.
+- Every protected mutation stays server-side through role-gated server actions and SQL repositories.
 - The technician path must be faster than the manager path.
 - Dashboards should surface exceptions before raw lists.
 - Dark mode must be complete, readable, and useful for field or low-light work.
@@ -31,4 +31,4 @@ Arabic-first, concise, operational, premium but not decorative. The interface sh
 - No decorative card farms.
 - No empty marketing hero sections.
 - No vague AI outputs without actions.
-- No client-side Firestore writes.
+- No client-side database writes.

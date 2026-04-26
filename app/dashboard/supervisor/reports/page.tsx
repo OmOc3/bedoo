@@ -1,4 +1,3 @@
-import { FieldPath, Timestamp, type DocumentData, type Query } from "firebase-admin/firestore";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DashboardNav } from "@/components/layout/nav";
@@ -8,10 +7,9 @@ import { ReportPhotoLinks } from "@/components/reports/report-photo-links";
 import { ReportsFilterForm, type ReportsFilterValues } from "@/components/reports/reports-filter-form";
 import { StatusPills } from "@/components/reports/status-pills";
 import { requireRole } from "@/lib/auth/server-session";
-import { REPORTS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
+import { listReports } from "@/lib/db/repositories";
 import { decodeReportCursor, encodeReportCursor } from "@/lib/pagination/report-cursor";
-import type { FirestoreTimestamp, Report, StatusOption } from "@/types";
+import type { AppTimestamp, Report } from "@/types";
 
 interface SupervisorReportsPageProps {
   searchParams: Promise<{
@@ -30,7 +28,7 @@ export const metadata: Metadata = {
 
 const pageSize = 25;
 
-function formatTimestamp(timestamp?: FirestoreTimestamp): string {
+function formatTimestamp(timestamp?: AppTimestamp): string {
   if (!timestamp) {
     return "غير متاح";
   }
@@ -56,26 +54,6 @@ function reviewStatusBadge(status: Report["reviewStatus"]) {
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${classes}`}>{label}</span>;
 }
 
-function reportFromData(reportId: string, data: Partial<Report>): Report {
-  return {
-    reportId: data.reportId ?? reportId,
-    stationId: data.stationId ?? "",
-    stationLabel: data.stationLabel ?? "محطة بدون اسم",
-    technicianUid: data.technicianUid ?? "",
-    technicianName: data.technicianName ?? "فني غير محدد",
-    status: (data.status ?? []) as StatusOption[],
-    notes: data.notes,
-    photoPaths: data.photoPaths,
-    submittedAt: data.submittedAt as FirestoreTimestamp,
-    reviewStatus: data.reviewStatus ?? "pending",
-    editedAt: data.editedAt,
-    editedBy: data.editedBy,
-    reviewedAt: data.reviewedAt,
-    reviewedBy: data.reviewedBy,
-    reviewNotes: data.reviewNotes,
-  };
-}
-
 function parseDate(value: string | undefined, endOfDay = false): Date | null {
   if (!value) {
     return null;
@@ -94,7 +72,7 @@ function parseDate(value: string | undefined, endOfDay = false): Date | null {
   return date;
 }
 
-function timestampToMillis(timestamp?: FirestoreTimestamp): number | null {
+function timestampToMillis(timestamp?: AppTimestamp): number | null {
   if (!timestamp) {
     return null;
   }
@@ -149,47 +127,24 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
   };
   const dateFrom = parseDate(filters.dateFrom);
   const dateTo = parseDate(filters.dateTo, true);
-  let query: Query<DocumentData> = adminDb().collection(REPORTS_COL);
-
-  if (filters.stationId) {
-    query = query.where("stationId", "==", filters.stationId);
-  }
-
-  if (filters.technicianUid) {
-    query = query.where("technicianUid", "==", filters.technicianUid);
-  }
-
-  if (filters.reviewStatus) {
-    query = query.where("reviewStatus", "==", filters.reviewStatus);
-  }
-
-  if (dateFrom) {
-    query = query.where("submittedAt", ">=", dateFrom);
-  }
-
-  if (dateTo) {
-    query = query.where("submittedAt", "<=", dateTo);
-  }
-
-  query = query.orderBy("submittedAt", "desc").orderBy(FieldPath.documentId(), "desc");
-
-  if (params.cursor) {
-    const cursor = decodeReportCursor(params.cursor);
-
-    if (cursor) {
-      query = query.startAfter(Timestamp.fromMillis(cursor.submittedAtMs), cursor.id);
-    }
-  }
-
-  const snapshot = await query.limit(pageSize + 1).get();
-  const pageDocs = snapshot.docs.slice(0, pageSize);
-  const reports = pageDocs.map((doc) => reportFromData(doc.id, doc.data() as Partial<Report>));
-  const hasNextPage = snapshot.docs.length > pageSize;
-  const lastDoc = pageDocs.at(-1);
+  const pageReports = await listReports({
+    filters: {
+      stationId: filters.stationId,
+      technicianUid: filters.technicianUid,
+      reviewStatus: filters.reviewStatus,
+      dateFrom,
+      dateTo,
+    },
+    cursor: params.cursor ? decodeReportCursor(params.cursor) : null,
+    limit: pageSize + 1,
+  });
+  const reports = pageReports.slice(0, pageSize);
+  const hasNextPage = pageReports.length > pageSize;
+  const lastReport = reports.at(-1);
   const lastReportSubmittedAt = timestampToMillis(reports.at(-1)?.submittedAt);
   const nextCursor =
-    lastDoc && lastReportSubmittedAt !== null
-      ? encodeReportCursor({ id: lastDoc.id, submittedAtMs: lastReportSubmittedAt })
+    lastReport && lastReportSubmittedAt !== null
+      ? encodeReportCursor({ id: lastReport.reportId, submittedAtMs: lastReportSubmittedAt })
       : null;
 
   return (

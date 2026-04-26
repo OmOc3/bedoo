@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth/server-session";
-import { REPORTS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
+import { getReportById } from "@/lib/db/repositories";
 import { getSignedReportPhotoUrls } from "@/lib/report-photos";
-import type { Report } from "@/types";
 
 interface ReportPhotosRouteProps {
   params: Promise<{
@@ -24,13 +22,12 @@ export async function GET(
   }
 
   const { id } = await params;
-  const snapshot = await adminDb().collection(REPORTS_COL).doc(id).get();
+  const report = await getReportById(id);
 
-  if (!snapshot.exists) {
+  if (!report) {
     return NextResponse.json({ message: "التقرير غير موجود.", code: "REPORT_NOT_FOUND" }, { status: 404 });
   }
 
-  const report = snapshot.data() as Partial<Report>;
   const canAccess =
     session.role === "manager" || session.role === "supervisor" || report.technicianUid === session.uid;
 

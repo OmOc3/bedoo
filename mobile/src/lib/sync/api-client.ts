@@ -1,8 +1,8 @@
-// Typed API client for mobile-to-web sync with Firebase ID token authentication.
+// Typed API client for mobile-to-web sync with Better Auth cookie authentication.
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { WebBaseUrl } from "@/constants/theme";
-import { auth } from "@/lib/sync/firebase";
+import { authClient } from "@/lib/auth-client";
 
 type ApiMethod = "DELETE" | "GET" | "PATCH" | "POST" | "PUT";
 
@@ -83,13 +83,17 @@ async function buildHeaders(headers: Record<string, string>, authenticated: bool
   const requestHeaders = new Headers(headers);
 
   if (authenticated) {
-    const user = auth.currentUser;
+    if (forceRefresh) {
+      await authClient.getSession().catch(() => undefined);
+    }
 
-    if (!user) {
+    const cookie = authClient.getCookie();
+
+    if (!cookie) {
       throw new ApiClientError("سجل الدخول قبل مزامنة البيانات.", 401, "auth_required");
     }
 
-    requestHeaders.set("Authorization", `Bearer ${await user.getIdToken(forceRefresh)}`);
+    requestHeaders.set("Cookie", cookie);
   }
 
   return requestHeaders;

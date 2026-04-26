@@ -6,10 +6,9 @@ import { notFound } from "next/navigation";
 import { DashboardNav } from "@/components/layout/nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { requireRole } from "@/lib/auth/server-session";
-import { STATIONS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
+import { getStationById } from "@/lib/db/repositories";
 import { buildStationReportUrl } from "@/lib/url/base-url";
-import type { FirestoreTimestamp, Station } from "@/types";
+import type { AppTimestamp } from "@/types";
 
 interface StationDetailPageProps {
   params: Promise<{
@@ -21,7 +20,7 @@ export const metadata: Metadata = {
   title: "تفاصيل المحطة",
 };
 
-function formatTimestamp(timestamp?: FirestoreTimestamp): string {
+function formatTimestamp(timestamp?: AppTimestamp): string {
   if (!timestamp) {
     return "غير متاح";
   }
@@ -32,34 +31,15 @@ function formatTimestamp(timestamp?: FirestoreTimestamp): string {
   }).format(timestamp.toDate());
 }
 
-function stationFromData(stationId: string, data: Partial<Station>): Station {
-  return {
-    stationId: data.stationId ?? stationId,
-    label: data.label ?? "محطة بدون اسم",
-    location: data.location ?? "غير محدد",
-    zone: data.zone,
-    coordinates: data.coordinates,
-    qrCodeValue: data.qrCodeValue ?? "",
-    isActive: data.isActive ?? false,
-    createdAt: data.createdAt as FirestoreTimestamp,
-    createdBy: data.createdBy ?? "",
-    updatedAt: data.updatedAt,
-    updatedBy: data.updatedBy,
-    lastVisitedAt: data.lastVisitedAt,
-    totalReports: data.totalReports ?? 0,
-  };
-}
-
 export default async function StationDetailPage({ params }: StationDetailPageProps) {
   const { stationId } = await params;
   await requireRole(["manager"]);
-  const snapshot = await adminDb().collection(STATIONS_COL).doc(stationId).get();
+  const station = await getStationById(stationId);
 
-  if (!snapshot.exists) {
+  if (!station) {
     notFound();
   }
 
-  const station = stationFromData(snapshot.id, snapshot.data() as Partial<Station>);
   const qrCodeValue = station.qrCodeValue || (await buildStationReportUrl(station.stationId));
   const qrDataUrl = await QRCode.toDataURL(qrCodeValue, {
     margin: 2,
@@ -72,7 +52,7 @@ export default async function StationDetailPage({ params }: StationDetailPagePro
         <PageHeader
           action={
             <Link
-              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-control transition-colors hover:bg-slate-50"
               href={`/dashboard/manager/stations/${station.stationId}/edit`}
             >
               تعديل المحطة
@@ -85,7 +65,7 @@ export default async function StationDetailPage({ params }: StationDetailPagePro
         <DashboardNav role="manager" />
 
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-control sm:p-6">
             <h2 className="mb-4 text-lg font-semibold text-slate-800">بيانات المحطة</h2>
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>
@@ -131,14 +111,14 @@ export default async function StationDetailPage({ params }: StationDetailPagePro
             </dl>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 text-center sm:p-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-control sm:p-6">
             <h2 className="text-lg font-semibold text-slate-800">رمز QR</h2>
             <p className="mt-1 text-sm leading-6 text-slate-500">يفتح نموذج تقرير هذه المحطة مباشرة.</p>
             <div className="mx-auto mt-5 flex w-fit rounded-xl border border-slate-200 bg-slate-50 p-4">
               <Image alt={`رمز QR للمحطة ${station.label}`} height={320} src={qrDataUrl} unoptimized width={320} />
             </div>
             <a
-              className="mt-5 inline-flex items-center justify-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-600"
+              className="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-teal-600"
               download={`station-${station.stationId}-qr.png`}
               href={qrDataUrl}
             >

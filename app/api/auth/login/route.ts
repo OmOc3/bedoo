@@ -1,37 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth/better-auth";
 import { toAuthenticatedUserResponse } from "@/lib/auth/public-user";
 import { checkLoginRateLimit, recordFailedLogin, resetLoginRateLimit } from "@/lib/auth/rate-limit";
 import { getRoleRedirect } from "@/lib/auth/redirects";
 import { createSignedRoleCookie } from "@/lib/auth/role-cookie";
-import { setAuthCookies } from "@/lib/auth/session";
+import { setRoleCookie } from "@/lib/auth/session";
 import { getSessionMaxAgeMs } from "@/lib/auth/session-config";
-import { getActiveAppUser } from "@/lib/auth/user-profile";
-import { adminAuth } from "@/lib/firebase-admin";
+import { requiredTimestamp } from "@/lib/db/mappers";
+import { assertEnv } from "@/lib/env-check";
 import { i18n } from "@/lib/i18n";
-import { getErrorMessage, isRecord } from "@/lib/utils";
+import { isRecord } from "@/lib/utils";
 import { loginFormSchema } from "@/lib/validation/auth";
-import type { ApiErrorResponse, LoginSuccessResponse } from "@/types";
+import type { ApiErrorResponse, AppUser, LoginSuccessResponse, UserRole } from "@/types";
 
 export const runtime = "nodejs";
 
-interface FirebasePasswordSuccess {
-  idToken: string;
-  localId: string;
-}
-
-interface FirebasePasswordResult {
-  ok: boolean;
-  data?: FirebasePasswordSuccess;
-}
-
-type LoginFailureCode =
-  | "AUTH_CONFIG_FIREBASE_API_KEY"
-  | "AUTH_CONFIG_FIREBASE_ADMIN"
-  | "AUTH_CONFIG_ROLE_SECRET"
-  | "AUTH_FIREBASE_PROJECT_MISMATCH"
-  | "AUTH_FIRESTORE_UNAVAILABLE"
-  | "AUTH_USER_PROFILE_INVALID"
-  | "AUTH_LOGIN_FAILED";
+const validRoles = new Set<UserRole>(["technician", "supervisor", "manager"]);
 
 function getClientIp(request: NextRequest): string {
   const forwardedFor = request.headers.get("x-forwarded-for");
@@ -41,52 +25,6 @@ function getClientIp(request: NextRequest): string {
   }
 
   return request.headers.get("x-real-ip") ?? "unknown";
-}
-
-function getFirebaseApiKey(): string {
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("Missing environment variable: NEXT_PUBLIC_FIREBASE_API_KEY");
-  }
-
-  return apiKey;
-}
-
-function isFirebasePasswordSuccess(value: unknown): value is FirebasePasswordSuccess {
-  return isRecord(value) && typeof value.idToken === "string" && typeof value.localId === "string";
-}
-
-async function signInWithFirebasePassword(email: string, password: string): Promise<FirebasePasswordResult> {
-  try {
-    const response = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${getFirebaseApiKey()}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          returnSecureToken: true,
-        }),
-        cache: "no-store",
-      },
-    );
-    const payload = (await response.json()) as unknown;
-
-    if (!response.ok || !isFirebasePasswordSuccess(payload)) {
-      return { ok: false };
-    }
-
-    return {
-      ok: true,
-      data: payload,
-    };
-  } catch (error: unknown) {
-    throw new Error(error instanceof Error ? error.message : "Failed to verify Firebase password.");
-  }
 }
 
 function unauthorizedResponse(): NextResponse<ApiErrorResponse> {
@@ -99,50 +37,64 @@ function unauthorizedResponse(): NextResponse<ApiErrorResponse> {
   );
 }
 
-function classifyLoginFailure(error: unknown): LoginFailureCode {
-  const message = getErrorMessage(error);
-  const normalized = message.toLowerCase();
+function getSetCookieHeaders(headers: Headers): string[] {
+  const withGetSetCookie = headers as Headers & { getSetCookie?: () => string[] };
 
-  if (message.includes("NEXT_PUBLIC_FIREBASE_API_KEY")) {
-    return "AUTH_CONFIG_FIREBASE_API_KEY";
+  if (typeof withGetSetCookie.getSetCookie === "function") {
+    return withGetSetCookie.getSetCookie();
   }
 
-  if (message.includes("AUTH_SESSION_SECRET")) {
-    return "AUTH_CONFIG_ROLE_SECRET";
+  const value = headers.get("set-cookie");
+
+  return value ? [value] : [];
+}
+
+function appendAuthCookies(response: NextResponse, headers: Headers): void {
+  getSetCookieHeaders(headers).forEach((cookie) => {
+    response.headers.append("Set-Cookie", cookie);
+  });
+}
+
+function authUserToAppUser(value: unknown): AppUser | null {
+  if (!isRecord(value)) {
+    return null;
   }
+
+  const role = value.role;
+  const banned = value.banned;
+  const id = value.id;
+  const email = value.email;
+  const name = value.name;
 
   if (
-    message.includes("FIREBASE_ADMIN_") ||
-    normalized.includes("private key") ||
-    normalized.includes("pem") ||
-    normalized.includes("credential")
+    typeof id !== "string" ||
+    typeof email !== "string" ||
+    typeof name !== "string" ||
+    typeof role !== "string" ||
+    !validRoles.has(role as UserRole) ||
+    banned === true
   ) {
-    return "AUTH_CONFIG_FIREBASE_ADMIN";
+    return null;
   }
 
-  if (normalized.includes("incorrect aud") || normalized.includes("incorrect project")) {
-    return "AUTH_FIREBASE_PROJECT_MISMATCH";
-  }
+  return {
+    uid: id,
+    email,
+    displayName: name,
+    role: role as UserRole,
+    createdAt: requiredTimestamp(value.createdAt instanceof Date ? value.createdAt : null),
+    isActive: true,
+  };
+}
 
-  if (message.includes("Invalid user profile document")) {
-    return "AUTH_USER_PROFILE_INVALID";
-  }
-
-  if (
-    normalized.includes("firestore") ||
-    normalized.includes("database") ||
-    normalized.includes("permission_denied") ||
-    normalized.includes("not_found")
-  ) {
-    return "AUTH_FIRESTORE_UNAVAILABLE";
-  }
-
-  return "AUTH_LOGIN_FAILED";
+function errorStatus(error: unknown): number | null {
+  return isRecord(error) && typeof error.status === "number" ? error.status : null;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorResponse | LoginSuccessResponse>> {
   try {
-    const sessionMaxAgeMs = getSessionMaxAgeMs();
+    assertEnv();
+
     const body = (await request.json()) as unknown;
     const parsed = loginFormSchema.safeParse(body);
 
@@ -176,60 +128,58 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorR
       );
     }
 
-    const passwordResult = await signInWithFirebasePassword(email, parsed.data.password);
+    try {
+      const signIn = await auth.api.signInEmail({
+        body: {
+          email,
+          password: parsed.data.password,
+          rememberMe: true,
+        },
+        headers: request.headers,
+        returnHeaders: true,
+        returnStatus: true,
+      });
+      const appUser = authUserToAppUser(signIn.response.user);
 
-    if (!passwordResult.ok || !passwordResult.data) {
-      await recordFailedLogin(email, ipAddress);
-      return unauthorizedResponse();
-    }
+      if (!appUser) {
+        await recordFailedLogin(email, ipAddress);
+        return unauthorizedResponse();
+      }
 
-    const decodedToken = await adminAuth().verifyIdToken(passwordResult.data.idToken, true);
+      await resetLoginRateLimit(email, ipAddress);
 
-    if (decodedToken.uid !== passwordResult.data.localId) {
-      await recordFailedLogin(email, ipAddress);
-      return unauthorizedResponse();
-    }
-
-    const appUser = await getActiveAppUser(decodedToken.uid);
-
-    if (!appUser) {
-      await recordFailedLogin(email, ipAddress);
-      return unauthorizedResponse();
-    }
-
-    const [sessionCookie, customToken, roleCookie] = await Promise.all([
-      adminAuth().createSessionCookie(passwordResult.data.idToken, { expiresIn: sessionMaxAgeMs }),
-      adminAuth().createCustomToken(appUser.uid),
-      createSignedRoleCookie({
+      const response = NextResponse.json<LoginSuccessResponse>({
+        redirectTo: getRoleRedirect(appUser.role),
+        user: toAuthenticatedUserResponse(appUser),
+      });
+      const roleCookie = await createSignedRoleCookie({
         uid: appUser.uid,
         role: appUser.role,
-        expiresAt: Date.now() + sessionMaxAgeMs,
-      }),
-    ]);
+        expiresAt: Date.now() + getSessionMaxAgeMs(),
+      });
 
-    await resetLoginRateLimit(email, ipAddress);
+      appendAuthCookies(response, signIn.headers);
+      setRoleCookie(response, roleCookie);
 
-    const response = NextResponse.json<LoginSuccessResponse>({
-      redirectTo: getRoleRedirect(appUser.role),
-      customToken,
-      user: toAuthenticatedUserResponse(appUser),
-    });
+      return response;
+    } catch (error: unknown) {
+      if (errorStatus(error) === 401 || errorStatus(error) === 403) {
+        await recordFailedLogin(email, ipAddress);
+        return unauthorizedResponse();
+      }
 
-    setAuthCookies(response, sessionCookie, roleCookie);
-
-    return response;
+      throw error;
+    }
   } catch (error: unknown) {
-    const code = classifyLoginFailure(error);
+    console.error("[login] Unexpected error:", error);
 
-    console.error(
-      "Failed to complete login.",
-      error instanceof Error ? { code, message: error.message, name: error.name } : { code, message: "Unknown error" },
-    );
+    const isDev = process.env.VERCEL_ENV !== "production";
 
     return NextResponse.json(
       {
         message: i18n.errors.unexpected,
-        code,
+        code: "AUTH_LOGIN_FAILED",
+        ...(isDev && { debug: error instanceof Error ? error.message : String(error) }),
       },
       { status: 500 },
     );

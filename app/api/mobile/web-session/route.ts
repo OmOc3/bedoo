@@ -1,12 +1,10 @@
-import { randomBytes, createHash } from "crypto";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { randomBytes, createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { mobileApiErrorResponse } from "@/lib/api/mobile";
-import { getBearerToken, requireBearerRole } from "@/lib/auth/bearer-session";
+import { requireBearerRole } from "@/lib/auth/bearer-session";
 import { getRoleRedirect } from "@/lib/auth/redirects";
-import { MOBILE_WEB_SESSIONS_COL } from "@/lib/collections";
+import { createMobileWebSessionRecord } from "@/lib/db/repositories";
 import { AppError } from "@/lib/errors";
-import { adminDb } from "@/lib/firebase-admin";
 import type { ApiErrorResponse, MobileWebSessionResponse } from "@/types";
 
 export const runtime = "nodejs";
@@ -21,9 +19,9 @@ export async function POST(
   request: NextRequest,
 ): Promise<NextResponse<MobileWebSessionResponse | ApiErrorResponse>> {
   try {
-    const idToken = getBearerToken(request);
+    const cookieHeader = request.headers.get("cookie");
 
-    if (!idToken) {
+    if (!cookieHeader) {
       throw new AppError("سجل الدخول قبل فتح بوابة الإدارة.", "AUTH_REQUIRED", 401);
     }
 
@@ -33,13 +31,13 @@ export async function POST(
     const handoffToken = randomBytes(32).toString("base64url");
     const handoffTokenHash = hashHandoffToken(handoffToken);
 
-    await adminDb().collection(MOBILE_WEB_SESSIONS_COL).doc(handoffTokenHash).set({
+    await createMobileWebSessionRecord({
+      tokenHash: handoffTokenHash,
       uid: session.uid,
       role: session.role,
       redirectTo,
-      idToken,
-      createdAt: FieldValue.serverTimestamp(),
-      expiresAt: Timestamp.fromMillis(expiresAtMs),
+      cookieHeader,
+      expiresAt: new Date(expiresAtMs),
     });
 
     const consumeUrl = new URL("/api/mobile/web-session/consume", request.nextUrl.origin);

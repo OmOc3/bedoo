@@ -1,10 +1,15 @@
 import { BRAND } from "@/lib/brand";
-export {
-  roleLabels,
-  roleLabelsEnglish,
-  statusOptionLabels,
-  statusOptionLabelsEnglish,
+import {
+  roleLabels as sharedRoleLabels,
+  roleLabelsEnglish as sharedRoleLabelsEnglish,
+  statusOptionLabels as sharedStatusOptionLabels,
+  statusOptionLabelsEnglish as sharedStatusOptionLabelsEnglish,
 } from "@/lib/shared/constants";
+
+export const statusOptionLabels = sharedStatusOptionLabels;
+export const statusOptionLabelsEnglish = sharedStatusOptionLabelsEnglish;
+export const roleLabels = sharedRoleLabels;
+export const roleLabelsEnglish = sharedRoleLabelsEnglish;
 
 const ar = {
   appName: BRAND.name,

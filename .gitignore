@@ -5,8 +5,9 @@ node_modules/
 out/
 dist/
 coverage/
+data/*.db
+data/*.db-*
+.npm-cache/
 *.log
 *.tsbuildinfo
-firebase-debug.log
-firestore-debug.log
 ui-debug.log

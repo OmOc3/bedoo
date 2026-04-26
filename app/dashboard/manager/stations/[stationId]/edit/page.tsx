@@ -4,9 +4,7 @@ import { DashboardNav } from "@/components/layout/nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { StationForm } from "@/components/stations/station-form";
 import { requireRole } from "@/lib/auth/server-session";
-import { STATIONS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
-import type { Station } from "@/types";
+import { getStationById } from "@/lib/db/repositories";
 
 interface EditStationPageProps {
   params: Promise<{
@@ -21,19 +19,18 @@ export const metadata: Metadata = {
 export default async function EditStationPage({ params }: EditStationPageProps) {
   const { stationId } = await params;
   await requireRole(["manager"]);
-  const snapshot = await adminDb().collection(STATIONS_COL).doc(stationId).get();
+  const stationRecord = await getStationById(stationId);
 
-  if (!snapshot.exists) {
+  if (!stationRecord) {
     notFound();
   }
 
-  const data = snapshot.data() as Partial<Station>;
   const station = {
-    stationId: snapshot.id,
-    label: data.label ?? "",
-    location: data.location ?? "",
-    zone: data.zone,
-    coordinates: data.coordinates,
+    stationId: stationRecord.stationId,
+    label: stationRecord.label,
+    location: stationRecord.location,
+    zone: stationRecord.zone,
+    coordinates: stationRecord.coordinates,
   };
 
   return (
@@ -45,7 +42,7 @@ export default async function EditStationPage({ params }: EditStationPageProps) 
           title="تعديل محطة"
         />
         <DashboardNav role="manager" />
-        <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-control sm:p-6">
           <StationForm mode="edit" station={station} />
         </div>
       </section>

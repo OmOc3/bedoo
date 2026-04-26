@@ -22,7 +22,7 @@
 
 ```
 Direction:     RTL (dir="rtl") on <html> and all containers
-Font:          Tajawal (Arabic) — import from Google Fonts
+Font:          IBM Plex Sans Arabic — import from Google Fonts
 Fallback:      system-ui, sans-serif
 Base size:     16px
 Line height:   1.6 for body, 1.2 for headings
@@ -105,7 +105,7 @@ info:       blue-600  / blue-100  bg  — general information
 
 ## Typography
 
-All text uses Tajawal. Arabic text looks best at slightly larger sizes than Latin equivalents.
+All text uses IBM Plex Sans Arabic. Arabic text looks best at slightly larger sizes than Latin equivalents.
 
 ### Scale
 
@@ -393,7 +393,7 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Tajawal", "system-ui", "sans-serif"],
+        sans: ["IBM Plex Sans Arabic", "system-ui", "sans-serif"],
       },
     },
   },
@@ -405,7 +405,7 @@ export default config;
 Add to `app/globals.css`:
 
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
 ```
 
 ---

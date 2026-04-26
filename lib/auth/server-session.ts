@@ -1,10 +1,9 @@
 import "server-only";
 
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
-import { getActiveAppUser } from "@/lib/auth/user-profile";
-import { adminAuth } from "@/lib/firebase-admin";
+import { auth, type BetterAuthSession } from "@/lib/auth/better-auth";
+import { requiredTimestamp } from "@/lib/db/mappers";
 import type { AppUser, UserRole } from "@/types";
 
 export interface CurrentSession {
@@ -13,17 +12,41 @@ export interface CurrentSession {
   user: AppUser;
 }
 
+const validRoles = new Set<UserRole>(["technician", "supervisor", "manager"]);
+
+function normalizeRole(value: unknown): UserRole | null {
+  return typeof value === "string" && validRoles.has(value as UserRole) ? (value as UserRole) : null;
+}
+
+function userFromBetterAuth(user: BetterAuthSession["user"]): AppUser | null {
+  const role = normalizeRole(user.role);
+  const isActive = user.banned !== true;
+
+  if (!role || !isActive) {
+    return null;
+  }
+
+  return {
+    uid: user.id,
+    email: user.email,
+    displayName: user.name,
+    role,
+    createdAt: requiredTimestamp(user.createdAt),
+    isActive,
+  };
+}
+
 export async function getCurrentSession(): Promise<CurrentSession | null> {
   try {
-    const cookieStore = await cookies();
-    const sessionCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
 
-    if (!sessionCookie) {
+    if (!session) {
       return null;
     }
 
-    const decodedCookie = await adminAuth().verifySessionCookie(sessionCookie, true);
-    const user = await getActiveAppUser(decodedCookie.uid);
+    const user = userFromBetterAuth(session.user);
 
     if (!user) {
       return null;

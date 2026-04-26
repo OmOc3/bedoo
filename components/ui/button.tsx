@@ -30,7 +30,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-base font-bold transition disabled:cursor-not-allowed",
+        "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed",
         variantClasses[variant],
         className,
       )}

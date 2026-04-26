@@ -1,83 +1,54 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRoleRedirect } from "@/lib/auth/redirects";
-import { createSignedRoleCookie } from "@/lib/auth/role-cookie";
-import { clearAuthCookies, setAuthCookies } from "@/lib/auth/session";
-import { getSessionMaxAgeMs } from "@/lib/auth/session-config";
-import { getActiveAppUser } from "@/lib/auth/user-profile";
-import { adminAuth } from "@/lib/firebase-admin";
+import { auth } from "@/lib/auth/better-auth";
+import { clearAuthCookies } from "@/lib/auth/session";
 import { i18n } from "@/lib/i18n";
-import { sessionRequestSchema } from "@/lib/validation/auth";
-import type { ApiErrorResponse, SessionSuccessResponse } from "@/types";
+import type { ApiErrorResponse } from "@/types";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorResponse | SessionSuccessResponse>> {
-  try {
-    const sessionMaxAgeMs = getSessionMaxAgeMs();
-    const body = (await request.json()) as unknown;
-    const parsed = sessionRequestSchema.safeParse(body);
+function getSetCookieHeaders(headers: Headers): string[] {
+  const withGetSetCookie = headers as Headers & { getSetCookie?: () => string[] };
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        {
-          message: i18n.auth.sessionExpired,
-          code: "AUTH_INVALID_SESSION_REQUEST",
-        },
-        { status: 400 },
-      );
-    }
-
-    const decodedToken = await adminAuth().verifyIdToken(parsed.data.idToken, true);
-    const appUser = await getActiveAppUser(decodedToken.uid);
-
-    if (!appUser) {
-      return NextResponse.json(
-        {
-          message: i18n.auth.genericLoginError,
-          code: "AUTH_INACTIVE_OR_MISSING_PROFILE",
-        },
-        { status: 401 },
-      );
-    }
-
-    const [sessionCookie, roleCookie] = await Promise.all([
-      adminAuth().createSessionCookie(parsed.data.idToken, { expiresIn: sessionMaxAgeMs }),
-      createSignedRoleCookie({
-        uid: appUser.uid,
-        role: appUser.role,
-        expiresAt: Date.now() + sessionMaxAgeMs,
-      }),
-    ]);
-    const response = NextResponse.json<SessionSuccessResponse>({
-      redirectTo: getRoleRedirect(appUser.role),
-    });
-
-    setAuthCookies(response, sessionCookie, roleCookie);
-
-    return response;
-  } catch (_error: unknown) {
-    return NextResponse.json(
-      {
-        message: i18n.auth.sessionExpired,
-        code: "AUTH_SESSION_FAILED",
-      },
-      { status: 401 },
-    );
+  if (typeof withGetSetCookie.getSetCookie === "function") {
+    return withGetSetCookie.getSetCookie();
   }
+
+  const value = headers.get("set-cookie");
+
+  return value ? [value] : [];
 }
 
-export async function DELETE(): Promise<NextResponse<{ ok: true }>> {
+function appendAuthCookies(response: NextResponse, headers: Headers): void {
+  getSetCookieHeaders(headers).forEach((cookie) => {
+    response.headers.append("Set-Cookie", cookie);
+  });
+}
+
+export async function POST(): Promise<NextResponse<ApiErrorResponse>> {
+  return NextResponse.json(
+    {
+      message: i18n.auth.sessionExpired,
+      code: "AUTH_LEGACY_SESSION_DISABLED",
+    },
+    { status: 410 },
+  );
+}
+
+export async function DELETE(request: NextRequest): Promise<NextResponse<{ ok: true }>> {
+  const response = NextResponse.json({ ok: true as const });
+
   try {
-    const response = NextResponse.json({ ok: true as const });
+    const signOut = await auth.api.signOut({
+      headers: request.headers,
+      returnHeaders: true,
+    });
 
-    clearAuthCookies(response);
-
-    return response;
+    appendAuthCookies(response, signOut.headers);
   } catch (_error: unknown) {
-    const response = NextResponse.json({ ok: true as const });
-
-    clearAuthCookies(response);
-
-    return response;
+    // Clearing the app role cookie is still safe if the auth session already expired.
   }
+
+  clearAuthCookies(response);
+
+  return response;
 }

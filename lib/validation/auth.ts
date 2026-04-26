@@ -8,6 +8,4 @@ export const loginFormSchema = z.object({
 
 export type LoginFormValues = z.infer<typeof loginFormSchema>;
 
-export const sessionRequestSchema = z.object({
-  idToken: z.string().min(1),
-});
+export const sessionRequestSchema = z.object({}).strict();

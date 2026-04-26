@@ -1,15 +1,12 @@
-import { type DocumentData, type Query } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/server-session";
-import { REPORTS_COL, STATIONS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
+import { getStationLocations, listReports } from "@/lib/db/repositories";
 import {
   csvRow,
   defaultExportDateFrom,
   REPORT_EXPORT_MAX_ROWS,
   statusLabelsForCsv,
 } from "@/lib/reports/export";
-import type { Report, Station, StatusOption } from "@/types";
 
 export const runtime = "nodejs";
 
@@ -31,75 +28,28 @@ function parseDate(value: string | null, endOfDay = false): Date | null {
   return date;
 }
 
-function reportFromData(reportId: string, data: Partial<Report>): Report {
-  return {
-    reportId: data.reportId ?? reportId,
-    stationId: data.stationId ?? "",
-    stationLabel: data.stationLabel ?? "محطة بدون اسم",
-    technicianUid: data.technicianUid ?? "",
-    technicianName: data.technicianName ?? "فني غير محدد",
-    status: (data.status ?? []) as StatusOption[],
-    notes: data.notes,
-    submittedAt: data.submittedAt as Report["submittedAt"],
-    reviewStatus: data.reviewStatus ?? "pending",
-    editedAt: data.editedAt,
-    editedBy: data.editedBy,
-    reviewedAt: data.reviewedAt,
-    reviewedBy: data.reviewedBy,
-    reviewNotes: data.reviewNotes,
-  };
-}
-
-async function getStationLocations(stationIds: string[]): Promise<Map<string, string>> {
-  const uniqueStationIds = Array.from(new Set(stationIds.filter(Boolean)));
-
-  if (uniqueStationIds.length === 0) {
-    return new Map();
-  }
-
-  const refs = uniqueStationIds.map((stationId) => adminDb().collection(STATIONS_COL).doc(stationId));
-  const snapshots = await adminDb().getAll(...refs);
-  const entries = snapshots.map((snapshot, index) => {
-    const stationId = uniqueStationIds[index] ?? "";
-    const station = snapshot.exists ? (snapshot.data() as Partial<Station>) : null;
-
-    return [stationId, station?.location ?? ""] as const;
-  });
-
-  return new Map(entries);
-}
-
 export async function GET(request: NextRequest): Promise<Response> {
   await requireRole(["manager", "supervisor"]);
 
   const params = request.nextUrl.searchParams;
   const dateFrom = parseDate(params.get("from") ?? params.get("dateFrom")) ?? defaultExportDateFrom();
   const dateTo = parseDate(params.get("to") ?? params.get("dateTo"), true);
-  let query: Query<DocumentData> = adminDb().collection(REPORTS_COL);
-
-  if (params.get("stationId")) {
-    query = query.where("stationId", "==", params.get("stationId"));
-  }
-
-  if (params.get("technicianUid")) {
-    query = query.where("technicianUid", "==", params.get("technicianUid"));
-  }
-
   const reviewStatus = params.get("reviewStatus");
+  const reports = await listReports({
+    filters: {
+      stationId: params.get("stationId") ?? undefined,
+      technicianUid: params.get("technicianUid") ?? undefined,
+      reviewStatus:
+        reviewStatus === "pending" || reviewStatus === "reviewed" || reviewStatus === "rejected"
+          ? reviewStatus
+          : "",
+      dateFrom,
+      dateTo,
+    },
+    limit: REPORT_EXPORT_MAX_ROWS + 1,
+  });
 
-  if (reviewStatus === "pending" || reviewStatus === "reviewed" || reviewStatus === "rejected") {
-    query = query.where("reviewStatus", "==", reviewStatus);
-  }
-
-  query = query.where("submittedAt", ">=", dateFrom);
-
-  if (dateTo) {
-    query = query.where("submittedAt", "<=", dateTo);
-  }
-
-  const snapshot = await query.orderBy("submittedAt", "desc").limit(REPORT_EXPORT_MAX_ROWS + 1).get();
-
-  if (snapshot.docs.length > REPORT_EXPORT_MAX_ROWS) {
+  if (reports.length > REPORT_EXPORT_MAX_ROWS) {
     return NextResponse.json(
       {
         message: `نتيجة التصدير أكبر من الحد الآمن (${REPORT_EXPORT_MAX_ROWS} صف). ضيّق نطاق التاريخ أو الفلاتر ثم حاول مرة أخرى.`,
@@ -109,7 +59,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     );
   }
 
-  const reports = snapshot.docs.map((doc) => reportFromData(doc.id, doc.data() as Partial<Report>));
   const stationLocations = await getStationLocations(reports.map((report) => report.stationId));
   const header = ["رقم التقرير", "المحطة", "الموقع", "الفني", "الحالة", "ملاحظات", "التاريخ", "وقت الإرسال"];
   const rows = reports.map((report) => {

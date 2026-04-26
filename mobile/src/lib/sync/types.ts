@@ -9,7 +9,7 @@ export type StatusOption =
   | "station_excluded"
   | "station_substituted";
 
-export interface FirestoreTimestamp {
+export interface AppTimestamp {
   seconds: number;
   nanoseconds: number;
   toDate: () => Date;
@@ -30,7 +30,7 @@ export interface AppUser {
   email: string;
   displayName: string;
   role: UserRole;
-  createdAt: FirestoreTimestamp;
+  createdAt: AppTimestamp;
   isActive: boolean;
 }
 
@@ -76,7 +76,7 @@ export interface AuditLog {
   action: string;
   entityType: string;
   entityId: string;
-  createdAt: FirestoreTimestamp;
+  createdAt: AppTimestamp;
   metadata?: Record<string, unknown>;
 }
 
@@ -95,9 +95,8 @@ export interface AuthenticatedUserResponse {
 }
 
 export interface LoginSuccessResponse {
-  redirectTo: string;
-  customToken: string;
   user: AuthenticatedUserResponse;
+  redirectTo: string;
 }
 
 export interface SessionSuccessResponse {

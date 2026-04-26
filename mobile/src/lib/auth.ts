@@ -1,13 +1,25 @@
 import { createContext, createElement, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
-import { onAuthStateChanged, signOut as firebaseSignOut, type User as FirebaseUser } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
 
-import { auth, db } from '@/lib/sync/firebase';
+import { authClient } from '@/lib/auth-client';
+import { apiGet } from '@/lib/sync/api-client';
 import type { AuthenticatedUserResponse } from '@/lib/sync/types';
 
+interface MobileAuthSession {
+  session: {
+    expiresAt: Date | string;
+    id: string;
+    userId: string;
+  };
+  user: {
+    email: string;
+    id: string;
+    name?: null | string;
+  };
+}
+
 export interface CurrentMobileUser {
-  firebaseUser: FirebaseUser;
   profile: AuthenticatedUserResponse;
+  session: MobileAuthSession;
 }
 
 interface AuthContextValue {
@@ -17,7 +29,30 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function isActiveUserResponse(value: unknown, uid: string): value is AuthenticatedUserResponse {
+function isMobileAuthSession(value: unknown): value is MobileAuthSession {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as { session?: unknown; user?: unknown };
+
+  if (!candidate.session || typeof candidate.session !== 'object' || !candidate.user || typeof candidate.user !== 'object') {
+    return false;
+  }
+
+  const session = candidate.session as Partial<MobileAuthSession['session']>;
+  const user = candidate.user as Partial<MobileAuthSession['user']>;
+
+  return (
+    typeof session.id === 'string' &&
+    typeof session.userId === 'string' &&
+    (typeof session.expiresAt === 'string' || session.expiresAt instanceof Date) &&
+    typeof user.id === 'string' &&
+    typeof user.email === 'string'
+  );
+}
+
+function isActiveUserResponse(value: unknown): value is AuthenticatedUserResponse {
   if (!value || typeof value !== 'object') {
     return false;
   }
@@ -25,78 +60,85 @@ function isActiveUserResponse(value: unknown, uid: string): value is Authenticat
   const user = value as Partial<AuthenticatedUserResponse>;
 
   return (
-    user.uid === uid &&
     user.isActive === true &&
+    typeof user.uid === 'string' &&
     typeof user.email === 'string' &&
     typeof user.displayName === 'string' &&
     (user.role === 'technician' || user.role === 'supervisor' || user.role === 'manager')
   );
 }
 
-export async function loadMobileUserProfile(user: FirebaseUser): Promise<AuthenticatedUserResponse | null> {
-  const snapshot = await getDoc(doc(db, 'users', user.uid));
-  const data = snapshot.exists() ? snapshot.data() : null;
+export async function loadMobileUserProfile(): Promise<AuthenticatedUserResponse | null> {
+  const profile = await apiGet<AuthenticatedUserResponse>('/api/mobile/me');
 
-  return isActiveUserResponse(data, user.uid) ? data : null;
+  return isActiveUserResponse(profile) ? profile : null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<CurrentMobileUser | null>(null);
-  const [ready, setReady] = useState(false);
+  const sessionState = authClient.useSession();
+  const [profile, setProfile] = useState<AuthenticatedUserResponse | null>(null);
+  const [isResolvingProfile, setIsResolvingProfile] = useState(true);
+  const sessionData = sessionState.data;
+  const session = isMobileAuthSession(sessionData) ? sessionData : null;
 
   useEffect(() => {
     let isMounted = true;
 
-    const unsubscribe = onAuthStateChanged(auth, (nextUser) => {
-      async function resolveUser(): Promise<void> {
-        setReady(false);
+    async function resolveProfile(): Promise<void> {
+      if (sessionState.isPending) {
+        return;
+      }
 
-        if (!nextUser) {
+      if (!session) {
+        setProfile(null);
+        setIsResolvingProfile(false);
+        return;
+      }
+
+      setIsResolvingProfile(true);
+
+      try {
+        const nextProfile = await loadMobileUserProfile();
+
+        if (!nextProfile) {
+          await authClient.signOut();
+
           if (isMounted) {
-            setCurrentUser(null);
-            setReady(true);
+            setProfile(null);
           }
           return;
         }
 
-        try {
-          const profile = await loadMobileUserProfile(nextUser);
+        if (isMounted) {
+          setProfile(nextProfile);
+        }
+      } catch {
+        await authClient.signOut();
 
-          if (!profile) {
-            await firebaseSignOut(auth);
-
-            if (isMounted) {
-              setCurrentUser(null);
-            }
-            return;
-          }
-
-          if (isMounted) {
-            setCurrentUser({ firebaseUser: nextUser, profile });
-          }
-        } catch {
-          await firebaseSignOut(auth);
-
-          if (isMounted) {
-            setCurrentUser(null);
-          }
-        } finally {
-          if (isMounted) {
-            setReady(true);
-          }
+        if (isMounted) {
+          setProfile(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsResolvingProfile(false);
         }
       }
+    }
 
-      void resolveUser();
-    });
+    void resolveProfile();
 
     return () => {
       isMounted = false;
-      unsubscribe();
     };
-  }, []);
+  }, [session, sessionState.isPending]);
 
-  const value = useMemo<AuthContextValue>(() => ({ currentUser, ready }), [currentUser, ready]);
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      currentUser: session && profile ? { profile, session } : null,
+      ready: !sessionState.isPending && !isResolvingProfile,
+    }),
+    [isResolvingProfile, profile, session, sessionState.isPending],
+  );
 
   return createElement(AuthContext.Provider, { value }, children);
 }
@@ -120,5 +162,5 @@ export function useAuthReady(): boolean {
 }
 
 export async function signOut(): Promise<void> {
-  await firebaseSignOut(auth);
+  await authClient.signOut();
 }

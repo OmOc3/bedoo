@@ -8,30 +8,27 @@ import { UserAccessCodeForm } from "@/components/users/user-access-code-form";
 import { UserRoleForm } from "@/components/users/user-role-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requireRole } from "@/lib/auth/server-session";
-import { USERS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
+import { listAppUsers } from "@/lib/db/repositories";
 import { roleLabels } from "@/lib/i18n";
-import type { AppUser, FirestoreTimestamp } from "@/types";
 
 export const metadata: Metadata = {
   title: "إدارة المستخدمين",
 };
 
-function userFromData(uid: string, data: Partial<AppUser>): AppUser {
-  return {
-    uid: data.uid ?? uid,
-    email: data.email ?? "",
-    displayName: data.displayName ?? "مستخدم بدون اسم",
-    role: data.role ?? "technician",
-    createdAt: data.createdAt as FirestoreTimestamp,
-    isActive: data.isActive ?? false,
-  };
+function getInitials(name: string): string {
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => Array.from(part)[0] ?? "")
+    .join("");
+
+  return initials || "م";
 }
 
 export default async function ManagerUsersPage() {
   const session = await requireRole(["manager"]);
-  const snapshot = await adminDb().collection(USERS_COL).orderBy("displayName", "asc").get();
-  const users = snapshot.docs.map((doc) => userFromData(doc.id, doc.data() as Partial<AppUser>));
+  const users = await listAppUsers();
 
   return (
     <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
@@ -39,7 +36,7 @@ export default async function ManagerUsersPage() {
         <PageHeader
           action={
             <Link
-              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-control transition-colors hover:bg-slate-50"
               href="/dashboard/manager"
             >
               لوحة المدير
@@ -54,81 +51,68 @@ export default async function ManagerUsersPage() {
         <CreateUserForm />
 
         {users.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
             <EmptyState description="ابدأ بإنشاء أول مستخدم من النموذج أعلاه." title="لا يوجد مستخدمون" />
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table className="w-full min-w-[920px]">
-              <thead className="border-b border-slate-200 bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
-                    الاسم
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
-                    البريد
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
-                    الدور
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
-                    الحالة
-                  </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
-                    الإجراءات
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {users.map((user) => {
-                  const isCurrentUser = user.uid === session.uid;
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {users.map((user) => {
+              const isCurrentUser = user.uid === session.uid;
 
-                  async function toggleActive(): Promise<void> {
-                    "use server";
-                    await toggleUserActiveAction(user.uid);
-                  }
+              async function toggleActive(): Promise<void> {
+                "use server";
+                await toggleUserActiveAction(user.uid);
+              }
 
-                  return (
-                    <tr className="align-top transition-colors hover:bg-slate-50" key={user.uid}>
-                      <td className="px-4 py-3 text-sm font-medium text-slate-900">{user.displayName}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{user.email}</td>
-                      <td className="px-4 py-3">
-                        <div className="mb-2">
-                          <span className="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-medium text-teal-700">
-                            {roleLabels[user.role]}
-                          </span>
-                        </div>
-                        <UserRoleForm disabled={isCurrentUser} targetUid={user.uid} value={user.role} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={
-                            user.isActive
-                              ? "inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700"
-                              : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
-                          }
-                        >
-                          {user.isActive ? "نشط" : "غير نشط"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <form action={toggleActive}>
-                          <button
-                            className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:text-slate-300 disabled:no-underline"
-                            disabled={isCurrentUser}
-                            type="submit"
-                          >
-                            {user.isActive ? "تعطيل" : "تفعيل"}
-                          </button>
-                        </form>
-                        <UserAccessCodeForm targetUid={user.uid} />
-                        {isCurrentUser ? <p className="mt-2 text-xs text-slate-500">لا يمكنك تعطيل حسابك أو تغيير دورك الحالي.</p> : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              return (
+                <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-control" key={user.uid}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-100 text-lg font-bold text-slate-500 ring-1 ring-slate-200">
+                        {getInitials(user.displayName)}
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="truncate text-lg font-bold text-slate-950">{user.displayName}</h2>
+                        <p className="truncate text-sm text-slate-500">{user.email}</p>
+                      </div>
+                    </div>
+                    <span
+                      className={
+                        user.isActive
+                          ? "inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"
+                          : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600"
+                      }
+                    >
+                      {user.isActive ? "نشط" : "غير نشط"}
+                    </span>
+                  </div>
+
+                  <div className="mt-5 flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                    <span className="text-sm text-slate-500">الدور</span>
+                    <span className="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
+                      {roleLabels[user.role]}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    <UserRoleForm disabled={isCurrentUser} targetUid={user.uid} value={user.role} />
+                    <form action={toggleActive}>
+                      <button
+                        className="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
+                        disabled={isCurrentUser}
+                        type="submit"
+                      >
+                        {user.isActive ? "تعطيل المستخدم" : "تفعيل المستخدم"}
+                      </button>
+                    </form>
+                    <UserAccessCodeForm targetUid={user.uid} />
+                    {isCurrentUser ? (
+                      <p className="text-xs leading-5 text-slate-500">لا يمكنك تعطيل حسابك أو تغيير دورك الحالي.</p>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

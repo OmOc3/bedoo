@@ -1,8 +1,6 @@
 import "server-only";
 
-import { FieldValue } from "firebase-admin/firestore";
-import { AUDIT_LOGS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
+import { writeAuditLogRecord } from "@/lib/db/repositories";
 import type { UserRole } from "@/types";
 
 export interface AuditLogInput {
@@ -16,19 +14,7 @@ export interface AuditLogInput {
 
 export async function writeAuditLog(entry: AuditLogInput): Promise<void> {
   try {
-    const ref = adminDb().collection(AUDIT_LOGS_COL).doc();
-    const auditLog = {
-      logId: ref.id,
-      actorUid: entry.actorUid,
-      actorRole: entry.actorRole,
-      action: entry.action,
-      entityType: entry.entityType,
-      entityId: entry.entityId,
-      createdAt: FieldValue.serverTimestamp(),
-      ...(entry.metadata ? { metadata: entry.metadata } : {}),
-    };
-
-    await ref.set(auditLog);
+    await writeAuditLogRecord(entry);
   } catch (error: unknown) {
     console.error("Failed to write audit log.", error);
   }

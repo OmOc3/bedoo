@@ -2,21 +2,35 @@ import { z } from "zod";
 
 const envSchema = z
   .object({
-    AUTH_SESSION_SECRET: z.string().min(32, "AUTH_SESSION_SECRET must be at least 32 characters."),
-    FIREBASE_ADMIN_CLIENT_EMAIL: z.string().min(1, "FIREBASE_ADMIN_CLIENT_EMAIL is required."),
-    FIREBASE_ADMIN_PRIVATE_KEY: z.string().min(1, "FIREBASE_ADMIN_PRIVATE_KEY is required."),
-    FIREBASE_ADMIN_PROJECT_ID: z.string().min(1, "FIREBASE_ADMIN_PROJECT_ID is required."),
+    AUTH_ROLE_COOKIE_SECRET: z.string().min(32, "AUTH_ROLE_COOKIE_SECRET must be at least 32 characters.").optional(),
+    AUTH_SESSION_SECRET: z.string().min(32, "AUTH_SESSION_SECRET must be at least 32 characters.").optional(),
+    BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters.").optional(),
+    BETTER_AUTH_URL: z.string().url("BETTER_AUTH_URL must be a valid URL.").optional(),
+    DATABASE_AUTH_TOKEN: z.string().optional(),
+    DATABASE_URL: z.string().min(1, "DATABASE_URL is required.").default("file:./data/mawqi3.db"),
     NEXT_PUBLIC_BASE_URL: z.string().optional(),
-    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: z.string().optional(),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+    ROLE_COOKIE_SECRET: z.string().min(32, "ROLE_COOKIE_SECRET must be at least 32 characters.").optional(),
+    SEED_MANAGER_EMAIL: z.string().email().optional(),
+    SEED_MANAGER_NAME: z.string().min(1).optional(),
+    SEED_MANAGER_PASSWORD: z.string().min(8).optional(),
     SESSION_MAX_AGE_SECONDS: z.coerce
       .number()
       .int("SESSION_MAX_AGE_SECONDS must be an integer.")
-      .positive("SESSION_MAX_AGE_SECONDS must be positive."),
+      .positive("SESSION_MAX_AGE_SECONDS must be positive.")
+      .default(432000),
   })
   .superRefine((env, context) => {
     if (env.NODE_ENV !== "production") {
       return;
+    }
+
+    if (!env.BETTER_AUTH_SECRET && !env.AUTH_SESSION_SECRET) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "BETTER_AUTH_SECRET is required in production.",
+        path: ["BETTER_AUTH_SECRET"],
+      });
     }
 
     if (!env.NEXT_PUBLIC_BASE_URL) {

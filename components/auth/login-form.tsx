@@ -4,10 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { inMemoryPersistence, setPersistence, signInWithCustomToken } from "firebase/auth";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
-import { getFirebaseAuth } from "@/lib/firebase";
 import { i18n } from "@/lib/i18n";
 import { isRecord } from "@/lib/utils";
 import { loginFormSchema, type LoginFormValues } from "@/lib/validation/auth";
@@ -28,7 +26,6 @@ function isLoginSuccessResponse(value: unknown): value is LoginSuccessResponse {
   return (
     isRecord(value) &&
     typeof value.redirectTo === "string" &&
-    typeof value.customToken === "string" &&
     isAuthenticatedUserResponse(value.user)
   );
 }
@@ -39,14 +36,6 @@ function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
 
 function formatApiErrorMessage(payload: ApiErrorResponse): string {
   if (payload.code === "AUTH_LOGIN_FAILED" || payload.code.startsWith("AUTH_CONFIG_")) {
-    return `${payload.message} (${payload.code})`;
-  }
-
-  if (
-    payload.code === "AUTH_FIREBASE_PROJECT_MISMATCH" ||
-    payload.code === "AUTH_FIRESTORE_UNAVAILABLE" ||
-    payload.code === "AUTH_USER_PROFILE_INVALID"
-  ) {
     return `${payload.message} (${payload.code})`;
   }
 
@@ -90,10 +79,6 @@ export function LoginForm() {
         return;
       }
 
-      const auth = getFirebaseAuth();
-
-      await setPersistence(auth, inMemoryPersistence);
-      await signInWithCustomToken(auth, payload.customToken);
       router.replace(payload.redirectTo);
       router.refresh();
     } catch (_error: unknown) {

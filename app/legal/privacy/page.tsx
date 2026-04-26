@@ -26,12 +26,12 @@ const sections = [
       "Data is used to provide the service, protect accounts, show reports, review operations, generate exports, and improve field workflow reliability.",
   },
   {
-    titleAr: "تخزين البيانات (Firebase)",
-    titleEn: "Data Storage (Firebase)",
+    titleAr: "تخزين البيانات",
+    titleEn: "Data Storage",
     bodyAr:
-      "تستخدم المنصة Firebase كمعالج بيانات لتخزين المصادقة والبيانات التشغيلية وفق إعدادات المشروع وسياسات الأمان المفعلة.",
+      "تستخدم المنصة قاعدة بيانات SQL ونظام جلسات آمن لتخزين المصادقة والبيانات التشغيلية وفق إعدادات المشروع وسياسات الأمان المفعلة.",
     bodyEn:
-      "The platform uses Firebase as a data processor for authentication and operational data according to the project's configuration and active security policies.",
+      "The platform uses a SQL database and secure session system for authentication and operational data according to the project's configuration and active security policies.",
   },
   {
     titleAr: "حقوق المستخدم",

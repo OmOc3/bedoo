@@ -1,4 +1,4 @@
-import type { FirestoreTimestamp, Station } from "@/types";
+import type { AppTimestamp, Station } from "@/types";
 
 export type StationHealth = "attention" | "healthy" | "inactive";
 
@@ -10,7 +10,7 @@ export interface StationHealthDetails {
 
 const staleVisitDays = 14;
 
-function daysSince(timestamp?: FirestoreTimestamp): number | null {
+function daysSince(timestamp?: AppTimestamp): number | null {
   if (!timestamp) {
     return null;
   }

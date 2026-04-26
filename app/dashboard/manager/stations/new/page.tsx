@@ -20,7 +20,7 @@ export default async function NewStationPage() {
           title="إضافة محطة"
         />
         <DashboardNav role="manager" />
-        <div className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-control sm:p-6">
           <StationForm mode="create" />
         </div>
       </section>

@@ -12,14 +12,14 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
 ) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-bold text-[var(--foreground)]" htmlFor={id}>
+      <label className="block text-sm font-semibold text-[var(--foreground)]" htmlFor={id}>
         {label}
       </label>
       <input
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
         className={cn(
-          "min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-base text-[var(--foreground)] shadow-control transition placeholder:text-[oklch(0.64_0.014_165)] focus:border-[var(--focus)] disabled:bg-[var(--surface-subtle)]",
+          "min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] shadow-control transition placeholder:text-[oklch(0.64_0.014_165)] focus:border-[var(--focus)] disabled:bg-[var(--surface-subtle)]",
           error ? "border-[var(--danger)] bg-[var(--danger-soft)]" : null,
           className,
         )}

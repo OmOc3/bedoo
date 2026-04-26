@@ -1,13 +1,12 @@
 "use server";
 
-import { FieldValue } from "firebase-admin/firestore";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth/better-auth";
 import { requireRole } from "@/lib/auth/server-session";
-import { USERS_COL } from "@/lib/collections";
-import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { getAppUser, getUserByEmail } from "@/lib/db/repositories";
 import { createUserSchema, updateUserAccessCodeSchema, updateUserRoleSchema } from "@/lib/validation/users";
 import { writeAuditLog } from "@/lib/audit";
-import type { AppUser } from "@/types";
 
 export interface UserActionResult {
   createdUid?: string;
@@ -16,30 +15,10 @@ export interface UserActionResult {
   success?: boolean;
 }
 
-function optionalAuthErrorCode(error: unknown): string | null {
-  if (typeof error === "object" && error !== null && "code" in error && typeof error.code === "string") {
-    return error.code;
-  }
-
-  return null;
-}
-
 function requiredString(formData: FormData, key: string): string {
   const value = formData.get(key);
 
   return typeof value === "string" ? value : "";
-}
-
-async function getAuthUserByEmail(email: string) {
-  try {
-    return await adminAuth().getUserByEmail(email);
-  } catch (error: unknown) {
-    if (optionalAuthErrorCode(error) === "auth/user-not-found") {
-      return null;
-    }
-
-    throw error;
-  }
 }
 
 export async function createUserAccountAction(formData: FormData): Promise<UserActionResult> {
@@ -59,40 +38,29 @@ export async function createUserAccountAction(formData: FormData): Promise<UserA
   }
 
   const email = parsed.data.email.trim().toLowerCase();
-  const existingAuthUser = await getAuthUserByEmail(email);
+  const existingUser = await getUserByEmail(email);
 
-  if (existingAuthUser) {
+  if (existingUser) {
     return { error: "هذا البريد مستخدم بالفعل." };
   }
 
-  let createdUid: string | null = null;
-
   try {
-    const authUser = await adminAuth().createUser({
-      email,
-      password: parsed.data.password,
-      displayName: parsed.data.displayName,
-      emailVerified: true,
-      disabled: false,
+    const result = await auth.api.createUser({
+      body: {
+        email,
+        password: parsed.data.password,
+        name: parsed.data.displayName,
+        role: parsed.data.role,
+      },
     });
-
-    createdUid = authUser.uid;
-
-    await adminDb().collection(USERS_COL).doc(authUser.uid).set({
-      uid: authUser.uid,
-      email,
-      displayName: parsed.data.displayName,
-      role: parsed.data.role,
-      createdAt: FieldValue.serverTimestamp(),
-      isActive: true,
-    });
+    const createdUid = result.user.id;
 
     await writeAuditLog({
       actorUid: session.uid,
       actorRole: session.role,
       action: "user.create",
       entityType: "user",
-      entityId: authUser.uid,
+      entityId: createdUid,
       metadata: {
         email,
         role: parsed.data.role,
@@ -102,25 +70,11 @@ export async function createUserAccountAction(formData: FormData): Promise<UserA
     revalidatePath("/dashboard/manager/users");
 
     return {
-      createdUid: authUser.uid,
+      createdUid,
       success: true,
     };
-  } catch (error: unknown) {
-    if (createdUid) {
-      await adminAuth().deleteUser(createdUid).catch(() => undefined);
-    }
-
-    const errorCode = optionalAuthErrorCode(error);
-
-    if (errorCode === "auth/email-already-exists") {
-      return { error: "هذا البريد مستخدم بالفعل." };
-    }
-
-    if (errorCode === "auth/invalid-password") {
-      return { error: "كود الدخول لا يحقق متطلبات Firebase." };
-    }
-
-    return { error: "تعذر إنشاء المستخدم. تحقق من إعدادات Firebase وحاول مرة أخرى." };
+  } catch (_error: unknown) {
+    return { error: "تعذر إنشاء المستخدم. تحقق من البيانات وحاول مرة أخرى." };
   }
 }
 
@@ -131,25 +85,33 @@ export async function toggleUserActiveAction(targetUid: string): Promise<UserAct
     return { error: "لا يمكنك تعطيل حسابك" };
   }
 
-  const userRef = adminDb().collection(USERS_COL).doc(targetUid);
-  const snapshot = await userRef.get();
+  const user = await getAppUser(targetUid);
 
-  if (!snapshot.exists) {
+  if (!user) {
     return { error: "المستخدم غير موجود" };
   }
 
-  const user = snapshot.data() as Partial<AppUser>;
   const nextIsActive = !user.isActive;
+  const requestHeaders = await headers();
 
-  await adminAuth().updateUser(targetUid, {
-    disabled: !nextIsActive,
-  });
-
-  await userRef.update({
-    isActive: nextIsActive,
-    updatedAt: FieldValue.serverTimestamp(),
-    updatedBy: session.uid,
-  });
+  try {
+    if (nextIsActive) {
+      await auth.api.unbanUser({
+        body: { userId: targetUid },
+        headers: requestHeaders,
+      });
+    } else {
+      await auth.api.banUser({
+        body: {
+          userId: targetUid,
+          banReason: "deactivated",
+        },
+        headers: requestHeaders,
+      });
+    }
+  } catch (_error: unknown) {
+    return { error: "تعذر تحديث حالة المستخدم." };
+  }
 
   await writeAuditLog({
     actorUid: session.uid,
@@ -186,20 +148,23 @@ export async function updateUserRoleAction(targetUid: string, formData: FormData
     };
   }
 
-  const userRef = adminDb().collection(USERS_COL).doc(targetUid);
-  const snapshot = await userRef.get();
+  const user = await getAppUser(targetUid);
 
-  if (!snapshot.exists) {
+  if (!user) {
     return { error: "المستخدم غير موجود" };
   }
 
-  const user = snapshot.data() as Partial<AppUser>;
-
-  await userRef.update({
-    role: parsed.data.role,
-    updatedAt: FieldValue.serverTimestamp(),
-    updatedBy: session.uid,
-  });
+  try {
+    await auth.api.setRole({
+      body: {
+        userId: targetUid,
+        role: parsed.data.role,
+      },
+      headers: await headers(),
+    });
+  } catch (_error: unknown) {
+    return { error: "تعذر تحديث دور المستخدم." };
+  }
 
   await writeAuditLog({
     actorUid: session.uid,
@@ -231,31 +196,23 @@ export async function updateUserAccessCodeAction(targetUid: string, formData: Fo
     };
   }
 
-  const userRef = adminDb().collection(USERS_COL).doc(targetUid);
-  const snapshot = await userRef.get();
+  const user = await getAppUser(targetUid);
 
-  if (!snapshot.exists) {
+  if (!user) {
     return { error: "المستخدم غير موجود" };
   }
 
-  const user = snapshot.data() as Partial<AppUser>;
-
   try {
-    await adminAuth().updateUser(targetUid, {
-      password: parsed.data.password,
+    await auth.api.setUserPassword({
+      body: {
+        userId: targetUid,
+        newPassword: parsed.data.password,
+      },
+      headers: await headers(),
     });
-  } catch (error: unknown) {
-    if (optionalAuthErrorCode(error) === "auth/invalid-password") {
-      return { error: "كود الدخول لا يحقق متطلبات Firebase." };
-    }
-
-    return { error: "تعذر تحديث كود الدخول. تحقق من إعدادات Firebase وحاول مرة أخرى." };
+  } catch (_error: unknown) {
+    return { error: "تعذر تحديث كود الدخول. تحقق من البيانات وحاول مرة أخرى." };
   }
-
-  await userRef.update({
-    updatedAt: FieldValue.serverTimestamp(),
-    updatedBy: session.uid,
-  });
 
   await writeAuditLog({
     actorUid: session.uid,

@@ -1,6 +1,4 @@
 import { router } from 'expo-router';
-import { FirebaseError } from 'firebase/app';
-import { signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,10 +9,10 @@ import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Fonts, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
 import { useTheme } from '@/hooks/use-theme';
+import { authClient } from '@/lib/auth-client';
 import { loadMobileUserProfile } from '@/lib/auth';
 import { getMobileHomeRoute } from '@/lib/auth-routes';
 import { errorHaptic, successHaptic } from '@/lib/haptics';
-import { auth } from '@/lib/sync/firebase';
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -51,20 +49,20 @@ export default function LoginScreen() {
   const { showToast } = useToast();
 
   function mapAuthError(errorValue: unknown): string {
-    if (errorValue instanceof FirebaseError) {
-      if (errorValue.code === 'auth/network-request-failed') {
-        return strings.auth.networkError;
-      }
-
-      if (errorValue.code === 'auth/user-disabled') {
-        return strings.auth.userDisabled;
-      }
-
-      return strings.auth.invalidCredentials;
-    }
-
     if (errorValue instanceof Error && errorValue.message === strings.auth.missingProfile) {
       return strings.auth.missingProfile;
+    }
+
+    if (errorValue instanceof Error && errorValue.message === 'NETWORK_ERROR') {
+      return strings.auth.networkError;
+    }
+
+    if (errorValue instanceof Error && errorValue.message === 'USER_DISABLED') {
+      return strings.auth.userDisabled;
+    }
+
+    if (errorValue instanceof Error && errorValue.message === 'INVALID_CREDENTIALS') {
+      return strings.auth.invalidCredentials;
     }
 
     return strings.auth.genericLoginError;
@@ -92,11 +90,19 @@ export default function LoginScreen() {
     setIsSigningIn(true);
 
     try {
-      const credential = await signInWithEmailAndPassword(auth, cleanEmail, accessCode.trim());
-      const profile = await loadMobileUserProfile(credential.user);
+      const result = await authClient.signIn.email({
+        email: cleanEmail,
+        password: accessCode.trim(),
+      });
+
+      if (result.error) {
+        throw new Error(result.error.code === 'USER_BANNED' ? 'USER_DISABLED' : 'INVALID_CREDENTIALS');
+      }
+
+      const profile = await loadMobileUserProfile();
 
       if (!profile) {
-        await firebaseSignOut(auth);
+        await authClient.signOut();
         throw new Error(strings.auth.missingProfile);
       }
 
@@ -104,7 +110,7 @@ export default function LoginScreen() {
       setAccessCode('');
       router.replace(getMobileHomeRoute(profile.role));
     } catch (loginError: unknown) {
-      await firebaseSignOut(auth).catch(() => undefined);
+      await authClient.signOut().catch(() => undefined);
       const message = mapAuthError(loginError);
       setError(message);
       showToast(message, 'error');

@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AUTH_SESSION_SECRET: 12345678901234567890123456789012
+      AUTH_ROLE_COOKIE_SECRET: 21098765432109876543210987654321
       SESSION_MAX_AGE_SECONDS: 432000
       FIREBASE_ADMIN_PROJECT_ID: mawqi3-ci-demo
       FIREBASE_ADMIN_CLIENT_EMAIL: firebase-admin@mawqi3-ci-demo.iam.gserviceaccount.com

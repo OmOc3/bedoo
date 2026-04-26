@@ -63,10 +63,10 @@ export function CreateUserForm() {
   }
 
   return (
-    <form className="grid gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:grid-cols-2" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
+    <form className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-control sm:grid-cols-2" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
       <div className="sm:col-span-2">
         <h2 className="text-lg font-semibold text-slate-800">إنشاء مستخدم جديد</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-500">ينشئ حساب Firebase Auth ويضيف وثيقة المستخدم في Firestore. كود الدخول هو كلمة مرور Firebase لهذا المستخدم.</p>
+        <p className="mt-1 text-sm leading-6 text-slate-500">ينشئ حساب دخول في Better Auth ويحفظ بيانات المستخدم في قاعدة SQL. كود الدخول هو كلمة مرور هذا المستخدم.</p>
       </div>
 
       {result?.error ? <p className="rounded-lg bg-red-100 px-4 py-3 text-sm font-medium text-red-700 sm:col-span-2">{result.error}</p> : null}
@@ -115,11 +115,11 @@ export function CreateUserForm() {
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-bold text-[var(--foreground)]" htmlFor="role">
+        <label className="block text-sm font-semibold text-[var(--foreground)]" htmlFor="role">
           الدور
         </label>
         <select
-          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-base text-[var(--foreground)] shadow-control transition focus:border-[var(--focus)]"
+          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] shadow-control transition focus:border-[var(--focus)]"
           id="role"
           {...form.register("role")}
         >

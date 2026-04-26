@@ -3,10 +3,10 @@ import assert from "node:assert/strict";
 import { parseServerEnv } from "../lib/env/server-schema.ts";
 
 const baseEnv: NodeJS.ProcessEnv = {
+  AUTH_ROLE_COOKIE_SECRET: "b".repeat(32),
   AUTH_SESSION_SECRET: "a".repeat(32),
-  FIREBASE_ADMIN_CLIENT_EMAIL: "firebase-admin@example.iam.gserviceaccount.com",
-  FIREBASE_ADMIN_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----\\n",
-  FIREBASE_ADMIN_PROJECT_ID: "mawqi3-demo",
+  BETTER_AUTH_SECRET: "c".repeat(32),
+  DATABASE_URL: "file:./data/test.db",
   NODE_ENV: "development",
   SESSION_MAX_AGE_SECONDS: "3600",
 };
@@ -21,6 +21,13 @@ test("parseServerEnv requires a strong auth session secret", () => {
   assert.throws(
     () => parseServerEnv({ ...baseEnv, AUTH_SESSION_SECRET: "short" }),
     /AUTH_SESSION_SECRET/,
+  );
+});
+
+test("parseServerEnv requires a strong auth role cookie secret", () => {
+  assert.throws(
+    () => parseServerEnv({ ...baseEnv, AUTH_ROLE_COOKIE_SECRET: "short" }),
+    /AUTH_ROLE_COOKIE_SECRET/,
   );
 });
 

@@ -43,7 +43,7 @@ export function ReportsFilterForm({ basePath = "/dashboard/supervisor/reports", 
 
   return (
     <form
-      className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 md:grid-cols-5"
+      className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-control md:grid-cols-5"
       dir="rtl"
       onSubmit={form.handleSubmit(onSubmit)}
     >
@@ -52,7 +52,7 @@ export function ReportsFilterForm({ basePath = "/dashboard/supervisor/reports", 
           رقم المحطة
         </label>
         <input
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 transition focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
           id="stationId"
           {...form.register("stationId")}
         />
@@ -62,7 +62,7 @@ export function ReportsFilterForm({ basePath = "/dashboard/supervisor/reports", 
           رقم الفني
         </label>
         <input
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 transition focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
           id="technicianUid"
           {...form.register("technicianUid")}
         />
@@ -72,7 +72,7 @@ export function ReportsFilterForm({ basePath = "/dashboard/supervisor/reports", 
           من تاريخ
         </label>
         <input
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 transition focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
           id="dateFrom"
           type="date"
           {...form.register("dateFrom")}
@@ -83,7 +83,7 @@ export function ReportsFilterForm({ basePath = "/dashboard/supervisor/reports", 
           إلى تاريخ
         </label>
         <input
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 transition focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
           id="dateTo"
           type="date"
           {...form.register("dateTo")}
@@ -94,7 +94,7 @@ export function ReportsFilterForm({ basePath = "/dashboard/supervisor/reports", 
           المراجعة
         </label>
         <select
-          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 transition focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
           id="reviewStatus"
           {...form.register("reviewStatus")}
         >
@@ -109,7 +109,7 @@ export function ReportsFilterForm({ basePath = "/dashboard/supervisor/reports", 
           تطبيق الفلاتر
         </Button>
         <Link
-          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-3 text-base font-bold text-slate-700 transition-colors hover:bg-slate-50"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
           href={basePath}
         >
           مسح

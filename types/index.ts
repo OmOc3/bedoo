@@ -4,7 +4,7 @@ export type UserRole = SharedUserRole;
 
 export type StatusOption = SharedStatusOption;
 
-export interface FirestoreTimestamp {
+export interface AppTimestamp {
   seconds: number;
   nanoseconds: number;
   toDate: () => Date;
@@ -25,7 +25,7 @@ export interface AppUser {
   email: string;
   displayName: string;
   role: UserRole;
-  createdAt: FirestoreTimestamp;
+  createdAt: AppTimestamp;
   isActive: boolean;
 }
 
@@ -37,11 +37,11 @@ export interface Station {
   coordinates?: Coordinates;
   qrCodeValue: string;
   isActive: boolean;
-  createdAt: FirestoreTimestamp;
+  createdAt: AppTimestamp;
   createdBy: string;
-  updatedAt?: FirestoreTimestamp;
+  updatedAt?: AppTimestamp;
   updatedBy?: string;
-  lastVisitedAt?: FirestoreTimestamp;
+  lastVisitedAt?: AppTimestamp;
   totalReports: number;
 }
 
@@ -55,11 +55,11 @@ export interface Report {
   clientReportId?: string;
   notes?: string;
   photoPaths?: ReportPhotoPaths;
-  submittedAt: FirestoreTimestamp;
+  submittedAt: AppTimestamp;
   reviewStatus: SharedReviewStatus;
-  editedAt?: FirestoreTimestamp;
+  editedAt?: AppTimestamp;
   editedBy?: string;
-  reviewedAt?: FirestoreTimestamp;
+  reviewedAt?: AppTimestamp;
   reviewedBy?: string;
   reviewNotes?: string;
 }
@@ -71,13 +71,14 @@ export interface AuditLog {
   action: string;
   entityType: string;
   entityId: string;
-  createdAt: FirestoreTimestamp;
+  createdAt: AppTimestamp;
   metadata?: Record<string, unknown>;
 }
 
 export interface ApiErrorResponse {
   message: string;
   code: string;
+  debug?: string;
   retryAfterSeconds?: number;
 }
 
@@ -91,7 +92,6 @@ export interface AuthenticatedUserResponse {
 
 export interface LoginSuccessResponse {
   redirectTo: string;
-  customToken: string;
   user: AuthenticatedUserResponse;
 }
 

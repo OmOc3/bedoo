@@ -29,8 +29,8 @@ const privacyContent: Record<LegalLanguage, { subtitle: string; title: string; s
         body: 'تُستخدم البيانات لمتابعة الزيارات، مراجعة التقارير، معرفة المحطات التي تحتاج إجراء، وحفظ سجل تشغيلي يمكن الرجوع إليه.',
       },
       {
-        title: 'Firebase كمعالج بيانات',
-        body: 'تُحفظ بيانات التطبيق في Firebase. الصور، عند تفعيلها، تُخزن في Firebase Storage، وبيانات التقارير تُربط بحساب الفني داخل Firebase Auth.',
+        title: 'تخزين البيانات',
+        body: 'تُحفظ بيانات التطبيق في قاعدة بيانات SQL آمنة. الصور خارج هذا الإصدار، وبيانات التقارير تُربط بحساب الفني داخل Better Auth.',
       },
       {
         title: 'حقوق المستخدم',
@@ -59,8 +59,8 @@ const privacyContent: Record<LegalLanguage, { subtitle: string; title: string; s
         body: 'Data is used to track visits, review reports, identify stations that need action, and keep an operational record for follow-up.',
       },
       {
-        title: 'Firebase as Data Processor',
-        body: 'App data is stored in Firebase. Photos, when enabled, are stored in Firebase Storage, and report data is tied to the technician account in Firebase Auth.',
+        title: 'Data Storage',
+        body: 'App data is stored in a secure SQL database. Photos are outside this version, and report data is tied to the technician account in Better Auth.',
       },
       {
         title: 'User Rights',

@@ -6,7 +6,7 @@ import { StatusPills } from "@/components/reports/status-pills";
 import { requireRole } from "@/lib/auth/server-session";
 import { i18n } from "@/lib/i18n";
 import { getLatestReports, getManagerDashboardStats } from "@/lib/stats/dashboard-stats";
-import type { FirestoreTimestamp } from "@/types";
+import type { AppTimestamp } from "@/types";
 
 export const metadata: Metadata = {
   title: i18n.dashboard.managerTitle,
@@ -15,22 +15,38 @@ export const metadata: Metadata = {
 interface StatCardProps {
   href: string;
   label: string;
+  tone: "amber" | "blue" | "green" | "teal";
   value: number;
 }
 
-function StatCard({ href, label, value }: StatCardProps) {
+const statToneClasses: Record<StatCardProps["tone"], string> = {
+  amber: "bg-amber-50 text-amber-700",
+  blue: "bg-blue-50 text-blue-700",
+  green: "bg-green-50 text-green-700",
+  teal: "bg-teal-50 text-teal-700",
+};
+
+function StatCard({ href, label, tone, value }: StatCardProps) {
   return (
     <Link
-      className="rounded-xl border border-slate-200 bg-white p-5 shadow-control transition-colors hover:bg-slate-50"
+      className="group flex min-h-28 items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-control transition-colors hover:bg-slate-50"
       href={href}
     >
-      <p className="text-sm font-medium text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-bold text-slate-900">{value}</p>
+      <div>
+        <p className="text-sm font-medium text-slate-500">{label}</p>
+        <p className="mt-1 text-3xl font-extrabold text-slate-950">{value}</p>
+      </div>
+      <span
+        aria-hidden="true"
+        className={`grid h-12 w-12 place-items-center rounded-2xl ${statToneClasses[tone]} transition-transform group-hover:-translate-y-0.5`}
+      >
+        <span className="h-3 w-3 rounded-full bg-current" />
+      </span>
     </Link>
   );
 }
 
-function formatTimestamp(timestamp?: FirestoreTimestamp): string {
+function formatTimestamp(timestamp?: AppTimestamp): string {
   if (!timestamp) {
     return "غير متاح";
   }
@@ -49,68 +65,29 @@ export default async function ManagerDashboardPage() {
     <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
       <section className="mx-auto max-w-7xl space-y-6">
         <PageHeader
-          action={
-            <div className="flex flex-wrap gap-2">
-              <Link
-                className="inline-flex items-center justify-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-600"
-                href="/dashboard/manager/stations"
-              >
-                المحطات
-              </Link>
-              <Link
-                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                href="/dashboard/manager/reports"
-              >
-                التقارير
-              </Link>
-              <Link
-                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                href="/dashboard/manager/tasks"
-              >
-                مهام اليوم
-              </Link>
-              <Link
-                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                href="/dashboard/manager/analytics"
-              >
-                التحليلات
-              </Link>
-              <Link
-                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                href="/dashboard/manager/users"
-              >
-                المستخدمون
-              </Link>
-              <Link
-                className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
-                href="/dashboard/manager/audit"
-              >
-                السجل
-              </Link>
-            </div>
-          }
           description="نظرة تشغيلية على المحطات والتقارير والفنيين."
           title={i18n.dashboard.managerTitle}
         />
         <DashboardNav role="manager" />
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard href="/dashboard/manager/stations" label="إجمالي المحطات" value={stats.totalStations} />
-          <StatCard href="/dashboard/manager/stations" label="المحطات النشطة" value={stats.activeStations} />
-          <StatCard href="/dashboard/manager/reports" label="إجمالي التقارير" value={stats.totalReports} />
-          <StatCard href="/dashboard/manager/reports" label="تقارير آخر 7 أيام" value={stats.reportsThisWeek} />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <StatCard href="/dashboard/manager/stations" label="إجمالي المحطات" tone="teal" value={stats.totalStations} />
+          <StatCard href="/dashboard/manager/stations" label="المحطات النشطة" tone="green" value={stats.activeStations} />
+          <StatCard href="/dashboard/manager/reports" label="إجمالي التقارير" tone="blue" value={stats.totalReports} />
+          <StatCard href="/dashboard/manager/reports" label="تقارير آخر 7 أيام" tone="teal" value={stats.reportsThisWeek} />
           <StatCard
             href="/dashboard/manager/reports?reviewStatus=pending"
             label="بانتظار المراجعة"
+            tone="amber"
             value={stats.pendingReviewReports}
           />
-          <StatCard href="/dashboard/manager/users" label="الفنيون" value={stats.technicians} />
-          <StatCard href="/dashboard/manager/tasks" label="مهام اليوم" value={stats.pendingReviewReports} />
+          <StatCard href="/dashboard/manager/users" label="الفنيون" tone="blue" value={stats.technicians} />
+          <StatCard href="/dashboard/manager/tasks" label="مهام اليوم" tone="amber" value={stats.pendingReviewReports} />
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white">
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-            <h2 className="text-lg font-semibold text-slate-800">آخر التقارير</h2>
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-control">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-4">
+            <h2 className="text-lg font-bold text-slate-900">آخر التقارير</h2>
             <Link className="text-sm font-medium text-teal-700 hover:text-teal-600" href="/dashboard/manager/reports">
               عرض الكل
             </Link>

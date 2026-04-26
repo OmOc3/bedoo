@@ -2,7 +2,7 @@ import Link from "next/link";
 import { StatusPills } from "@/components/reports/status-pills";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getStationHealth } from "@/lib/station-health";
-import type { FirestoreTimestamp } from "@/types";
+import type { AppTimestamp } from "@/types";
 import type { OperationTasks } from "@/lib/operations-tasks";
 
 interface OperationTasksViewProps {
@@ -11,7 +11,7 @@ interface OperationTasksViewProps {
   tasks: OperationTasks;
 }
 
-function formatTimestamp(timestamp?: FirestoreTimestamp): string {
+function formatTimestamp(timestamp?: AppTimestamp): string {
   if (!timestamp) {
     return "غير متاح";
   }
@@ -42,6 +42,13 @@ export function OperationTasksView({ baseReportsHref, canEditStations = false, t
         <TaskMetric label="محطات تحتاج زيارة" value={tasks.totals.staleStations} />
         <TaskMetric label="محطات غير نشطة" value={tasks.totals.inactiveStations} />
       </div>
+
+      {tasks.truncatedStationScan ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+          قائمة المحطات التي تحتاج متابعة مبنية على آخر 500 محطة لتفادي قراءة غير محدودة. استخدم صفحة المحطات للبحث
+          التفصيلي عند الحاجة.
+        </div>
+      ) : null}
 
       {!hasTasks ? (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
