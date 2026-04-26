@@ -29,16 +29,6 @@ function timestampToIso(value: unknown): string | undefined {
   return timestamp.toDate().toISOString();
 }
 
-function timestampToMillis(value: unknown): number {
-  const timestamp = value as Partial<FirestoreTimestamp>;
-
-  if (typeof timestamp?.toDate !== "function") {
-    return 0;
-  }
-
-  return timestamp.toDate().getTime();
-}
-
 function reportResponse(reportId: string, data: Partial<Report>): MobileReportResponse {
   return {
     reportId: data.reportId ?? reportId,
@@ -58,12 +48,13 @@ export async function GET(
 ): Promise<NextResponse<MobileReportResponse[] | { code: string; message: string }>> {
   try {
     const session = await requireBearerRole(request, ["technician", "manager"]);
-    const snapshot = await adminDb().collection(REPORTS_COL).where("technicianUid", "==", session.uid).get();
-    const reports = snapshot.docs
-      .map((doc) => ({ id: doc.id, data: doc.data() as Partial<Report> }))
-      .sort((first, second) => timestampToMillis(second.data.submittedAt) - timestampToMillis(first.data.submittedAt))
-      .slice(0, 50)
-      .map((entry) => reportResponse(entry.id, entry.data));
+    const snapshot = await adminDb()
+      .collection(REPORTS_COL)
+      .where("technicianUid", "==", session.uid)
+      .orderBy("submittedAt", "desc")
+      .limit(50)
+      .get();
+    const reports = snapshot.docs.map((doc) => reportResponse(doc.id, doc.data() as Partial<Report>));
 
     return NextResponse.json(reports);
   } catch (error: unknown) {

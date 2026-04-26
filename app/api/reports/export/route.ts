@@ -1,9 +1,14 @@
 import { type DocumentData, type Query } from "firebase-admin/firestore";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth/server-session";
 import { REPORTS_COL, STATIONS_COL } from "@/lib/collections";
 import { adminDb } from "@/lib/firebase-admin";
-import { statusOptionLabels } from "@/lib/i18n";
+import {
+  csvRow,
+  defaultExportDateFrom,
+  REPORT_EXPORT_MAX_ROWS,
+  statusLabelsForCsv,
+} from "@/lib/reports/export";
 import type { Report, Station, StatusOption } from "@/types";
 
 export const runtime = "nodejs";
@@ -45,26 +50,21 @@ function reportFromData(reportId: string, data: Partial<Report>): Report {
   };
 }
 
-function csvCell(value: string | number): string {
-  const text = String(value);
-
-  if (text.includes('"') || text.includes(",") || text.includes("\n")) {
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-
-  return text;
-}
-
 async function getStationLocations(stationIds: string[]): Promise<Map<string, string>> {
   const uniqueStationIds = Array.from(new Set(stationIds.filter(Boolean)));
-  const entries = await Promise.all(
-    uniqueStationIds.map(async (stationId) => {
-      const snapshot = await adminDb().collection(STATIONS_COL).doc(stationId).get();
-      const station = snapshot.exists ? (snapshot.data() as Partial<Station>) : null;
 
-      return [stationId, station?.location ?? ""] as const;
-    }),
-  );
+  if (uniqueStationIds.length === 0) {
+    return new Map();
+  }
+
+  const refs = uniqueStationIds.map((stationId) => adminDb().collection(STATIONS_COL).doc(stationId));
+  const snapshots = await adminDb().getAll(...refs);
+  const entries = snapshots.map((snapshot, index) => {
+    const stationId = uniqueStationIds[index] ?? "";
+    const station = snapshot.exists ? (snapshot.data() as Partial<Station>) : null;
+
+    return [stationId, station?.location ?? ""] as const;
+  });
 
   return new Map(entries);
 }
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   await requireRole(["manager", "supervisor"]);
 
   const params = request.nextUrl.searchParams;
-  const dateFrom = parseDate(params.get("from") ?? params.get("dateFrom"));
+  const dateFrom = parseDate(params.get("from") ?? params.get("dateFrom")) ?? defaultExportDateFrom();
   const dateTo = parseDate(params.get("to") ?? params.get("dateTo"), true);
   let query: Query<DocumentData> = adminDb().collection(REPORTS_COL);
 
@@ -85,38 +85,48 @@ export async function GET(request: NextRequest): Promise<Response> {
     query = query.where("technicianUid", "==", params.get("technicianUid"));
   }
 
-  if (params.get("reviewStatus")) {
-    query = query.where("reviewStatus", "==", params.get("reviewStatus"));
+  const reviewStatus = params.get("reviewStatus");
+
+  if (reviewStatus === "pending" || reviewStatus === "reviewed" || reviewStatus === "rejected") {
+    query = query.where("reviewStatus", "==", reviewStatus);
   }
 
-  if (dateFrom) {
-    query = query.where("submittedAt", ">=", dateFrom);
-  }
+  query = query.where("submittedAt", ">=", dateFrom);
 
   if (dateTo) {
     query = query.where("submittedAt", "<=", dateTo);
   }
 
-  const snapshot = await query.orderBy("submittedAt", "desc").get();
+  const snapshot = await query.orderBy("submittedAt", "desc").limit(REPORT_EXPORT_MAX_ROWS + 1).get();
+
+  if (snapshot.docs.length > REPORT_EXPORT_MAX_ROWS) {
+    return NextResponse.json(
+      {
+        message: `نتيجة التصدير أكبر من الحد الآمن (${REPORT_EXPORT_MAX_ROWS} صف). ضيّق نطاق التاريخ أو الفلاتر ثم حاول مرة أخرى.`,
+        code: "EXPORT_TOO_LARGE",
+      },
+      { status: 400 },
+    );
+  }
+
   const reports = snapshot.docs.map((doc) => reportFromData(doc.id, doc.data() as Partial<Report>));
   const stationLocations = await getStationLocations(reports.map((report) => report.stationId));
   const header = ["رقم التقرير", "المحطة", "الموقع", "الفني", "الحالة", "ملاحظات", "التاريخ", "وقت الإرسال"];
   const rows = reports.map((report) => {
     const submittedAt = report.submittedAt?.toDate();
-    const status = report.status.map((item) => statusOptionLabels[item]).join(" | ");
 
     return [
       report.reportId,
       report.stationLabel,
       stationLocations.get(report.stationId) ?? "",
       report.technicianName,
-      status,
+      statusLabelsForCsv(report.status),
       report.notes ?? "",
       submittedAt ? new Intl.DateTimeFormat("ar-EG", { dateStyle: "medium" }).format(submittedAt) : "",
       submittedAt ? new Intl.DateTimeFormat("ar-EG", { timeStyle: "short" }).format(submittedAt) : "",
     ];
   });
-  const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n");
+  const csv = [header, ...rows].map(csvRow).join("\n");
   const filenameDate = new Intl.DateTimeFormat("en-CA").format(new Date());
 
   return new Response(`\uFEFF${csv}`, {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { userRoles } from "../shared/constants";
 
 const accessCodeSchema = z
   .string()
@@ -11,11 +12,11 @@ export const createUserSchema = z.object({
   displayName: z.string().trim().min(1),
   email: z.string().trim().email(),
   password: accessCodeSchema,
-  role: z.enum(["technician", "supervisor", "manager"]),
+  role: z.enum(userRoles),
 });
 
 export const updateUserRoleSchema = z.object({
-  role: z.enum(["technician", "supervisor", "manager"]),
+  role: z.enum(userRoles),
 });
 
 export const updateUserActiveSchema = z.object({

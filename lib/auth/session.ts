@@ -1,15 +1,18 @@
 import type { NextResponse } from "next/server";
-import { ROLE_COOKIE_NAME, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from "@/lib/auth/constants";
+import { ROLE_COOKIE_NAME, SESSION_COOKIE_NAME } from "@/lib/auth/constants";
+import { getSessionMaxAgeSeconds } from "@/lib/auth/session-config";
 
 const isProduction = process.env.NODE_ENV === "production";
 
 export function setAuthCookies(response: NextResponse, sessionCookie: string, roleCookie: string): void {
+  const maxAge = getSessionMaxAgeSeconds();
+
   response.cookies.set(SESSION_COOKIE_NAME, sessionCookie, {
     httpOnly: true,
     secure: isProduction,
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_MAX_AGE_SECONDS,
+    maxAge,
   });
 
   response.cookies.set(ROLE_COOKIE_NAME, roleCookie, {
@@ -17,7 +20,7 @@ export function setAuthCookies(response: NextResponse, sessionCookie: string, ro
     secure: isProduction,
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_MAX_AGE_SECONDS,
+    maxAge,
   });
 }
 

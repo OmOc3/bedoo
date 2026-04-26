@@ -1,8 +1,9 @@
-import { Timestamp, type DocumentData, type Query } from "firebase-admin/firestore";
+import { FieldPath, Timestamp, type DocumentData, type Query } from "firebase-admin/firestore";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { DashboardNav } from "@/components/layout/nav";
 import { PageHeader } from "@/components/layout/page-header";
+import { ReportPhotoLinks } from "@/components/reports/report-photo-links";
 import { ReportsFilterForm, type ReportsFilterValues } from "@/components/reports/reports-filter-form";
 import { ReviewReportForm } from "@/components/reports/review-report-form";
 import { StatusPills } from "@/components/reports/status-pills";
@@ -10,7 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { requireRole } from "@/lib/auth/server-session";
 import { REPORTS_COL } from "@/lib/collections";
 import { adminDb } from "@/lib/firebase-admin";
-import { getSignedReportPhotoUrls, type ReportPhotoUrls } from "@/lib/report-photos";
+import { decodeReportCursor, encodeReportCursor } from "@/lib/pagination/report-cursor";
 import type { FirestoreTimestamp, Report, StatusOption } from "@/types";
 
 interface ManagerReportsPageProps {
@@ -80,14 +81,6 @@ function reportFromData(reportId: string, data: Partial<Report>): Report {
   };
 }
 
-async function buildPhotoUrlsByReportId(reports: Report[]): Promise<Map<string, ReportPhotoUrls>> {
-  const entries = await Promise.all(
-    reports.map(async (report) => [report.reportId, await getSignedReportPhotoUrls(report.photoPaths)] as const),
-  );
-
-  return new Map(entries);
-}
-
 function parseDate(value: string | undefined, endOfDay = false): Date | null {
   if (!value) {
     return null;
@@ -104,6 +97,20 @@ function parseDate(value: string | undefined, endOfDay = false): Date | null {
   }
 
   return date;
+}
+
+function timestampToMillis(timestamp?: FirestoreTimestamp): number | null {
+  if (!timestamp) {
+    return null;
+  }
+
+  const value = timestamp.toDate().getTime();
+
+  return Number.isFinite(value) ? value : null;
+}
+
+function photoCount(report: Report): number {
+  return Number(Boolean(report.photoPaths?.before)) + Number(Boolean(report.photoPaths?.after));
 }
 
 function buildNextHref(filters: ReportsFilterValues, cursor: string): string {
@@ -169,22 +176,26 @@ export default async function ManagerReportsPage({ searchParams }: ManagerReport
     query = query.where("submittedAt", "<=", dateTo);
   }
 
-  query = query.orderBy("submittedAt", "desc");
+  query = query.orderBy("submittedAt", "desc").orderBy(FieldPath.documentId(), "desc");
 
   if (params.cursor) {
-    const cursorNumber = Number(params.cursor);
+    const cursor = decodeReportCursor(params.cursor);
 
-    if (Number.isFinite(cursorNumber)) {
-      query = query.startAfter(Timestamp.fromMillis(cursorNumber));
+    if (cursor) {
+      query = query.startAfter(Timestamp.fromMillis(cursor.submittedAtMs), cursor.id);
     }
   }
 
   const snapshot = await query.limit(pageSize + 1).get();
-  const allReports = snapshot.docs.map((doc) => reportFromData(doc.id, doc.data() as Partial<Report>));
-  const reports = allReports.slice(0, pageSize);
-  const hasNextPage = allReports.length > pageSize;
-  const nextCursor = reports.at(-1)?.submittedAt?.toDate().getTime().toString();
-  const photoUrlsByReportId = await buildPhotoUrlsByReportId(reports);
+  const pageDocs = snapshot.docs.slice(0, pageSize);
+  const reports = pageDocs.map((doc) => reportFromData(doc.id, doc.data() as Partial<Report>));
+  const hasNextPage = snapshot.docs.length > pageSize;
+  const lastDoc = pageDocs.at(-1);
+  const lastReportSubmittedAt = timestampToMillis(reports.at(-1)?.submittedAt);
+  const nextCursor =
+    lastDoc && lastReportSubmittedAt !== null
+      ? encodeReportCursor({ id: lastDoc.id, submittedAtMs: lastReportSubmittedAt })
+      : null;
 
   return (
     <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
@@ -261,31 +272,7 @@ export default async function ManagerReportsPage({ searchParams }: ManagerReport
                         <div className="mt-2 max-w-md rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">
                           <p className="font-medium text-slate-900">ملاحظات الفني</p>
                           <p className="mt-1">{report.notes ?? "لا توجد ملاحظات."}</p>
-                          {photoUrlsByReportId.get(report.reportId)?.before ||
-                          photoUrlsByReportId.get(report.reportId)?.after ? (
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {photoUrlsByReportId.get(report.reportId)?.before ? (
-                                <a
-                                  className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                                  href={photoUrlsByReportId.get(report.reportId)?.before}
-                                  rel="noreferrer"
-                                  target="_blank"
-                                >
-                                  صورة قبل
-                                </a>
-                              ) : null}
-                              {photoUrlsByReportId.get(report.reportId)?.after ? (
-                                <a
-                                  className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                                  href={photoUrlsByReportId.get(report.reportId)?.after}
-                                  rel="noreferrer"
-                                  target="_blank"
-                                >
-                                  صورة بعد
-                                </a>
-                              ) : null}
-                            </div>
-                          ) : null}
+                          <ReportPhotoLinks photoCount={photoCount(report)} reportId={report.reportId} />
                           <ReviewReportForm
                             reportId={report.reportId}
                             reviewNotes={report.reviewNotes}

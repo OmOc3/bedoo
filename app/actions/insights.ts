@@ -1,11 +1,10 @@
 "use server";
 
 import { requireRole } from "@/lib/auth/server-session";
-import { buildStatusCounts, buildTechnicianStats, buildZoneStats, reportFromData, stationFromData } from "@/lib/analytics";
-import { REPORTS_COL, STATIONS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
+import { buildStatusCounts, buildTechnicianStats, buildZoneStats } from "@/lib/analytics";
 import { generateGeminiInsights, hasGeminiConfigured } from "@/lib/gemini";
 import { i18n, statusOptionLabels } from "@/lib/i18n";
+import { ANALYTICS_DEFAULT_RANGE_DAYS, getBoundedReportStatsInput } from "@/lib/stats/report-stats";
 import { getErrorMessage } from "@/lib/utils";
 import type { AiInsightsResult, Report, Station } from "@/types";
 
@@ -46,7 +45,7 @@ function buildFallbackInsights(stations: Station[], reports: Report[]): AiInsigh
     note: hasGeminiConfigured() ? undefined : i18n.insights.missingKey,
     recommendations,
     source: "fallback",
-    summary: `لديك ${stations.length} محطة، منها ${activeStations} نشطة، مع ${reports.length} تقريرًا مسجلًا حتى الآن.`,
+    summary: `لديك ${stations.length} محطة، منها ${activeStations} نشطة، مع ${reports.length} تقريرًا ضمن آخر ${ANALYTICS_DEFAULT_RANGE_DAYS} يوم.`,
   };
 }
 
@@ -54,23 +53,38 @@ export async function generateManagerInsightsAction(): Promise<GenerateManagerIn
   await requireRole(["manager"]);
 
   try {
-    const [stationsSnapshot, reportsSnapshot] = await Promise.all([
-      adminDb().collection(STATIONS_COL).get(),
-      adminDb().collection(REPORTS_COL).get(),
-    ]);
-    const stations = stationsSnapshot.docs.map((doc) => stationFromData(doc.id, doc.data() as Partial<Station>));
-    const reports = reportsSnapshot.docs.map((doc) => reportFromData(doc.id, doc.data() as Partial<Report>));
+    const { reports, reportsTruncated, stations, stationsTruncated } = await getBoundedReportStatsInput();
     const fallback = buildFallbackInsights(stations, reports);
+
+    if (reports.length === 0) {
+      return {
+        insights: {
+          ...fallback,
+          note: "لا توجد تقارير كافية ضمن النطاق الحالي لبناء توصيات دقيقة.",
+        },
+      };
+    }
 
     const aiPayload = {
       activeStations: stations.filter((station) => station.isActive).length,
+      analyticsRangeDays: ANALYTICS_DEFAULT_RANGE_DAYS,
+      limits: {
+        reportsTruncated,
+        stationsTruncated,
+      },
       pendingReviewReports: reports.filter((report) => report.reviewStatus === "pending").length,
       topStatuses: buildStatusCounts(reports).slice(0, 4).map((item) => ({
         count: item.count,
         label: statusOptionLabels[item.status],
         status: item.status,
       })),
-      topTechnicians: buildTechnicianStats(reports).slice(0, 4),
+      topTechnicians: buildTechnicianStats(reports)
+        .slice(0, 4)
+        .map((technician) => ({
+          pending: technician.pending,
+          reports: technician.reports,
+          technicianName: technician.technicianName,
+        })),
       topZones: buildZoneStats(stations, reports).slice(0, 4),
       totalReports: reports.length,
       totalStations: stations.length,

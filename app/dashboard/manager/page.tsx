@@ -4,10 +4,9 @@ import { DashboardNav } from "@/components/layout/nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatusPills } from "@/components/reports/status-pills";
 import { requireRole } from "@/lib/auth/server-session";
-import { REPORTS_COL, STATIONS_COL, USERS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
 import { i18n } from "@/lib/i18n";
-import type { FirestoreTimestamp, Report, StatusOption } from "@/types";
+import { getLatestReports, getManagerDashboardStats } from "@/lib/stats/dashboard-stats";
+import type { FirestoreTimestamp } from "@/types";
 
 export const metadata: Metadata = {
   title: i18n.dashboard.managerTitle,
@@ -42,50 +41,9 @@ function formatTimestamp(timestamp?: FirestoreTimestamp): string {
   }).format(timestamp.toDate());
 }
 
-function reportFromData(reportId: string, data: Partial<Report>): Report {
-  return {
-    reportId: data.reportId ?? reportId,
-    stationId: data.stationId ?? "",
-    stationLabel: data.stationLabel ?? "محطة بدون اسم",
-    technicianUid: data.technicianUid ?? "",
-    technicianName: data.technicianName ?? "فني غير محدد",
-    status: (data.status ?? []) as StatusOption[],
-    notes: data.notes,
-    submittedAt: data.submittedAt as FirestoreTimestamp,
-    reviewStatus: data.reviewStatus ?? "pending",
-    editedAt: data.editedAt,
-    editedBy: data.editedBy,
-    reviewedAt: data.reviewedAt,
-    reviewedBy: data.reviewedBy,
-    reviewNotes: data.reviewNotes,
-  };
-}
-
 export default async function ManagerDashboardPage() {
   await requireRole(["manager"]);
-  const startOfWeek = new Date();
-
-  startOfWeek.setDate(startOfWeek.getDate() - 7);
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  const [
-    totalStationsSnapshot,
-    activeStationsSnapshot,
-    totalReportsSnapshot,
-    reportsThisWeekSnapshot,
-    pendingReviewSnapshot,
-    techniciansSnapshot,
-    latestReportsSnapshot,
-  ] = await Promise.all([
-    adminDb().collection(STATIONS_COL).get(),
-    adminDb().collection(STATIONS_COL).where("isActive", "==", true).get(),
-    adminDb().collection(REPORTS_COL).get(),
-    adminDb().collection(REPORTS_COL).where("submittedAt", ">=", startOfWeek).get(),
-    adminDb().collection(REPORTS_COL).where("reviewStatus", "==", "pending").get(),
-    adminDb().collection(USERS_COL).where("role", "==", "technician").get(),
-    adminDb().collection(REPORTS_COL).orderBy("submittedAt", "desc").limit(5).get(),
-  ]);
-  const latestReports = latestReportsSnapshot.docs.map((doc) => reportFromData(doc.id, doc.data() as Partial<Report>));
+  const [stats, latestReports] = await Promise.all([getManagerDashboardStats(), getLatestReports(5)]);
 
   return (
     <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
@@ -137,17 +95,17 @@ export default async function ManagerDashboardPage() {
         <DashboardNav role="manager" />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard href="/dashboard/manager/stations" label="إجمالي المحطات" value={totalStationsSnapshot.size} />
-          <StatCard href="/dashboard/manager/stations" label="المحطات النشطة" value={activeStationsSnapshot.size} />
-          <StatCard href="/dashboard/manager/reports" label="إجمالي التقارير" value={totalReportsSnapshot.size} />
-          <StatCard href="/dashboard/manager/reports" label="تقارير آخر 7 أيام" value={reportsThisWeekSnapshot.size} />
+          <StatCard href="/dashboard/manager/stations" label="إجمالي المحطات" value={stats.totalStations} />
+          <StatCard href="/dashboard/manager/stations" label="المحطات النشطة" value={stats.activeStations} />
+          <StatCard href="/dashboard/manager/reports" label="إجمالي التقارير" value={stats.totalReports} />
+          <StatCard href="/dashboard/manager/reports" label="تقارير آخر 7 أيام" value={stats.reportsThisWeek} />
           <StatCard
             href="/dashboard/manager/reports?reviewStatus=pending"
             label="بانتظار المراجعة"
-            value={pendingReviewSnapshot.size}
+            value={stats.pendingReviewReports}
           />
-          <StatCard href="/dashboard/manager/users" label="الفنيون" value={techniciansSnapshot.size} />
-          <StatCard href="/dashboard/manager/tasks" label="مهام اليوم" value={pendingReviewSnapshot.size} />
+          <StatCard href="/dashboard/manager/users" label="الفنيون" value={stats.technicians} />
+          <StatCard href="/dashboard/manager/tasks" label="مهام اليوم" value={stats.pendingReviewReports} />
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white">

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_MAX_AGE_MS } from "@/lib/auth/constants";
 import { getRoleRedirect } from "@/lib/auth/redirects";
 import { createSignedRoleCookie } from "@/lib/auth/role-cookie";
 import { clearAuthCookies, setAuthCookies } from "@/lib/auth/session";
+import { getSessionMaxAgeMs } from "@/lib/auth/session-config";
 import { getActiveAppUser } from "@/lib/auth/user-profile";
 import { adminAuth } from "@/lib/firebase-admin";
 import { i18n } from "@/lib/i18n";
@@ -13,6 +13,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorResponse | SessionSuccessResponse>> {
   try {
+    const sessionMaxAgeMs = getSessionMaxAgeMs();
     const body = (await request.json()) as unknown;
     const parsed = sessionRequestSchema.safeParse(body);
 
@@ -40,11 +41,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorR
     }
 
     const [sessionCookie, roleCookie] = await Promise.all([
-      adminAuth().createSessionCookie(parsed.data.idToken, { expiresIn: SESSION_MAX_AGE_MS }),
+      adminAuth().createSessionCookie(parsed.data.idToken, { expiresIn: sessionMaxAgeMs }),
       createSignedRoleCookie({
         uid: appUser.uid,
         role: appUser.role,
-        expiresAt: Date.now() + SESSION_MAX_AGE_MS,
+        expiresAt: Date.now() + sessionMaxAgeMs,
       }),
     ]);
     const response = NextResponse.json<SessionSuccessResponse>({

@@ -1,13 +1,7 @@
 import { z } from "zod";
+import { reportStatusOptions, reviewStatuses } from "../shared/constants";
 
-const statusOptionSchema = z.enum([
-  "station_ok",
-  "station_replaced",
-  "bait_changed",
-  "bait_ok",
-  "station_excluded",
-  "station_substituted",
-]);
+const statusOptionSchema = z.enum(reportStatusOptions);
 
 export const submitReportSchema = z.object({
   stationId: z.string().trim().min(1),
@@ -16,7 +10,7 @@ export const submitReportSchema = z.object({
 });
 
 export const reviewReportSchema = z.object({
-  reviewStatus: z.enum(["pending", "reviewed", "rejected"]),
+  reviewStatus: z.enum(reviewStatuses),
   reviewNotes: z.string().trim().max(500).optional(),
 });
 

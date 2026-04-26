@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_MAX_AGE_MS } from "@/lib/auth/constants";
 import { toAuthenticatedUserResponse } from "@/lib/auth/public-user";
 import { checkLoginRateLimit, recordFailedLogin, resetLoginRateLimit } from "@/lib/auth/rate-limit";
 import { getRoleRedirect } from "@/lib/auth/redirects";
 import { createSignedRoleCookie } from "@/lib/auth/role-cookie";
 import { setAuthCookies } from "@/lib/auth/session";
+import { getSessionMaxAgeMs } from "@/lib/auth/session-config";
 import { getActiveAppUser } from "@/lib/auth/user-profile";
 import { adminAuth } from "@/lib/firebase-admin";
 import { i18n } from "@/lib/i18n";
@@ -107,7 +107,7 @@ function classifyLoginFailure(error: unknown): LoginFailureCode {
     return "AUTH_CONFIG_FIREBASE_API_KEY";
   }
 
-  if (message.includes("ROLE_COOKIE_SECRET") || message.includes("AUTH_SESSION_SECRET")) {
+  if (message.includes("AUTH_SESSION_SECRET")) {
     return "AUTH_CONFIG_ROLE_SECRET";
   }
 
@@ -142,6 +142,7 @@ function classifyLoginFailure(error: unknown): LoginFailureCode {
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorResponse | LoginSuccessResponse>> {
   try {
+    const sessionMaxAgeMs = getSessionMaxAgeMs();
     const body = (await request.json()) as unknown;
     const parsed = loginFormSchema.safeParse(body);
 
@@ -197,12 +198,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorR
     }
 
     const [sessionCookie, customToken, roleCookie] = await Promise.all([
-      adminAuth().createSessionCookie(passwordResult.data.idToken, { expiresIn: SESSION_MAX_AGE_MS }),
+      adminAuth().createSessionCookie(passwordResult.data.idToken, { expiresIn: sessionMaxAgeMs }),
       adminAuth().createCustomToken(appUser.uid),
       createSignedRoleCookie({
         uid: appUser.uid,
         role: appUser.role,
-        expiresAt: Date.now() + SESSION_MAX_AGE_MS,
+        expiresAt: Date.now() + sessionMaxAgeMs,
       }),
     ]);
 

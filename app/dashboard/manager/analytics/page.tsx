@@ -3,11 +3,9 @@ import { AIInsightsCard } from "@/components/analytics/ai-insights-card";
 import { DashboardNav } from "@/components/layout/nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatusPills } from "@/components/reports/status-pills";
-import { buildStatusCounts, buildTechnicianStats, buildZoneStats, reportFromData, stationFromData } from "@/lib/analytics";
+import { buildStatusCounts, buildTechnicianStats, buildZoneStats } from "@/lib/analytics";
 import { requireRole } from "@/lib/auth/server-session";
-import { REPORTS_COL, STATIONS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
-import type { Report, Station } from "@/types";
+import { ANALYTICS_DEFAULT_RANGE_DAYS, getBoundedReportStatsInput } from "@/lib/stats/report-stats";
 
 export const metadata: Metadata = {
   title: "التحليلات",
@@ -15,26 +13,28 @@ export const metadata: Metadata = {
 
 export default async function ManagerAnalyticsPage() {
   await requireRole(["manager"]);
-  const [stationsSnapshot, reportsSnapshot] = await Promise.all([
-    adminDb().collection(STATIONS_COL).get(),
-    adminDb().collection(REPORTS_COL).get(),
-  ]);
-  const stations = stationsSnapshot.docs.map((doc) => stationFromData(doc.id, doc.data() as Partial<Station>));
-  const reports = reportsSnapshot.docs.map((doc) => reportFromData(doc.id, doc.data() as Partial<Report>));
+  const { reports, reportsTruncated, stations, stationsTruncated } = await getBoundedReportStatsInput();
   const zones = buildZoneStats(stations, reports);
   const technicians = buildTechnicianStats(reports);
   const statusSummary = buildStatusCounts(reports);
+  const hasTruncatedData = reportsTruncated || stationsTruncated;
 
   return (
     <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
       <section className="mx-auto max-w-7xl space-y-6">
         <PageHeader
           backHref="/dashboard/manager"
-          description="ملخصات تشغيلية حسب المنطقة والفني وحالات الفحص، مع موجز ذكي للمتابعة اليومية."
+          description={`ملخصات تشغيلية حسب المنطقة والفني وحالات الفحص لآخر ${ANALYTICS_DEFAULT_RANGE_DAYS} يوم، مع موجز ذكي للمتابعة اليومية.`}
           title="التحليلات"
         />
         <DashboardNav role="manager" />
         <AIInsightsCard />
+
+        {hasTruncatedData ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+            تم الوصول للحد الآمن لبيانات التحليلات. قد تحتاج إلى نطاق زمني أضيق أو إحصاءات materialized للبيانات الكبيرة.
+          </div>
+        ) : null}
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-xl border border-slate-200 bg-white">

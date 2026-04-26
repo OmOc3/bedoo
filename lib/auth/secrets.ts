@@ -1,11 +1,9 @@
+import "server-only";
+
+import { getServerEnv } from "@/lib/env/server";
+
 function getAuthSecretFromEnv(): string {
-  const secret = process.env.ROLE_COOKIE_SECRET ?? process.env.AUTH_SESSION_SECRET;
-
-  if (!secret || secret.length < 32) {
-    throw new Error("ROLE_COOKIE_SECRET must be at least 32 characters.");
-  }
-
-  return secret;
+  return getServerEnv().AUTH_SESSION_SECRET;
 }
 
 export function getAuthSecret(): string {

@@ -1,13 +1,7 @@
 import { z } from "zod";
+import { reportStatusOptions } from "../shared/constants";
 
-const statusOptionSchema = z.enum([
-  "station_ok",
-  "station_replaced",
-  "bait_changed",
-  "bait_ok",
-  "station_excluded",
-  "station_substituted",
-]);
+const statusOptionSchema = z.enum(reportStatusOptions);
 
 export const mobileReportSyncSchema = z.object({
   clientReportId: z.string().trim().min(1).max(160),

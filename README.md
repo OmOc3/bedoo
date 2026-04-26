@@ -48,8 +48,10 @@ Brand identity rules live in `BRAND.md`.
 - `/api/auth/login`: login endpoint.
 - `/api/auth/session`: session cookie endpoint.
 - `/api/mobile/me`: authenticated mobile profile endpoint.
+- `/api/mobile/reports`: latest 50 technician reports, ordered by Firestore query.
 - `/api/mobile/web-session`: one-time handoff from the Expo app to the web dashboard for managers and supervisors.
 - `/api/reports/export`: CSV export for managers and supervisors.
+- `/api/reports/[id]/photos`: signed report photo URLs for an authorized report only.
 
 ## Environment Variables
 
@@ -61,29 +63,39 @@ Copy `.env.example` to `.env.local` and fill the values. Do not commit real secr
 - `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`
 - `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`
 - `NEXT_PUBLIC_FIREBASE_APP_ID`
-- `NEXT_PUBLIC_BASE_URL`
+- `NEXT_PUBLIC_BASE_URL` (required in production, must be HTTPS)
 - `FIREBASE_ADMIN_PROJECT_ID`
 - `FIREBASE_ADMIN_CLIENT_EMAIL`
 - `FIREBASE_ADMIN_PRIVATE_KEY`
-- `ROLE_COOKIE_SECRET`
-- `SESSION_MAX_AGE_SECONDS`
+- `AUTH_SESSION_SECRET` (minimum 32 characters)
+- `SESSION_MAX_AGE_SECONDS` (positive integer)
 - `GEMINI_API_KEY`
 - `EXPO_PUBLIC_MAWQI3_WEB_BASE_URL`
+
+Server-only environment variables are validated centrally in `lib/env/server.ts`. Production startup fails early when required values are missing or invalid. QR report links use `NEXT_PUBLIC_BASE_URL` in production and only infer request headers during development.
 
 ## Run Locally
 
 ```bash
 npm install
 npm run dev
-npm run seed:users
 npm run typecheck
 npm run lint
+npm test
 npm run build
 npm run mobile:start
 npm run mobile:web
 ```
 
 `npm run build` requires valid Firebase and auth environment variables. Missing environment variables should be fixed in local deployment configuration, not with fake values in code.
+
+To create demo users in a local/demo Firebase project:
+
+```bash
+ALLOW_DEMO_SEED=true npm run seed:users
+```
+
+The seed script refuses to run with `NODE_ENV=production`, refuses production-like project IDs unless explicitly overridden, and prints random one-time demo passwords instead of using fixed passwords.
 
 ## Firebase Setup
 
@@ -118,12 +130,14 @@ firebase deploy --only storage
 - Supervisor dashboard and filtered report list.
 - Manager dashboard, report review, and user management with generated mobile access codes.
 - CSV export for reports.
+- CSV export is bounded to the last 90 days by default and a maximum of 5,000 rows. Narrow filters/date range when the API returns `EXPORT_TOO_LARGE`.
 - Optional before/after report photo upload through Admin SDK and locked Storage rules.
+- Report list pages show photo counts only; signed Storage URLs are generated lazily through `/api/reports/[id]/photos`.
 - Optional station GPS coordinates.
 - Station health indicators based on active state, visit recency, and report count.
 - Today tasks pages for managers and supervisors.
-- Manager analytics by zone, technician, and status frequency.
-- Gemini-powered manager insights with local fallback when `GEMINI_API_KEY` is not configured.
+- Manager analytics by zone, technician, and status frequency over a bounded default 90-day range.
+- Gemini-powered manager insights with bounded summarized inputs and local fallback when `GEMINI_API_KEY` is not configured.
 - Light/dark mode identity across the web app.
 - Expo mobile companion app with native QR scanning and local drafts for technicians, plus secure web dashboard handoff for managers and supervisors.
 - PWA manifest and offline fallback page.
@@ -132,13 +146,46 @@ firebase deploy --only storage
 
 ## Known Limitations
 
-- Firebase Auth user creation is available from the manager users screen and from `npm run seed:users`.
-- Demo users can be bootstrapped with `npm run seed:users`.
+- Firebase Auth user creation is available from the manager users screen and guarded demo seeding.
+- Web PWA offline support is limited to `/offline` and `/scan`; full offline report drafting/sync is handled by the Expo mobile app.
 - GPS coordinates are entered manually. Map picker/display is not implemented yet.
 - No push notifications.
-- Offline mode is a fallback shell only. Report submission still requires network connectivity.
 - Mobile drafts store only station/report draft data locally and do not store Admin SDK or Gemini secrets.
 - Mobile sign-in uses Firebase Auth directly with email and access code. On a real phone, set `EXPO_PUBLIC_MAWQI3_WEB_BASE_URL` to a reachable LAN or deployed HTTPS address for manager/supervisor portal handoff and report sync.
+
+## Quality Gate
+
+CI is defined in `.github/workflows/ci.yml` and runs:
+
+```bash
+npm ci
+npm run lint
+npm run typecheck
+npm test
+npm run build
+npm ci --prefix mobile
+npm run mobile:lint
+npm run mobile:typecheck
+```
+
+Unit tests cover server env parsing, stable report cursors, report validation, CSV escaping/export helpers, and report image content validation.
+
+## Security Notes
+
+- Production CSP removes `unsafe-eval`. `unsafe-inline` remains for scripts/styles to preserve the early theme bootstrap in `app/layout.tsx` and framework style behavior; replacing it with a nonce/hash is the next hardening step.
+- Production QR/base URL generation never trusts request host headers. Header inference is development-only.
+- Report photo Storage paths are not exposed in list pages; signed URLs are generated per report after role/session authorization.
+
+## Production Readiness Checklist
+
+- Set `AUTH_SESSION_SECRET` to a unique 32+ character secret.
+- Set `SESSION_MAX_AGE_SECONDS` intentionally for the deployment.
+- Set `NEXT_PUBLIC_BASE_URL` to the deployed HTTPS origin before creating/updating stations.
+- Deploy `firestore.rules`, `storage.rules`, and `firestore.indexes.json`.
+- Keep demo seeding disabled unless targeting a local/demo Firebase project.
+- Monitor CSV export failures and narrow date ranges before increasing limits.
+- For large analytics needs, consider materialized stats documents and a backfill job.
+- Confirm Expo `EXPO_PUBLIC_MAWQI3_WEB_BASE_URL` points to the deployed web origin for real devices.
 
 ## Next Recommended Tasks
 

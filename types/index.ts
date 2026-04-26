@@ -1,12 +1,8 @@
-export type UserRole = "technician" | "supervisor" | "manager";
+import type { SharedReviewStatus, SharedStatusOption, SharedUserRole } from "@/lib/shared/constants";
 
-export type StatusOption =
-  | "station_ok"
-  | "station_replaced"
-  | "bait_changed"
-  | "bait_ok"
-  | "station_excluded"
-  | "station_substituted";
+export type UserRole = SharedUserRole;
+
+export type StatusOption = SharedStatusOption;
 
 export interface FirestoreTimestamp {
   seconds: number;
@@ -60,7 +56,7 @@ export interface Report {
   notes?: string;
   photoPaths?: ReportPhotoPaths;
   submittedAt: FirestoreTimestamp;
-  reviewStatus: "pending" | "reviewed" | "rejected";
+  reviewStatus: SharedReviewStatus;
   editedAt?: FirestoreTimestamp;
   editedBy?: string;
   reviewedAt?: FirestoreTimestamp;

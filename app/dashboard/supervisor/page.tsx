@@ -3,9 +3,8 @@ import Link from "next/link";
 import { DashboardNav } from "@/components/layout/nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { requireRole } from "@/lib/auth/server-session";
-import { REPORTS_COL, STATIONS_COL } from "@/lib/collections";
-import { adminDb } from "@/lib/firebase-admin";
 import { i18n } from "@/lib/i18n";
+import { getSupervisorDashboardStats } from "@/lib/stats/dashboard-stats";
 
 export const metadata: Metadata = {
   title: i18n.dashboard.supervisorTitle,
@@ -31,16 +30,7 @@ function StatCard({ href, label, value }: StatCardProps) {
 
 export default async function SupervisorDashboardPage() {
   await requireRole(["supervisor", "manager"]);
-  const startOfToday = new Date();
-
-  startOfToday.setHours(0, 0, 0, 0);
-
-  const [reportsSnapshot, reportsTodaySnapshot, pendingReportsSnapshot, activeStationsSnapshot] = await Promise.all([
-    adminDb().collection(REPORTS_COL).get(),
-    adminDb().collection(REPORTS_COL).where("submittedAt", ">=", startOfToday).get(),
-    adminDb().collection(REPORTS_COL).where("reviewStatus", "==", "pending").get(),
-    adminDb().collection(STATIONS_COL).where("isActive", "==", true).get(),
-  ]);
+  const stats = await getSupervisorDashboardStats();
 
   return (
     <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
@@ -68,26 +58,26 @@ export default async function SupervisorDashboardPage() {
         <DashboardNav role="supervisor" />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard href="/dashboard/supervisor/reports" label="إجمالي التقارير" value={reportsSnapshot.size} />
+          <StatCard href="/dashboard/supervisor/reports" label="إجمالي التقارير" value={stats.totalReports} />
           <StatCard
             href="/dashboard/supervisor/reports"
             label="تقارير اليوم"
-            value={reportsTodaySnapshot.size}
+            value={stats.reportsToday}
           />
           <StatCard
             href="/dashboard/supervisor/reports?reviewStatus=pending"
             label="بانتظار المراجعة"
-            value={pendingReportsSnapshot.size}
+            value={stats.pendingReviewReports}
           />
           <StatCard
             href="/dashboard/supervisor/reports"
             label="المحطات النشطة"
-            value={activeStationsSnapshot.size}
+            value={stats.activeStations}
           />
           <StatCard
             href="/dashboard/supervisor/tasks"
             label="مهام اليوم"
-            value={pendingReportsSnapshot.size}
+            value={stats.pendingReviewReports}
           />
         </div>
       </section>

@@ -1,28 +1,15 @@
+import "server-only";
+
 import { cert, getApps, initializeApp, type App } from "firebase-admin/app";
 import { getAuth, type Auth } from "firebase-admin/auth";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { getStorage, type Storage } from "firebase-admin/storage";
-
-type AdminEnvKey =
-  | "FIREBASE_ADMIN_PROJECT_ID"
-  | "FIREBASE_ADMIN_CLIENT_EMAIL"
-  | "FIREBASE_ADMIN_PRIVATE_KEY";
+import { getServerEnv } from "@/lib/env/server";
 
 function assertServerOnly(): void {
   if (typeof window !== "undefined") {
     throw new Error("Firebase Admin SDK cannot be used on the client.");
   }
-}
-
-function getAdminEnv(key: AdminEnvKey): string {
-  assertServerOnly();
-  const value = process.env[key];
-
-  if (!value) {
-    throw new Error(`Missing environment variable: ${key}`);
-  }
-
-  return value;
 }
 
 function normalizePrivateKey(privateKey: string): string {
@@ -45,13 +32,15 @@ export function adminApp(): App {
     return getApps()[0];
   }
 
+  const env = getServerEnv();
+
   return initializeApp({
     credential: cert({
-      projectId: getAdminEnv("FIREBASE_ADMIN_PROJECT_ID"),
-      clientEmail: getAdminEnv("FIREBASE_ADMIN_CLIENT_EMAIL"),
-      privateKey: normalizePrivateKey(getAdminEnv("FIREBASE_ADMIN_PRIVATE_KEY")),
+      projectId: env.FIREBASE_ADMIN_PROJECT_ID,
+      clientEmail: env.FIREBASE_ADMIN_CLIENT_EMAIL,
+      privateKey: normalizePrivateKey(env.FIREBASE_ADMIN_PRIVATE_KEY),
     }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    storageBucket: env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   });
 }
 

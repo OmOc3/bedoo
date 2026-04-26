@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server-session";
 import { REPORTS_COL, STATIONS_COL } from "@/lib/collections";
 import { adminDb, adminStorage } from "@/lib/firebase-admin";
+import { validateReportImageFile, type ValidReportImage } from "@/lib/reports/image-validation";
 import { submitReportWithAdmin } from "@/lib/reports/submit-report";
 import { reviewReportSchema, submitReportSchema } from "@/lib/validation/reports";
 import { writeAuditLog } from "@/lib/audit";
@@ -49,40 +50,31 @@ function optionalImageFile(formData: FormData, key: string): File | undefined {
   return value;
 }
 
-function validateImageFile(file: File): string | null {
-  const maxSizeBytes = 5 * 1024 * 1024;
-
-  if (!file.type.startsWith("image/")) {
-    return "ارفع صورة فقط بصيغة مدعومة.";
-  }
-
-  if (file.size > maxSizeBytes) {
-    return "حجم الصورة يجب ألا يتجاوز 5 ميجابايت.";
-  }
-
-  return null;
-}
-
-function extensionFromType(file: File): string {
-  const extension = file.type.split("/")[1]?.replace(/[^a-z0-9]/gi, "").toLowerCase();
-
-  return extension ? `.${extension}` : "";
-}
-
-async function uploadReportPhoto(reportId: string, kind: keyof ReportPhotoPaths, file: File): Promise<string> {
-  const path = `reports/${reportId}/${kind}${extensionFromType(file)}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  await adminStorage().bucket().file(path).save(buffer, {
-    contentType: file.type,
+async function uploadReportPhoto(
+  reportId: string,
+  kind: keyof ReportPhotoPaths,
+  image: ValidReportImage,
+  originalName: string,
+): Promise<string> {
+  const path = `reports/${reportId}/${kind}.${image.extension}`;
+  await adminStorage().bucket().file(path).save(image.buffer, {
+    contentType: image.contentType,
     metadata: {
       metadata: {
-        originalName: file.name,
+        originalName,
       },
     },
   });
 
   return path;
+}
+
+async function cleanupUploadedPhotos(paths: string[]): Promise<void> {
+  await Promise.all(
+    paths.map(async (path) => {
+      await adminStorage().bucket().file(path).delete().catch(() => undefined);
+    }),
+  );
 }
 
 export async function submitStationReportAction(
@@ -119,37 +111,68 @@ export async function submitStationReportAction(
   const reportRef = adminDb().collection(REPORTS_COL).doc();
   const beforePhoto = optionalImageFile(formData, "beforePhoto");
   const afterPhoto = optionalImageFile(formData, "afterPhoto");
-  const photoValidationError =
-    (beforePhoto ? validateImageFile(beforePhoto) : null) ?? (afterPhoto ? validateImageFile(afterPhoto) : null);
 
-  if (photoValidationError) {
-    return { error: photoValidationError };
+  let beforeImage: ValidReportImage | undefined;
+  let afterImage: ValidReportImage | undefined;
+
+  try {
+    [beforeImage, afterImage] = await Promise.all([
+      beforePhoto ? validateReportImageFile(beforePhoto) : Promise.resolve(undefined),
+      afterPhoto ? validateReportImageFile(afterPhoto) : Promise.resolve(undefined),
+    ]);
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "ارفع صورة فقط بصيغة مدعومة." };
   }
 
-  const [beforePhotoPath, afterPhotoPath] = await Promise.all([
-    beforePhoto ? uploadReportPhoto(reportRef.id, "before", beforePhoto) : Promise.resolve(undefined),
-    afterPhoto ? uploadReportPhoto(reportRef.id, "after", afterPhoto) : Promise.resolve(undefined),
-  ]);
+  const uploadedPaths: string[] = [];
+  let beforePhotoPath: string | undefined;
+  let afterPhotoPath: string | undefined;
+
+  try {
+    if (beforeImage && beforePhoto) {
+      beforePhotoPath = await uploadReportPhoto(reportRef.id, "before", beforeImage, beforePhoto.name);
+      uploadedPaths.push(beforePhotoPath);
+    }
+
+    if (afterImage && afterPhoto) {
+      afterPhotoPath = await uploadReportPhoto(reportRef.id, "after", afterImage, afterPhoto.name);
+      uploadedPaths.push(afterPhotoPath);
+    }
+  } catch (_error: unknown) {
+    await cleanupUploadedPhotos(uploadedPaths);
+    return { error: "تعذر رفع الصور. حاول مرة أخرى." };
+  }
+
   const photoPaths: ReportPhotoPaths = {
     ...(beforePhotoPath ? { before: beforePhotoPath } : {}),
     ...(afterPhotoPath ? { after: afterPhotoPath } : {}),
   };
 
-  const result = await submitReportWithAdmin({
-    actorUid: session.uid,
-    actorRole: session.role,
-    reportId: reportRef.id,
-    stationId: parsed.data.stationId,
-    technicianName: session.user.displayName,
-    status: parsed.data.status,
-    notes: parsed.data.notes,
-    photoPaths,
-  });
+  try {
+    const result = await submitReportWithAdmin({
+      actorUid: session.uid,
+      actorRole: session.role,
+      reportId: reportRef.id,
+      stationId: parsed.data.stationId,
+      technicianName: session.user.displayName,
+      status: parsed.data.status,
+      notes: parsed.data.notes,
+      photoPaths,
+    });
 
-  return {
-    success: true,
-    reportId: result.reportId,
-  };
+    return {
+      success: true,
+      reportId: result.reportId,
+    };
+  } catch (error: unknown) {
+    const reportExists = await reportRef.get().then((snapshot) => snapshot.exists).catch(() => false);
+
+    if (!reportExists) {
+      await cleanupUploadedPhotos(uploadedPaths);
+    }
+
+    return { error: error instanceof Error ? error.message : "تعذر حفظ التقرير." };
+  }
 }
 
 export async function addReviewReportAction(

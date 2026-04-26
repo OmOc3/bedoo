@@ -1,35 +1,10 @@
 import { BRAND } from "@/lib/brand";
-import type { StatusOption, UserRole } from "@/types";
-
-export const statusOptionLabels: Record<StatusOption, string> = {
-  station_ok: "المحطة سليمة",
-  station_replaced: "تم تغيير المحطة",
-  bait_changed: "تم تغيير الطعم",
-  bait_ok: "الطعم سليم",
-  station_excluded: "استبعاد المحطة",
-  station_substituted: "استبدال المحطة",
-};
-
-export const statusOptionLabelsEnglish: Record<StatusOption, string> = {
-  station_ok: "Station is clear",
-  station_replaced: "Station was changed",
-  bait_changed: "Bait was changed",
-  bait_ok: "Bait is clear",
-  station_excluded: "Station excluded",
-  station_substituted: "Station substituted",
-};
-
-export const roleLabels: Record<UserRole, string> = {
-  technician: "فني",
-  supervisor: "مشرف",
-  manager: "مدير",
-};
-
-export const roleLabelsEnglish: Record<UserRole, string> = {
-  technician: "Technician",
-  supervisor: "Supervisor",
-  manager: "Manager",
-};
+export {
+  roleLabels,
+  roleLabelsEnglish,
+  statusOptionLabels,
+  statusOptionLabelsEnglish,
+} from "@/lib/shared/constants";
 
 const ar = {
   appName: BRAND.name,

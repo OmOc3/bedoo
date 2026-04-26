@@ -1,9 +1,9 @@
 import { createHash } from "crypto";
 import { Timestamp } from "firebase-admin/firestore";
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_MAX_AGE_MS } from "@/lib/auth/constants";
 import { createSignedRoleCookie } from "@/lib/auth/role-cookie";
 import { setAuthCookies } from "@/lib/auth/session";
+import { getSessionMaxAgeMs } from "@/lib/auth/session-config";
 import { MOBILE_WEB_SESSIONS_COL } from "@/lib/collections";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import type { UserRole } from "@/types";
@@ -47,6 +47,7 @@ function isValidSessionDocument(value: MobileWebSessionDocument): value is Requi
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
+  const sessionMaxAgeMs = getSessionMaxAgeMs();
   const token = request.nextUrl.searchParams.get("token");
 
   if (!token) {
@@ -85,11 +86,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const response = NextResponse.redirect(new URL(consumedSession.redirectTo, request.nextUrl.origin));
     const [sessionCookie, roleCookie] = await Promise.all([
-      adminAuth().createSessionCookie(consumedSession.idToken, { expiresIn: SESSION_MAX_AGE_MS }),
+      adminAuth().createSessionCookie(consumedSession.idToken, { expiresIn: sessionMaxAgeMs }),
       createSignedRoleCookie({
         uid: consumedSession.uid,
         role: consumedSession.role,
-        expiresAt: Date.now() + SESSION_MAX_AGE_MS,
+        expiresAt: Date.now() + sessionMaxAgeMs,
       }),
     ]);
 
