@@ -12,9 +12,9 @@ import { useTheme } from '@/hooks/use-theme';
 import { useTeamUsers } from '@/hooks/use-team-users';
 import type { MobileAppUser, UserRole } from '@/lib/sync/types';
 
-const roleFilters: Array<'all' | UserRole> = ['all', 'technician', 'supervisor', 'manager'];
+const roleFilters: ('all' | UserRole)[] = ['all', 'technician', 'supervisor', 'manager'];
 
-function initialsFromName(value: string): string {
+function initialsFromName(value: string, fallback: string): string {
   const letters = value
     .trim()
     .split(/\s+/)
@@ -22,12 +22,13 @@ function initialsFromName(value: string): string {
     .map((item) => Array.from(item)[0] ?? '')
     .join('');
 
-  return letters || 'م';
+  return letters || fallback;
 }
 
 function UserCard({ user }: { user: MobileAppUser }) {
   const theme = useTheme();
-  const { language, roleLabels, isRtl } = useLanguage();
+  const { language, roleLabels, isRtl, strings } = useLanguage();
+  const t = strings.team;
   const joinedAt = user.createdAt
     ? new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'medium' }).format(new Date(user.createdAt))
     : null;
@@ -41,7 +42,7 @@ function UserCard({ user }: { user: MobileAppUser }) {
       ]}>
       <View style={[styles.avatar, { backgroundColor: theme.backgroundSelected, borderColor: theme.border }]}>
         <ThemedText type="smallBold" style={{ color: theme.primary }}>
-          {initialsFromName(user.displayName)}
+          {initialsFromName(user.displayName, t.avatarFallback)}
         </ThemedText>
       </View>
       <View style={styles.userCopy}>
@@ -54,13 +55,13 @@ function UserCard({ user }: { user: MobileAppUser }) {
         <View style={styles.userMetaRow}>
           <StatusChip label={roleLabels[user.role]} tone="info" />
           <StatusChip
-            label={user.isActive ? (language === 'ar' ? 'نشط' : 'Active') : language === 'ar' ? 'غير نشط' : 'Inactive'}
+            label={user.isActive ? t.activeStatus : t.inactiveStatus}
             tone={user.isActive ? 'success' : 'neutral'}
           />
         </View>
         {joinedAt ? (
           <ThemedText type="small" themeColor="textSecondary">
-            {language === 'ar' ? `تاريخ الإنشاء: ${joinedAt}` : `Created: ${joinedAt}`}
+            {t.createdPrefix} {joinedAt}
           </ThemedText>
         ) : null}
       </View>
@@ -73,8 +74,11 @@ export default function TeamScreen() {
   const theme = useTheme();
   const [query, setQuery] = useState('');
   const [filterRole, setFilterRole] = useState<'all' | UserRole>('all');
-  const team = useTeamUsers();
   const t = strings.team;
+  const team = useTeamUsers({
+    genericLoadError: t.genericLoadError,
+    unsupportedApi: t.unsupportedApi,
+  });
 
   const visibleUsers = useMemo(() => {
     const cleanQuery = query.trim().toLowerCase();

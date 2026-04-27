@@ -1,11 +1,14 @@
-import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 import Animated, { Easing, Keyframe } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
+import { Logo } from '@/components/brand/logo';
+import { Colors, Radius } from '@/constants/theme';
+
 const INITIAL_SCALE_FACTOR = Dimensions.get('screen').height / 90;
 const DURATION = 600;
+const splashEasing = Easing.out(Easing.cubic);
 
 export function AnimatedSplashOverlay() {
   const [visible, setVisible] = useState(true);
@@ -22,12 +25,12 @@ export function AnimatedSplashOverlay() {
     },
     70: {
       opacity: 0,
-      easing: Easing.elastic(0.7),
+      easing: splashEasing,
     },
     100: {
       opacity: 0,
       transform: [{ scale: 1 }],
-      easing: Easing.elastic(0.7),
+      easing: splashEasing,
     },
   });
 
@@ -50,7 +53,7 @@ const keyframe = new Keyframe({
   },
   100: {
     transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
+    easing: splashEasing,
   },
 });
 
@@ -62,71 +65,51 @@ const logoKeyframe = new Keyframe({
   40: {
     transform: [{ scale: 1.3 }],
     opacity: 0,
-    easing: Easing.elastic(0.7),
+    easing: splashEasing,
   },
   100: {
     opacity: 1,
     transform: [{ scale: 1 }],
-    easing: Easing.elastic(0.7),
-  },
-});
-
-const glowKeyframe = new Keyframe({
-  0: {
-    transform: [{ rotateZ: '0deg' }],
-  },
-  100: {
-    transform: [{ rotateZ: '7200deg' }],
+    easing: splashEasing,
   },
 });
 
 export function AnimatedIcon() {
   return (
     <View style={styles.iconContainer}>
-      <Animated.View entering={glowKeyframe.duration(60 * 1000 * 4)} style={styles.glow}>
-        <Image style={styles.glow} source={require('@/assets/images/logo-glow.png')} />
-      </Animated.View>
-
-      <Animated.View entering={keyframe.duration(DURATION)} style={styles.background} />
-      <Animated.View style={styles.imageContainer} entering={logoKeyframe.duration(DURATION)}>
-        <Image style={styles.image} source={require('@/assets/images/expo-logo.png')} />
+      <Animated.View entering={keyframe.duration(DURATION)} style={styles.markShell} />
+      <Animated.View entering={logoKeyframe.duration(DURATION)} style={styles.logoContainer}>
+        <Logo layout="stacked" size={96} theme="dark" variant="mark" />
       </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  imageContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  glow: {
-    width: 201,
-    height: 201,
-    position: 'absolute',
-  },
   iconContainer: {
-    justifyContent: 'center',
     alignItems: 'center',
-    width: 128,
     height: 128,
+    justifyContent: 'center',
+    width: 128,
     zIndex: 100,
   },
-  image: {
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
     position: 'absolute',
-    width: 76,
-    height: 71,
   },
-  background: {
-    borderRadius: 40,
-    experimental_backgroundImage: `linear-gradient(180deg, #3C9FFE, #0274DF)`,
-    width: 128,
+  markShell: {
+    backgroundColor: Colors.dark.backgroundElement,
+    borderColor: Colors.dark.primary,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
     height: 128,
     position: 'absolute',
+    width: 128,
   },
   backgroundSolidColor: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#208AEF',
+    backgroundColor: Colors.dark.background,
     zIndex: 1000,
   },
 });

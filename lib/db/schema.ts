@@ -110,6 +110,7 @@ export const stations = sqliteTable(
     lng: real("lng"),
     qrCodeValue: text("qr_code_value").notNull(),
     isActive: booleanFlag("is_active").notNull().default(true),
+    requiresImmediateSupervision: booleanFlag("requires_immediate_supervision").notNull().default(false),
     totalReports: integer("total_reports").notNull().default(0),
     createdAt: timestamp("created_at").notNull(),
     createdBy: text("created_by").notNull(),

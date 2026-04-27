@@ -31,8 +31,8 @@ const ar = {
   auth: {
     email: "البريد الإلكتروني",
     emailPlaceholder: "name@company.com",
-    genericLoginError: "تعذر تسجيل الدخول. تحقق من البيانات وحاول مرة أخرى.",
-    inactiveAccount: "تعذر تسجيل الدخول. تحقق من البيانات وحاول مرة أخرى.",
+    genericLoginError: "بيانات تسجيل الدخول غير صحيحة. تحقق من البريد الإلكتروني وكلمة المرور.",
+    inactiveAccount: "تم حظر هذا الحساب من الإدارة. تواصل مع المدير لإعادة التفعيل.",
     invalidEmail: "أدخل بريدًا إلكترونيًا صحيحًا.",
     loginTitle: "تسجيل دخول الفريق",
     loginSubtitle: "استخدم حساب الشركة للمتابعة.",
@@ -116,8 +116,8 @@ const en = {
   auth: {
     email: "Email",
     emailPlaceholder: "name@company.com",
-    genericLoginError: "Unable to sign in. Check your details and try again.",
-    inactiveAccount: "Unable to sign in. Check your details and try again.",
+    genericLoginError: "Invalid sign-in details. Check your email and password.",
+    inactiveAccount: "This account has been blocked by an administrator. Contact your manager to reactivate it.",
     invalidEmail: "Enter a valid email address.",
     loginTitle: "Team sign in",
     loginSubtitle: "Use your company account to continue.",

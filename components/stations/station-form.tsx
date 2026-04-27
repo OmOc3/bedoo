@@ -18,6 +18,7 @@ interface StationFormProps {
     stationId: string;
     label: string;
     location: string;
+    requiresImmediateSupervision: boolean;
     zone?: string;
     coordinates?: Coordinates;
   };
@@ -36,6 +37,8 @@ function toFormData(values: StationFormValues): FormData {
   if (values.zone) {
     formData.set("zone", values.zone);
   }
+
+  formData.set("requiresImmediateSupervision", values.requiresImmediateSupervision ? "true" : "false");
 
   if (values.lat) {
     formData.set("lat", values.lat);
@@ -66,6 +69,7 @@ export function StationForm({ mode, station }: StationFormProps) {
       location: station?.location ?? "",
       description: station?.description ?? "",
       zone: station?.zone ?? "",
+      requiresImmediateSupervision: station?.requiresImmediateSupervision ?? false,
       lat: station?.coordinates ? String(station.coordinates.lat) : "",
       lng: station?.coordinates ? String(station.coordinates.lng) : "",
     },
@@ -181,6 +185,18 @@ export function StationForm({ mode, station }: StationFormProps) {
           {...form.register("lng")}
         />
       </div>
+
+      <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+        <input
+          className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
+          type="checkbox"
+          {...form.register("requiresImmediateSupervision")}
+        />
+        <span className="text-sm leading-6 text-slate-800">
+          <span className="block font-semibold">إشراف فوري مطلوب</span>
+          <span className="text-slate-600">عند التفعيل، تُصنف المحطة بأنها تحتاج إشرافًا فوريًا من الفريق.</span>
+        </span>
+      </label>
 
       {existingPhotoUrls.length > 0 ? (
         <div className="space-y-2">

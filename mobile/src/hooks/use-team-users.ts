@@ -9,6 +9,11 @@ interface TeamUsersState {
   users: MobileAppUser[];
 }
 
+interface TeamUsersMessages {
+  genericLoadError: string;
+  unsupportedApi: string;
+}
+
 function createdAtTime(user: MobileAppUser): number {
   if (!user.createdAt) {
     return 0;
@@ -18,7 +23,12 @@ function createdAtTime(user: MobileAppUser): number {
   return Number.isNaN(value) ? 0 : value;
 }
 
-export function useTeamUsers(): TeamUsersState {
+export function useTeamUsers(
+  messages: TeamUsersMessages = {
+    genericLoadError: 'Could not load the team list.',
+    unsupportedApi: 'The current API server does not support the team route. Make sure this app is connected to the updated EcoPest server.',
+  },
+): TeamUsersState {
   const [users, setUsers] = useState<MobileAppUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<null | string>(null);
@@ -52,9 +62,9 @@ export function useTeamUsers(): TeamUsersState {
         if (isMounted) {
           setUsers([]);
           if (loadError instanceof ApiClientError && loadError.status === 404) {
-            setError('خادم الـ API الحالي لا يدعم مسار الفريق. تأكد أنك متصل بنفس خادم EcoPest المحدث.');
+            setError(messages.unsupportedApi);
           } else {
-            setError(loadError instanceof Error ? loadError.message : 'تعذر تحميل قائمة الفريق.');
+            setError(loadError instanceof Error ? loadError.message : messages.genericLoadError);
           }
         }
       } finally {
@@ -73,7 +83,7 @@ export function useTeamUsers(): TeamUsersState {
       isMounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [messages.genericLoadError, messages.unsupportedApi]);
 
   return { error, loading, users };
 }

@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { WebBaseUrl } from '@/constants/theme';
 import { readAuthCookieHeader } from '@/lib/auth-client';
+import type { MobileWebSessionResponse } from '@/lib/sync/types';
 
 type ApiMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 
@@ -149,4 +150,8 @@ export function apiPost<TResponse, TBody = unknown>(
   options: Omit<ApiClientOptions<TBody>, 'body' | 'method'> = {},
 ): Promise<TResponse> {
   return apiRequest<TResponse, TBody>(path, { ...options, body, method: 'POST' });
+}
+
+export function createMobileWebSession(): Promise<MobileWebSessionResponse> {
+  return apiRequest<MobileWebSessionResponse>('/api/mobile/web-session', { method: 'POST' });
 }

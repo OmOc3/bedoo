@@ -1,0 +1,1 @@
+ALTER TABLE `stations` ADD `last_visited_by` text;

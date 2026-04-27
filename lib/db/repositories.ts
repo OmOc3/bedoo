@@ -25,6 +25,7 @@ export interface CreateStationRecord {
   location: string;
   photoUrls?: string[];
   qrCodeValue: string;
+  requiresImmediateSupervision?: boolean;
   stationId: string;
   zone?: string;
 }
@@ -36,6 +37,7 @@ export interface UpdateStationRecord {
   location?: string;
   photoUrls?: string[];
   qrCodeValue: string;
+  requiresImmediateSupervision?: boolean;
   updatedBy: string;
   zone?: string;
 }
@@ -90,6 +92,13 @@ export interface MobileWebSessionRecord {
   role: UserRole;
   tokenHash: string;
   uid: string;
+}
+
+export interface StationTechnicianVisit {
+  reportId: string;
+  submittedAt: Date;
+  technicianName: string;
+  technicianUid: string;
 }
 
 function now(): Date {
@@ -208,6 +217,7 @@ export async function createStationRecord(input: CreateStationRecord): Promise<v
     lng: input.coordinates?.lng,
     qrCodeValue: input.qrCodeValue,
     isActive: true,
+    requiresImmediateSupervision: input.requiresImmediateSupervision ?? false,
     totalReports: 0,
     createdAt: now(),
     createdBy: input.createdBy,
@@ -226,6 +236,7 @@ export async function updateStationRecord(stationId: string, input: UpdateStatio
       lat: input.coordinates?.lat ?? null,
       lng: input.coordinates?.lng ?? null,
       qrCodeValue: input.qrCodeValue,
+      requiresImmediateSupervision: input.requiresImmediateSupervision,
       updatedAt: now(),
       updatedBy: input.updatedBy,
     })
@@ -249,6 +260,28 @@ export async function getStationById(stationId: string): Promise<Station | null>
   });
 
   return row ? stationFromRow(row) : null;
+}
+
+export async function listStationTechnicianVisits(stationId: string, limit = 50): Promise<StationTechnicianVisit[]> {
+  const safeLimit = Math.min(Math.max(limit, 1), 200);
+  const rows = await db
+    .select({
+      reportId: reports.reportId,
+      submittedAt: reports.submittedAt,
+      technicianName: reports.technicianName,
+      technicianUid: reports.technicianUid,
+    })
+    .from(reports)
+    .where(eq(reports.stationId, stationId))
+    .orderBy(desc(reports.submittedAt), desc(reports.reportId))
+    .limit(safeLimit);
+
+  return rows.map((row) => ({
+    reportId: row.reportId,
+    submittedAt: row.submittedAt,
+    technicianName: row.technicianName,
+    technicianUid: row.technicianUid,
+  }));
 }
 
 export async function listStations(query?: string): Promise<Station[]> {

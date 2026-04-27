@@ -14,7 +14,7 @@ function reportTime(report: Report): number {
   return report.submittedAt ? new Date(report.submittedAt).getTime() : 0;
 }
 
-export function useMyReports(): ReportsState {
+export function useMyReports(fallbackError = 'Could not load reports.'): ReportsState {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export function useMyReports(): ReportsState {
       } catch (error: unknown) {
         if (isMounted) {
           setReports([]);
-          setError(error instanceof Error ? error.message : 'تعذر تحميل التقارير.');
+          setError(error instanceof Error ? error.message : fallbackError);
         }
       } finally {
         if (isMounted) {
@@ -54,7 +54,7 @@ export function useMyReports(): ReportsState {
       isMounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [fallbackError]);
 
   return { error, loading, reports };
 }

@@ -16,6 +16,7 @@ interface CreateStationBody {
   description?: string;
   label: string;
   location: string;
+  requiresImmediateSupervision?: boolean;
   zone?: string;
 }
 
@@ -36,6 +37,7 @@ export async function POST(
       location: payload.location,
       description: payload.description,
       zone: payload.zone,
+      requiresImmediateSupervision: payload.requiresImmediateSupervision,
       coordinates: payload.coordinates,
       photoUrls: [],
     });
@@ -62,6 +64,7 @@ export async function POST(
       zone: parsed.data.zone,
       coordinates: parsed.data.coordinates,
       qrCodeValue,
+      requiresImmediateSupervision: parsed.data.requiresImmediateSupervision,
       createdBy: session.uid,
     });
 
@@ -75,6 +78,7 @@ export async function POST(
         label: parsed.data.label,
         location: parsed.data.location,
         zone: parsed.data.zone,
+        requiresImmediateSupervision: parsed.data.requiresImmediateSupervision,
       },
     });
 

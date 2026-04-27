@@ -15,6 +15,20 @@
       "when": 1777250699960,
       "tag": "0001_steep_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1777321773019,
+      "tag": "0002_freezing_peter_parker",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1777322622527,
+      "tag": "0003_mighty_abomination",
+      "breakpoints": true
     }
   ]
 }

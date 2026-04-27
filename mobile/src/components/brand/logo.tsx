@@ -1,4 +1,4 @@
-import Svg, { Circle, Ellipse, G, Path, Text as SvgText } from 'react-native-svg';
+import { Image, type ImageSourcePropType } from 'react-native';
 
 export type LogoProps = {
   layout?: 'horizontal' | 'stacked';
@@ -7,99 +7,22 @@ export type LogoProps = {
   variant: 'mark' | 'full';
 };
 
-const palettes = {
-  light: {
-    eco: '#5A9850',
-    leafDark: '#4D8E4A',
-    leafLight: '#5A9850',
-    pest: '#2F4A8A',
-    vein: '#ffffff',
-  },
-  dark: {
-    eco: '#5A9850',
-    leafDark: '#4D8E4A',
-    leafLight: '#5A9850',
-    pest: '#2F4A8A',
-    vein: '#ffffff',
-  },
-} as const;
+const logoLockup = require('@/assets/logo/ecopest-lockup.png') as ImageSourcePropType;
+const logoMark = require('@/assets/logo/ecopest-mark.png') as ImageSourcePropType;
+const lockupRatio = 1826 / 1088;
 
-function LogoMarkPaths({ leafDark, leafLight, vein }: { leafDark: string; leafLight: string; vein: string }) {
-  return (
-    <>
-      <Path
-        d="M66 122c-22-5-40-17-50-35C7 71 8 49 18 31c10-17 27-29 47-31-7 16-12 33-14 50-3 25 0 49 15 72Z"
-        fill={leafDark}
-      />
-      <Path
-        d="M70 122c-5-30-3-55 6-78 8-21 22-39 40-52 12 14 18 32 17 52-1 35-24 64-63 78Z"
-        fill={leafLight}
-      />
-      <Path d="M46 27c-7 17-10 35-8 53 1 11 4 22 9 32" fill="none" stroke={vein} strokeLinecap="round" strokeWidth="5" />
-      <G rotation="-18" originX="70" originY="60">
-        <Ellipse cx="99" cy="41" fill="#ffffff" rx="10" ry="7" />
-        <Ellipse cx="77" cy="53" fill="#ffffff" rx="18" ry="13" />
-        <Ellipse cx="53" cy="63" fill="#ffffff" rx="13" ry="10" />
-        <Circle cx="103" cy="40" fill={leafLight} r="2" />
-        <Path
-          d="M104 35c7-9 14-13 22-13M104 41c9-2 18-1 27 4"
-          fill="none"
-          stroke="#ffffff"
-          strokeLinecap="round"
-          strokeWidth="4"
-        />
-        <Path
-          d="M62 51 38 36M76 54 48 43M90 55 64 48M64 67 37 79M78 68 51 87M92 66 66 97"
-          fill="none"
-          stroke="#ffffff"
-          strokeLinecap="round"
-          strokeWidth="4.5"
-        />
-      </G>
-    </>
-  );
-}
-
-export function Logo({ layout = 'horizontal', size = 48, theme, variant }: LogoProps) {
-  const palette = palettes[theme];
-
-  if (variant === 'mark') {
-    return (
-      <Svg accessibilityLabel="EcoPest" height={size} role="img" viewBox="0 0 140 140" width={size}>
-        <LogoMarkPaths leafDark={palette.leafDark} leafLight={palette.leafLight} vein={palette.vein} />
-      </Svg>
-    );
-  }
-
-  if (layout === 'stacked') {
-    const width = size * 0.92;
-
-    return (
-      <Svg accessibilityLabel="EcoPest" height={size} role="img" viewBox="0 0 210 220" width={width}>
-        <G transform="translate(35 0)">
-          <LogoMarkPaths leafDark={palette.leafDark} leafLight={palette.leafLight} vein={palette.vein} />
-        </G>
-        <SvgText fill={palette.eco} fontFamily="Arial" fontSize="54" fontWeight="700" textAnchor="middle" x="84" y="168">
-          eco
-        </SvgText>
-        <SvgText fill={palette.pest} fontFamily="Arial" fontSize="54" fontWeight="700" textAnchor="middle" x="106" y="214">
-          pest
-        </SvgText>
-      </Svg>
-    );
-  }
-
-  const width = size * 2.8;
+export function Logo({ layout: _layout = 'horizontal', size = 48, theme: _theme, variant }: LogoProps) {
+  const isMark = variant === 'mark';
+  const height = size;
+  const width = isMark ? size : Math.round(size * lockupRatio);
 
   return (
-    <Svg accessibilityLabel="EcoPest" height={size} role="img" viewBox="0 0 390 140" width={width}>
-      <LogoMarkPaths leafDark={palette.leafDark} leafLight={palette.leafLight} vein={palette.vein} />
-      <SvgText fill={palette.eco} fontFamily="Arial" fontSize="58" fontWeight="700" x="145" y="70">
-        eco
-      </SvgText>
-      <SvgText fill={palette.pest} fontFamily="Arial" fontSize="58" fontWeight="700" x="145" y="126">
-        pest
-      </SvgText>
-    </Svg>
+    <Image
+      accessibilityLabel="EcoPest"
+      accessible
+      resizeMode="contain"
+      source={isMark ? logoMark : logoLockup}
+      style={{ height, width }}
+    />
   );
 }

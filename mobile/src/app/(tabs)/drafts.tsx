@@ -4,10 +4,10 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  BrandHeader,
   Card,
   EmptyState,
   InputField,
+  MobileTopBar,
   PrimaryButton,
   ReportCard,
   ScreenShell,
@@ -96,7 +96,7 @@ export default function DraftsScreen() {
   }
 
   async function retrySync(id: string): Promise<void> {
-    await syncDraft(id);
+    await syncDraft(id, strings.errors.syncDraft);
     await refreshDrafts();
   }
 
@@ -104,10 +104,19 @@ export default function DraftsScreen() {
     <ScreenShell>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView contentContainerStyle={styles.scrollContent} contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false}>
-          <BrandHeader subtitle={t.subtitle} />
+          <MobileTopBar
+            leftIcon="menu"
+            leftLabel={strings.actions.menu}
+            onLeftPress={() => router.push('/(tabs)')}
+            rightIcon="settings"
+            rightLabel={strings.tabs.settings}
+            onRightPress={() => router.push('/(tabs)/settings')}
+            title={strings.tabs.drafts}
+          />
 
           <Card>
             <ThemedText type="title">{t.title}</ThemedText>
+            <ThemedText themeColor="textSecondary">{t.subtitle}</ThemedText>
             <InputField
               autoCapitalize="none"
               autoCorrect={false}
@@ -197,6 +206,7 @@ export default function DraftsScreen() {
 const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
     gap: Spacing.two,
   },
   safeArea: {

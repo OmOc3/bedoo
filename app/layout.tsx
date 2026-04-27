@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
 import { i18n } from "@/lib/i18n";
@@ -44,6 +45,7 @@ export default function RootLayout({
         {children}
         <RegisterServiceWorker />
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

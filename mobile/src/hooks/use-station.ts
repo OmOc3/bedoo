@@ -10,7 +10,7 @@ interface StationState {
   station: Station | null;
 }
 
-export function useStation(stationId: string): StationState {
+export function useStation(stationId: string, fallbackError = 'Could not load station details.'): StationState {
   const [station, setStation] = useState<Station | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export function useStation(stationId: string): StationState {
       } catch (error: unknown) {
         if (isMounted) {
           setStation(null);
-          setError(error instanceof Error ? error.message : 'تعذر تحميل بيانات المحطة.');
+          setError(error instanceof Error ? error.message : fallbackError);
         }
       } finally {
         if (isMounted) {
@@ -60,7 +60,7 @@ export function useStation(stationId: string): StationState {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [stationId]);
+  }, [fallbackError, stationId]);
 
   return { error, loading, station };
 }

@@ -109,6 +109,10 @@ export async function signInWithPassword(email: string, password: string): Promi
       throw new Error('INVALID_CREDENTIALS');
     }
 
+    if (payload?.code === 'AUTH_ACCOUNT_DISABLED') {
+      throw new Error('USER_DISABLED');
+    }
+
     if (payload?.code === 'AUTH_RATE_LIMITED') {
       throw new Error('NETWORK_ERROR');
     }

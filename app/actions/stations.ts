@@ -82,6 +82,11 @@ function optionalCoordinates(formData: FormData): { lat: number; lng: number } |
   };
 }
 
+function booleanFromFormData(formData: FormData, key: string): boolean {
+  const value = formData.get(key);
+  return value === "on" || value === "true" || value === "1";
+}
+
 export async function createStationAction(formData: FormData): Promise<StationActionResult> {
   const session = await requireRole(["manager"]);
   const stationId = await generateNextStationId();
@@ -101,6 +106,7 @@ export async function createStationAction(formData: FormData): Promise<StationAc
     description: optionalString(formData, "description"),
     photoUrls: uploadedPhotoUrls,
     zone: optionalString(formData, "zone"),
+    requiresImmediateSupervision: booleanFromFormData(formData, "requiresImmediateSupervision"),
     coordinates: optionalCoordinates(formData),
   });
 
@@ -122,6 +128,7 @@ export async function createStationAction(formData: FormData): Promise<StationAc
     zone: parsed.data.zone,
     coordinates: parsed.data.coordinates,
     qrCodeValue,
+    requiresImmediateSupervision: parsed.data.requiresImmediateSupervision,
     createdBy: session.uid,
   });
   await writeAuditLog({
@@ -136,6 +143,7 @@ export async function createStationAction(formData: FormData): Promise<StationAc
       description: parsed.data.description,
       photoUrls: parsed.data.photoUrls,
       zone: parsed.data.zone,
+      requiresImmediateSupervision: parsed.data.requiresImmediateSupervision,
       coordinates: parsed.data.coordinates,
     },
   });
@@ -169,6 +177,7 @@ export async function updateStationAction(stationId: string, formData: FormData)
     description: optionalString(formData, "description"),
     photoUrls,
     zone: optionalString(formData, "zone"),
+    requiresImmediateSupervision: booleanFromFormData(formData, "requiresImmediateSupervision"),
     coordinates: optionalCoordinates(formData),
   });
 
@@ -189,6 +198,7 @@ export async function updateStationAction(stationId: string, formData: FormData)
     zone: parsed.data.zone,
     coordinates: parsed.data.coordinates,
     qrCodeValue,
+    requiresImmediateSupervision: parsed.data.requiresImmediateSupervision,
     updatedBy: session.uid,
   });
   await writeAuditLog({
@@ -265,6 +275,7 @@ export async function deleteStationImageAction(
     zone: station.zone,
     coordinates: station.coordinates,
     qrCodeValue: station.qrCodeValue,
+    requiresImmediateSupervision: station.requiresImmediateSupervision,
     updatedBy: session.uid,
   });
 

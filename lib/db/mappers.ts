@@ -57,6 +57,7 @@ export function stationFromRow(row: {
   createdAt: Date;
   createdBy: string;
   isActive: boolean;
+  requiresImmediateSupervision: boolean;
   label: string;
   lastVisitedAt: Date | null;
   lastVisitedBy: string | null;
@@ -82,6 +83,7 @@ export function stationFromRow(row: {
     coordinates: coordinatesFromRow(row),
     qrCodeValue: row.qrCodeValue,
     isActive: row.isActive,
+    requiresImmediateSupervision: row.requiresImmediateSupervision,
     totalReports: row.totalReports,
     createdAt: requiredTimestamp(row.createdAt),
     createdBy: row.createdBy,

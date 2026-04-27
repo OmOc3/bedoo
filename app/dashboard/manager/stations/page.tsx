@@ -122,6 +122,9 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                     الحالة
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                    إشراف فوري
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     الصحة
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -159,6 +162,17 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                             }
                           >
                             {station.isActive ? "نشطة" : "غير نشطة"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={
+                              station.requiresImmediateSupervision
+                                ? "inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"
+                                : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
+                            }
+                          >
+                            {station.requiresImmediateSupervision ? "مطلوب" : "لا"}
                           </span>
                         </td>
                         <td className="px-4 py-3">

@@ -74,7 +74,7 @@ function ReportListItem({ report }: { report: VisibleReport }) {
   const { reviewStatus, syncStatus } = strings;
   const theme = useTheme();
   const locale = languageDateLocales[language];
-  const title = report.stationLabel ?? `محطة #${report.stationId}`;
+  const title = report.stationLabel ?? `${strings.report.stationLabel} #${report.stationId}`;
   const dateLabel = report.createdAt
     ? new Intl.DateTimeFormat(locale, { day: 'numeric', hour: '2-digit', minute: '2-digit', month: 'short' }).format(new Date(report.createdAt))
     : '';
@@ -117,7 +117,7 @@ export default function HistoryScreen() {
   const [activeFilter, setActiveFilter] = useState<ReportFilter>('all');
   const { language, strings } = useLanguage();
   const theme = useTheme();
-  const remoteReports = useMyReports();
+  const remoteReports = useMyReports(strings.errors.loadReports);
 
   const refreshLocalReports = useCallback(async () => {
     setLocalReports(await getSubmittedReports());
@@ -160,7 +160,7 @@ export default function HistoryScreen() {
   }, [activeFilter, reports, searchText]);
 
   const filters: { label: string; value: ReportFilter }[] = [
-    { label: 'الكل', value: 'all' },
+    { label: strings.history.filterAll, value: 'all' },
     { label: strings.reviewStatus.pending, value: 'pending' },
     { label: strings.reviewStatus.reviewed, value: 'reviewed' },
     { label: strings.reviewStatus.rejected, value: 'rejected' },
@@ -172,12 +172,12 @@ export default function HistoryScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false}>
           <MobileTopBar
             leftIcon="menu"
-            leftLabel="القائمة"
+            leftLabel={strings.actions.menu}
             onLeftPress={() => router.push('/(tabs)')}
             onRightPress={() => router.push('/(tabs)/settings')}
             rightIcon="user"
-            rightLabel="الحساب"
-            title="التقارير"
+            rightLabel={strings.actions.account}
+            title={strings.history.title}
           />
 
           <View style={styles.searchRow}>
@@ -185,15 +185,12 @@ export default function HistoryScreen() {
               <EcoPestIcon color={theme.textSecondary} name="search" size={26} />
               <TextInput
                 onChangeText={setSearchText}
-                placeholder="البحث في التقارير..."
+                placeholder={strings.history.searchPlaceholder}
                 placeholderTextColor={theme.textSecondary}
                 style={[styles.searchInput, { color: theme.text, writingDirection: language === 'ar' ? 'rtl' : 'ltr' }]}
                 value={searchText}
               />
             </View>
-            <Pressable accessibilityRole="button" style={[styles.filterButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-              <EcoPestIcon color={theme.text} name="sliders" size={26} />
-            </Pressable>
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
@@ -245,14 +242,6 @@ const styles = StyleSheet.create({
   emptyCard: {
     borderRadius: Radius.lg,
     borderWidth: 1,
-  },
-  filterButton: {
-    alignItems: 'center',
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    height: 64,
-    justifyContent: 'center',
-    width: 64,
   },
   filterPill: {
     alignItems: 'center',

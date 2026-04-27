@@ -1,0 +1,1 @@
+ALTER TABLE `stations` ADD `requires_immediate_supervision` integer DEFAULT false NOT NULL;

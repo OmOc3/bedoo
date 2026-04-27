@@ -18,6 +18,7 @@ interface MobileStationResponse {
   stationId: string;
   totalReports: number;
   updatedAt?: string;
+  requiresImmediateSupervision: boolean;
   zone?: string;
 }
 
@@ -46,6 +47,7 @@ function stationResponse(stationId: string, data: Partial<Station>): MobileStati
     ...(data.zone ? { zone: data.zone } : {}),
     ...(data.photoUrls?.length ? { photoUrls: data.photoUrls } : {}),
     isActive: data.isActive ?? false,
+    requiresImmediateSupervision: data.requiresImmediateSupervision ?? false,
     totalReports: data.totalReports ?? 0,
     ...(timestampToIso(data.createdAt) ? { createdAt: timestampToIso(data.createdAt) } : {}),
     ...(timestampToIso(data.updatedAt) ? { updatedAt: timestampToIso(data.updatedAt) } : {}),

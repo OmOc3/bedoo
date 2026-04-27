@@ -7,12 +7,14 @@ import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
 import { MobileTopBar, PrimaryButton, ScreenShell, StatusChip } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Fonts, Radius, Shadow, Spacing, Typography } from '@/constants/theme';
+import { useLanguage } from '@/contexts/language-context';
 import { useTheme } from '@/hooks/use-theme';
 import { useCurrentUser } from '@/lib/auth';
 import { getDrafts, getSubmittedReports, getSyncQueueReports, type DraftReport } from '@/lib/drafts';
+import { languageDateLocales } from '@/lib/i18n';
 import { useSyncActions, useSyncStatus } from '@/lib/sync/report-sync';
 
-function displayDate(value?: string): string {
+function displayDate(value: string | undefined, locale: string): string {
   if (!value) {
     return '';
   }
@@ -23,14 +25,25 @@ function displayDate(value?: string): string {
     return '';
   }
 
-  return new Intl.DateTimeFormat('ar-EG', { hour: '2-digit', minute: '2-digit', weekday: 'short' }).format(date);
+  return new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', weekday: 'short' }).format(date);
 }
 
-function StatCard({ icon, label, value, wide = false }: { icon: EcoPestIconName; label: string; value: string; wide?: boolean }) {
+function StatCard({
+  icon,
+  label,
+  onPress,
+  value,
+  wide = false,
+}: {
+  icon: EcoPestIconName;
+  label: string;
+  onPress?: () => void;
+  value: string;
+  wide?: boolean;
+}) {
   const theme = useTheme();
-
-  return (
-    <View style={[styles.statCard, Shadow.sm, wide ? styles.statCardWide : null, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+  const content = (
+    <>
       <EcoPestIcon color={theme.primary} name={icon} size={28} />
       <View style={styles.statCopy}>
         <ThemedText type="small" themeColor="textSecondary" style={styles.statLabel}>
@@ -38,15 +51,37 @@ function StatCard({ icon, label, value, wide = false }: { icon: EcoPestIconName;
         </ThemedText>
         <ThemedText style={styles.statValue}>{value}</ThemedText>
       </View>
+    </>
+  );
+
+  const statStyle = [
+    styles.statCard,
+    Shadow.sm,
+    wide ? styles.statCardWide : null,
+    { backgroundColor: theme.backgroundElement, borderColor: theme.border },
+  ];
+
+  if (onPress) {
+    return (
+      <Pressable accessibilityLabel={label} accessibilityRole="button" onPress={onPress} style={({ pressed }) => [statStyle, pressed ? styles.pressed : null]}>
+        {content}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View style={statStyle}>
+      {content}
     </View>
   );
 }
 
-function RecentReportItem({ report }: { report: DraftReport }) {
+function RecentReportItem({ locale, report }: { locale: string; report: DraftReport }) {
   const theme = useTheme();
-  const title = report.stationLabel ?? `محطة #${report.stationId}`;
+  const { strings } = useLanguage();
+  const title = report.stationLabel ?? `${strings.report.stationLabel} #${report.stationId}`;
   const statusTone = report.syncStatus === 'submitted' ? 'success' : report.syncStatus === 'failed' ? 'danger' : 'warning';
-  const statusLabel = report.syncStatus === 'submitted' ? 'مكتمل' : report.syncStatus === 'failed' ? 'فشل الإرسال' : 'قيد المزامنة';
+  const statusLabel = report.syncStatus ? strings.syncStatus[report.syncStatus] : strings.syncStatus.queued;
 
   return (
     <View style={[styles.reportItem, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
@@ -58,7 +93,7 @@ function RecentReportItem({ report }: { report: DraftReport }) {
           {title}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
-          {displayDate(report.submittedAt ?? report.createdAt)}
+          {displayDate(report.submittedAt ?? report.createdAt, locale)}
         </ThemedText>
       </View>
       <StatusChip label={statusLabel} tone={statusTone} />
@@ -71,10 +106,13 @@ export default function HomeScreen() {
   const { syncAllDrafts } = useSyncActions();
   const currentUser = useCurrentUser();
   const theme = useTheme();
+  const { language, strings } = useLanguage();
+  const t = strings.home;
+  const locale = languageDateLocales[language];
   const [draftCount, setDraftCount] = useState(0);
   const [queueCount, setQueueCount] = useState(0);
   const [recentReports, setRecentReports] = useState<DraftReport[]>([]);
-  const displayName = currentUser?.profile.displayName?.trim() || 'الفريق';
+  const displayName = currentUser?.profile.displayName?.trim() || t.defaultUser;
   const isTechnician = currentUser?.profile.role === 'technician';
 
   const refreshLocalCounts = useCallback(async () => {
@@ -92,13 +130,13 @@ export default function HomeScreen() {
   );
 
   const pendingTotal = pendingCount || queueCount;
-  const syncTitle = pendingTotal > 0 ? 'تقارير بانتظار المزامنة' : 'تمت مزامنة جميع البيانات';
+  const syncTitle = pendingTotal > 0 ? t.pendingSyncTitle : t.syncedTitle;
   const syncBody =
     pendingTotal > 0
-      ? `${pendingTotal} تقرير محفوظ محليًا وسيتم إرساله عند توفر الاتصال.`
+      ? `${pendingTotal} ${t.pendingSyncBodySuffix}`
       : lastSyncedAt
-        ? `آخر مزامنة: ${lastSyncedAt}`
-        : 'الجهاز جاهز لحفظ التقارير وإرسالها.';
+        ? `${t.lastSyncPrefix} ${new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(lastSyncedAt))}`
+        : t.readySyncBody;
 
   return (
     <ScreenShell>
@@ -106,19 +144,19 @@ export default function HomeScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false}>
           <MobileTopBar
             leftIcon="menu"
-            leftLabel="القائمة"
+            leftLabel={strings.actions.menu}
             onLeftPress={() => router.push('/(tabs)/settings')}
             onRightPress={() => router.push('/(tabs)/settings')}
             rightIcon="user"
-            rightLabel="الإعدادات"
-            title="ECOPEST"
+            rightLabel={strings.tabs.settings}
+            title={strings.appName}
           />
 
           <View style={styles.heroCopy}>
             <ThemedText type="subtitle" style={styles.greeting}>
-              أهلاً، {displayName}
+              {t.greetingPrefix} {displayName}
             </ThemedText>
-            <ThemedText themeColor="textSecondary">نظرة عامة على مهامك اليومية وحالة النظام.</ThemedText>
+            <ThemedText themeColor="textSecondary">{t.overview}</ThemedText>
           </View>
 
           <View style={[styles.syncCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: pendingTotal > 0 ? theme.warningStrong : theme.successStrong }]}>
@@ -134,44 +172,44 @@ export default function HomeScreen() {
             {pendingTotal > 0 ? (
               <Pressable accessibilityRole="button" disabled={isSyncing} onPress={() => void syncAllDrafts().then(refreshLocalCounts)} style={styles.syncAction}>
                 <ThemedText type="smallBold" style={{ color: theme.primary }}>
-                  مزامنة
+                  {strings.actions.syncNow}
                 </ThemedText>
               </Pressable>
             ) : null}
           </View>
 
           <View style={styles.statsGrid}>
-            <StatCard icon="file-text" label="تقارير معلقة" value={String(pendingTotal)} />
-            <StatCard icon="clipboard-check" label="مسودات محفوظة" value={String(draftCount)} />
-            <StatCard icon="dashboard" label="تقارير اليوم" value={String(recentReports.length)} wide />
+            <StatCard icon="file-text" label={t.pendingReports} onPress={() => router.push('/(tabs)/drafts')} value={String(pendingTotal)} />
+            <StatCard icon="clipboard-check" label={t.savedDrafts} onPress={() => router.push('/(tabs)/drafts')} value={String(draftCount)} />
+            <StatCard icon="dashboard" label={t.todayReports} onPress={() => router.push('/(tabs)/history')} value={String(recentReports.length)} wide />
           </View>
 
           {isTechnician ? (
             <PrimaryButton icon="qr-code" onPress={() => router.push('/(tabs)/scan')}>
-              مسح QR بالكاميرا
+              {t.scanCameraCta}
             </PrimaryButton>
           ) : null}
 
           <View style={styles.sectionHeader}>
             <Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/history')}>
               <ThemedText type="smallBold" style={{ color: theme.primary }}>
-                عرض الكل
+                {t.viewAll}
               </ThemedText>
             </Pressable>
-            <ThemedText type="title">أحدث التقارير</ThemedText>
+            <ThemedText type="title">{t.recentReports}</ThemedText>
           </View>
 
           {recentReports.length > 0 ? (
             <View style={styles.reportList}>
               {recentReports.map((report) => (
-                <RecentReportItem key={report.id} report={report} />
+                <RecentReportItem key={report.id} locale={locale} report={report} />
               ))}
             </View>
           ) : (
             <View style={[styles.emptyReports, { borderColor: theme.border }]}>
               <EcoPestIcon color={theme.textSecondary} name="file-text" size={28} />
               <ThemedText themeColor="textSecondary" style={styles.emptyText}>
-                لا توجد تقارير حديثة على هذا الجهاز.
+                {t.noRecentReports}
               </ThemedText>
             </View>
           )}
@@ -247,6 +285,9 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
     minHeight: 124,
     padding: Spacing.lg,
+  },
+  pressed: {
+    opacity: 0.82,
   },
   statCardWide: {
     flexBasis: '100%',

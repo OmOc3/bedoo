@@ -31,6 +31,7 @@ export default async function EditStationPage({ params }: EditStationPageProps) 
     location: stationRecord.location,
     description: stationRecord.description,
     photoUrls: stationRecord.photoUrls,
+    requiresImmediateSupervision: stationRecord.requiresImmediateSupervision,
     zone: stationRecord.zone,
     coordinates: stationRecord.coordinates,
   };

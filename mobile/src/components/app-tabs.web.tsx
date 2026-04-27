@@ -30,6 +30,9 @@ export default function AppTabs() {
           <TabTrigger name="scan" href="/(tabs)/scan" asChild>
             <TabButton>{tabs.scan}</TabButton>
           </TabTrigger>
+          <TabTrigger name="drafts" href="/(tabs)/drafts" asChild>
+            <TabButton>{tabs.drafts}</TabButton>
+          </TabTrigger>
           <TabTrigger name="history" href="/(tabs)/history" asChild>
             <TabButton>{tabs.history}</TabButton>
           </TabTrigger>

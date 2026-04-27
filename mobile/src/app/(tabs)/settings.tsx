@@ -110,7 +110,7 @@ export default function SettingsScreen() {
     }
 
     await setApiBaseUrl(cleanUrl);
-    showToast('تم حفظ رابط البوابة.', 'success');
+    showToast(t.webAppUrlSaved, 'success');
   }
 
   async function logout(): Promise<void> {
@@ -133,10 +133,10 @@ export default function SettingsScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false}>
           <MobileTopBar
             leftIcon="menu"
-            leftLabel="القائمة"
+            leftLabel={strings.actions.menu}
             onLeftPress={() => router.push('/(tabs)')}
             rightIcon="user"
-            rightLabel="الحساب"
+            rightLabel={strings.actions.account}
             title={t.title}
           />
 
@@ -145,15 +145,12 @@ export default function SettingsScreen() {
               <EcoPestIcon color={theme.onPrimary} name="user" size={30} />
             </View>
             <View style={styles.profileCopy}>
-              <ThemedText type="title">{profile?.displayName ?? 'مستخدم EcoPest'}</ThemedText>
-              <ThemedText themeColor="textSecondary">{profile ? roleLabels[profile.role] : 'فريق ميداني'}</ThemedText>
-            </View>
-            <View style={[styles.editCircle, { backgroundColor: theme.background }]}>
-              <EcoPestIcon color={theme.text} name="edit" size={22} />
+              <ThemedText type="title">{profile?.displayName ?? t.defaultUserName}</ThemedText>
+              <ThemedText themeColor="textSecondary">{profile ? roleLabels[profile.role] : t.defaultUserRole}</ThemedText>
             </View>
           </View>
 
-          <SettingsCard title="إعدادات التطبيق">
+          <SettingsCard title={t.appSettingsTitle}>
             <SettingsRow icon="globe" title={t.languageTitle}>
               <View style={styles.segmented}>
                 {languageOptions.map((item) => (
@@ -189,7 +186,7 @@ export default function SettingsScreen() {
             </SettingsRow>
           </SettingsCard>
 
-          <SettingsCard title="البيانات والمزامنة">
+          <SettingsCard title={t.dataSyncTitle}>
             <SettingsRow icon="sun" subtitle={t.keepAwakeBody} title={t.keepAwakeTitle}>
               <Switch
                 onValueChange={setKeepAwakeEnabled}
@@ -217,7 +214,7 @@ export default function SettingsScreen() {
 
           <View style={styles.section}>
             <ThemedText type="title" style={styles.sectionTitle}>
-              الحساب والأمان
+              {t.accountSecurityTitle}
             </ThemedText>
             <View style={[styles.securityCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
               <EcoPestIcon color={theme.textSecondary} name="shield" size={28} />
@@ -248,7 +245,7 @@ export default function SettingsScreen() {
               <ThemedText type="linkPrimary">{legal.privacy}</ThemedText>
             </Pressable>
             <ThemedText type="small" themeColor="textSecondary">
-              © 2025 {Brand.companyName} · {legal.allRightsReserved}
+              © {Brand.copyrightYear()} {Brand.companyName} · {legal.allRightsReserved}
             </ThemedText>
           </View>
         </ScrollView>
@@ -264,13 +261,6 @@ const styles = StyleSheet.create({
     height: 74,
     justifyContent: 'center',
     width: 74,
-  },
-  editCircle: {
-    alignItems: 'center',
-    borderRadius: Radius.full,
-    height: 42,
-    justifyContent: 'center',
-    width: 42,
   },
   legalRow: {
     alignItems: 'center',

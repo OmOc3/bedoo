@@ -54,7 +54,10 @@ const arabicStrings = {
       edit: 'تعديل',
       login: 'تسجيل الدخول',
       logout: 'تسجيل الخروج',
+      account: 'الحساب',
+      filter: 'فلترة',
       loading: 'جار التحميل...',
+      menu: 'القائمة',
       openReport: 'فتح نموذج التقرير',
       openScan: 'فتح المسح',
       retry: 'إعادة المحاولة',
@@ -72,8 +75,8 @@ const arabicStrings = {
       accessCodeHint: 'يدير المدير كود كل مستخدم من لوحة المستخدمين.',
       accessCodePlaceholder: 'مثال: A7K9P2M4',
       accessCodeRequired: 'كود الدخول مطلوب.',
-      genericLoginError: 'تعذر تسجيل الدخول. تحقق من البيانات وحاول مرة أخرى.',
-      inactiveAccount: 'تعذر تسجيل الدخول. تحقق من البيانات وحاول مرة أخرى.',
+      genericLoginError: 'بيانات تسجيل الدخول غير صحيحة. تحقق من البريد الإلكتروني وكود الدخول.',
+      inactiveAccount: 'تم حظر هذا الحساب من الإدارة. تواصل مع المدير لإعادة التفعيل.',
       invalidCredentials: 'البريد الإلكتروني أو كود الدخول غير صحيح.',
       invalidEmail: 'أدخل بريدًا إلكترونيًا صحيحًا.',
       loginTitle: 'تسجيل دخول الفريق',
@@ -90,7 +93,9 @@ const arabicStrings = {
       forgotPassword: 'نسيت كلمة المرور؟',
       serverUrl: 'رابط الخادم',
       serverUrlHint: 'استخدم رابطًا يمكن للهاتف الوصول إليه. لا تستخدم localhost على جهاز حقيقي.',
-      userDisabled: 'هذا الحساب غير مفعل. تواصل مع المدير.',
+      supportPrompt: 'تواجه مشكلة في تسجيل الدخول؟',
+      supportCta: 'اتصل بالدعم الفني',
+      userDisabled: 'تم حظر هذا الحساب من الإدارة. تواصل مع المدير لإعادة التفعيل.',
       webLoginCta: 'فتح تسجيل الدخول على الويب',
     },
     adminPortal: {
@@ -127,6 +132,9 @@ const arabicStrings = {
     errors: {
       accessDenied: 'ليست لديك صلاحية للوصول إلى هذه الصفحة.',
       accessDeniedTitle: 'وصول غير مصرح',
+      loadReports: 'تعذر تحميل التقارير.',
+      loadStation: 'تعذر تحميل بيانات المحطة.',
+      syncDraft: 'تعذر مزامنة المسودة الآن.',
       unexpected: 'حدث خطأ غير متوقع. حاول مرة أخرى.',
     },
     scan: {
@@ -137,8 +145,10 @@ const arabicStrings = {
       cameraPermissionBody: 'فعّل الكاميرا لمسح QR مباشرة من التطبيق.',
       enableCamera: 'تفعيل الكاميرا',
       invalidQr: 'تم مسح QR، لكنه لا يطابق رابط محطة EcoPest.',
+      instruction: 'وجه الكاميرا نحو رمز QR الخاص بالمحطة',
       manualStationLabel: 'رقم المحطة',
       manualStationPlaceholder: '000001',
+      manualTitle: 'أدخل رقم المحطة يدويًا',
       manualSubtitle: 'أدخل رقم المحطة يدويًا إذا لم يتوفر QR.',
       torchOn: 'تشغيل المصباح',
       torchOff: 'إيقاف المصباح',
@@ -149,6 +159,7 @@ const arabicStrings = {
       stationLocation: 'الموقع',
       stationZone: 'النطاق',
       stationLastVisit: 'آخر زيارة',
+      stationImageLabel: 'صورة المحطة',
       webScanCta: 'صفحة المسح على الويب',
     },
     theme: {
@@ -183,6 +194,12 @@ const arabicStrings = {
       loadErrorTitle: 'تعذر تحميل الفريق',
       emptyTitle: 'لا يوجد مستخدمون',
       emptyBody: 'لا توجد نتائج مطابقة للفلاتر الحالية.',
+      activeStatus: 'نشط',
+      inactiveStatus: 'غير نشط',
+      createdPrefix: 'تاريخ الإنشاء:',
+      avatarFallback: 'م',
+      unsupportedApi: 'خادم الـ API الحالي لا يدعم مسار الفريق. تأكد أنك متصل بنفس خادم EcoPest المحدث.',
+      genericLoadError: 'تعذر تحميل قائمة الفريق.',
     },
     home: {
       brandSubtitle: 'رفيق الفني اليومي لمحطات الطعوم',
@@ -195,6 +212,21 @@ const arabicStrings = {
       reviewReady: 'فورية',
       shortcutsTitle: 'اختصارات التشغيل',
       draftsCta: 'المسودات',
+      defaultUser: 'الفريق',
+      greetingPrefix: 'أهلاً،',
+      overview: 'نظرة عامة على مهامك اليومية وحالة النظام.',
+      pendingSyncTitle: 'تقارير بانتظار المزامنة',
+      syncedTitle: 'تمت مزامنة جميع البيانات',
+      pendingSyncBodySuffix: 'تقرير محفوظ محليًا وسيتم إرساله عند توفر الاتصال.',
+      lastSyncPrefix: 'آخر مزامنة:',
+      readySyncBody: 'الجهاز جاهز لحفظ التقارير وإرسالها.',
+      pendingReports: 'تقارير معلقة',
+      savedDrafts: 'مسودات محفوظة',
+      todayReports: 'تقارير اليوم',
+      scanCameraCta: 'مسح QR بالكاميرا',
+      viewAll: 'عرض الكل',
+      recentReports: 'أحدث التقارير',
+      noRecentReports: 'لا توجد تقارير حديثة على هذا الجهاز.',
     },
     drafts: {
       title: 'مسودة تقرير',
@@ -221,6 +253,16 @@ const arabicStrings = {
       statusTitle: 'حالة الفحص',
       notesLabel: 'ملاحظات',
       notesPlaceholder: 'أضف ملاحظات قصيرة عن الزيارة',
+      screenTitle: 'تقرير فحص',
+      stationStatusTitle: 'حالة المحطة',
+      notesTitle: 'ملاحظات إضافية',
+      visualDocumentation: 'التوثيق المرئي',
+      addPhoto: 'إضافة صورة',
+      photoHint: 'التقط صورة للمحطة أو النشاط المكتشف...',
+      stationFallbackPrefix: 'محطة رقم:',
+      stationNumberPrefix: 'رقم المحطة',
+      locationUnavailable: 'الموقع غير متاح',
+      stationImageLabel: 'صورة المحطة',
       saveOffline: 'حفظ كمسودة',
       submit: 'إرسال التقرير',
       queued: 'تم حفظ التقرير في قائمة المزامنة.',
@@ -237,10 +279,15 @@ const arabicStrings = {
       emptyBody: 'بعد حفظ أو إرسال تقرير سيظهر هنا حسب التاريخ.',
       submittedReports: 'التقارير المرسلة',
       draftReports: 'مسودات بانتظار المزامنة',
+      searchPlaceholder: 'البحث في التقارير...',
+      filterAll: 'الكل',
     },
     settings: {
       title: 'الإعدادات',
       subtitle: 'إعدادات التطبيق الميداني',
+      appSettingsTitle: 'إعدادات التطبيق',
+      dataSyncTitle: 'البيانات والمزامنة',
+      accountSecurityTitle: 'الحساب والأمان',
       legalTitle: 'الملفات القانونية',
       languageTitle: 'اللغة',
       languageArabic: 'العربية',
@@ -260,8 +307,11 @@ const arabicStrings = {
       webAppTitle: 'بوابة الويب',
       webAppUrlLabel: 'رابط بوابة الويب',
       webAppUrlPlaceholder: 'https://example.com',
+      webAppUrlSaved: 'تم حفظ رابط البوابة.',
       supervisorPortal: 'المشرف',
       managerPortal: 'المدير',
+      defaultUserName: 'مستخدم EcoPest',
+      defaultUserRole: 'فريق ميداني',
       versionTitle: 'إصدار التطبيق',
       clearDrafts: 'مسح كل المسودات',
       clearDraftsConfirmTitle: 'مسح كل المسودات؟',
@@ -278,6 +328,62 @@ const arabicStrings = {
       copyright: 'حقوق النشر',
       privacy: 'الخصوصية',
       terms: 'الشروط',
+      termsContent: {
+        title: 'شروط الاستخدام',
+        subtitle: 'اقرأها مرة واحدة قبل استخدام التطبيق في الزيارات الميدانية.',
+        sections: [
+          {
+            title: 'وصف الخدمة',
+            body: 'إيكوبست يساعد فرق مكافحة الآفات على إدارة محطات الطعوم، مسح رموز QR، حفظ تقارير الزيارة، ومتابعة المراجعات التشغيلية.',
+          },
+          {
+            title: 'الاستخدام المقبول',
+            body: 'استخدم التطبيق فقط للزيارات الفعلية ومحطات شركتك. لا تدخل بيانات محطة لا تعمل عليها، ولا تشارك الوصول مع شخص آخر.',
+          },
+          {
+            title: 'مسؤوليات الحساب',
+            body: 'حسابك مرتبط بالتقارير التي ترسلها. حافظ على كلمة المرور، وأبلغ المشرف إذا فقدت الجهاز أو لاحظت نشاطًا غير معتاد.',
+          },
+          {
+            title: 'حدود المسؤولية',
+            body: 'التطبيق يدعم التسجيل والمتابعة، لكنه لا يستبدل إجراءات السلامة أو تعليمات الشركة أو الحكم المهني أثناء الفحص.',
+          },
+          {
+            title: 'التواصل',
+            body: 'لأي سؤال قانوني أو تشغيلي، استخدم قناة الدعم المعتمدة داخل شركتك.',
+          },
+        ],
+      },
+      privacyContent: {
+        title: 'سياسة الخصوصية',
+        subtitle: 'ما الذي يحفظه التطبيق، وما الذي لا يجمعه.',
+        sections: [
+          {
+            title: 'البيانات التي نجمعها',
+            body: 'نحفظ بيانات التقرير مثل رقم المحطة، حالة الفحص، الملاحظات، وقت الإرسال، وحساب الفني الذي أرسل التقرير. لا نجمع موقع الجهاز الجغرافي في هذا الإصدار.',
+          },
+          {
+            title: 'كيف نستخدم البيانات',
+            body: 'تُستخدم البيانات لمتابعة الزيارات، مراجعة التقارير، معرفة المحطات التي تحتاج إجراء، وحفظ سجل تشغيلي يمكن الرجوع إليه.',
+          },
+          {
+            title: 'تخزين البيانات',
+            body: 'تُحفظ بيانات التطبيق في قاعدة بيانات SQL آمنة. الصور خارج هذا الإصدار، وبيانات التقارير تُربط بحساب الفني داخل Better Auth.',
+          },
+          {
+            title: 'حقوق المستخدم',
+            body: 'يمكنك طلب تصحيح بيانات حسابك أو مراجعة التقارير المرتبطة بك عبر مسؤول النظام في شركتك.',
+          },
+          {
+            title: 'الاحتفاظ بالبيانات',
+            body: 'تُحفظ التقارير وسجلات المراجعة حسب سياسة شركتك التشغيلية. المسودات المحلية تبقى على جهازك حتى تُرسل أو تُحذف.',
+          },
+          {
+            title: 'التواصل',
+            body: 'لأي سؤال حول الخصوصية، استخدم قناة الدعم المعتمدة داخل شركتك.',
+          },
+        ],
+      },
     },
     offline: {
       banner: 'أنت غير متصل. سيتم حفظ التقارير محليًا حتى عودة الاتصال.',
@@ -299,9 +405,13 @@ const arabicStrings = {
   },
 } as const;
 
-type DeepStringRecord<T> = {
-  readonly [Key in keyof T]: T[Key] extends string ? string : DeepStringRecord<T[Key]>;
-};
+type DeepStringRecord<T> = T extends string
+  ? string
+  : T extends readonly (infer Item)[]
+    ? readonly DeepStringRecord<Item>[]
+    : {
+        readonly [Key in keyof T]: DeepStringRecord<T[Key]>;
+      };
 
 export type LocaleStrings = DeepStringRecord<typeof arabicStrings>;
 
@@ -336,7 +446,10 @@ const englishStrings: LocaleStrings = {
       edit: 'Edit',
       login: 'Log in',
       logout: 'Log out',
+      account: 'Account',
+      filter: 'Filter',
       loading: 'Loading...',
+      menu: 'Menu',
       openReport: 'Open report form',
       openScan: 'Open scanner',
       retry: 'Try again',
@@ -354,8 +467,8 @@ const englishStrings: LocaleStrings = {
       accessCodeHint: 'Managers control each user access code from user management.',
       accessCodePlaceholder: 'Example: A7K9P2M4',
       accessCodeRequired: 'Access code is required.',
-      genericLoginError: 'Could not sign in. Check your details and try again.',
-      inactiveAccount: 'Could not sign in. Check your details and try again.',
+      genericLoginError: 'Invalid sign-in details. Check your email and access code.',
+      inactiveAccount: 'This account has been blocked by an administrator. Contact your manager to reactivate it.',
       invalidCredentials: 'Email or access code is incorrect.',
       invalidEmail: 'Enter a valid email address.',
       loginTitle: 'Team sign in',
@@ -372,7 +485,9 @@ const englishStrings: LocaleStrings = {
       forgotPassword: 'Forgot password?',
       serverUrl: 'Server URL',
       serverUrlHint: 'Use a URL this phone can reach. Do not use localhost on a real device.',
-      userDisabled: 'This account is disabled. Contact your manager.',
+      supportPrompt: 'Having trouble signing in?',
+      supportCta: 'Contact support',
+      userDisabled: 'This account has been blocked by an administrator. Contact your manager to reactivate it.',
       webLoginCta: 'Open web sign in',
     },
     adminPortal: {
@@ -409,6 +524,9 @@ const englishStrings: LocaleStrings = {
     errors: {
       accessDenied: 'You do not have permission to access this page.',
       accessDeniedTitle: 'Unauthorized access',
+      loadReports: 'Could not load reports.',
+      loadStation: 'Could not load station details.',
+      syncDraft: 'Could not sync the draft right now.',
       unexpected: 'Something went wrong. Try again.',
     },
     scan: {
@@ -419,8 +537,10 @@ const englishStrings: LocaleStrings = {
       cameraPermissionBody: 'Enable the camera to scan QR codes directly in the app.',
       enableCamera: 'Enable camera',
       invalidQr: 'A QR code was scanned, but it is not a EcoPest station link.',
+      instruction: 'Point the camera at the station QR code',
       manualStationLabel: 'Station ID',
       manualStationPlaceholder: '000001',
+      manualTitle: 'Enter the station ID manually',
       manualSubtitle: 'Enter the station ID manually if the QR code is unavailable.',
       torchOn: 'Turn torch on',
       torchOff: 'Turn torch off',
@@ -431,6 +551,7 @@ const englishStrings: LocaleStrings = {
       stationLocation: 'Location',
       stationZone: 'Zone',
       stationLastVisit: 'Last visit',
+      stationImageLabel: 'Station photo',
       webScanCta: 'Web scan page',
     },
     theme: {
@@ -465,6 +586,12 @@ const englishStrings: LocaleStrings = {
       loadErrorTitle: 'Could not load team',
       emptyTitle: 'No users found',
       emptyBody: 'No users match the current filters.',
+      activeStatus: 'Active',
+      inactiveStatus: 'Inactive',
+      createdPrefix: 'Created:',
+      avatarFallback: 'T',
+      unsupportedApi: 'The current API server does not support the team route. Make sure this app is connected to the updated EcoPest server.',
+      genericLoadError: 'Could not load the team list.',
     },
     home: {
       brandSubtitle: 'A daily field companion for bait stations',
@@ -477,6 +604,21 @@ const englishStrings: LocaleStrings = {
       reviewReady: 'Live',
       shortcutsTitle: 'Operations shortcuts',
       draftsCta: 'Drafts',
+      defaultUser: 'team',
+      greetingPrefix: 'Hello,',
+      overview: 'A daily overview of your tasks and system status.',
+      pendingSyncTitle: 'Reports waiting to sync',
+      syncedTitle: 'All data is synced',
+      pendingSyncBodySuffix: 'local report(s) will be sent when a connection is available.',
+      lastSyncPrefix: 'Last sync:',
+      readySyncBody: 'This device is ready to save and send reports.',
+      pendingReports: 'Pending reports',
+      savedDrafts: 'Saved drafts',
+      todayReports: 'Today reports',
+      scanCameraCta: 'Scan QR with camera',
+      viewAll: 'View all',
+      recentReports: 'Recent reports',
+      noRecentReports: 'No recent reports on this device.',
     },
     drafts: {
       title: 'Report draft',
@@ -503,6 +645,16 @@ const englishStrings: LocaleStrings = {
       statusTitle: 'Inspection status',
       notesLabel: 'Notes',
       notesPlaceholder: 'Add short notes about the visit',
+      screenTitle: 'Inspection report',
+      stationStatusTitle: 'Station status',
+      notesTitle: 'Additional notes',
+      visualDocumentation: 'Visual documentation',
+      addPhoto: 'Add photo',
+      photoHint: 'Capture a photo of the station or observed activity...',
+      stationFallbackPrefix: 'Station number:',
+      stationNumberPrefix: 'Station number',
+      locationUnavailable: 'Location unavailable',
+      stationImageLabel: 'Station photo',
       saveOffline: 'Save as draft',
       submit: 'Submit report',
       queued: 'The report was saved to the sync queue.',
@@ -519,10 +671,15 @@ const englishStrings: LocaleStrings = {
       emptyBody: 'Saved or submitted reports will appear here by date.',
       submittedReports: 'Submitted reports',
       draftReports: 'Drafts waiting to sync',
+      searchPlaceholder: 'Search reports...',
+      filterAll: 'All',
     },
     settings: {
       title: 'Settings',
       subtitle: 'Field app settings',
+      appSettingsTitle: 'App settings',
+      dataSyncTitle: 'Data and sync',
+      accountSecurityTitle: 'Account and security',
       legalTitle: 'Legal',
       languageTitle: 'Language',
       languageArabic: 'العربية',
@@ -542,8 +699,11 @@ const englishStrings: LocaleStrings = {
       webAppTitle: 'Web portal',
       webAppUrlLabel: 'Web portal URL',
       webAppUrlPlaceholder: 'https://example.com',
+      webAppUrlSaved: 'Web portal URL saved.',
       supervisorPortal: 'Supervisor',
       managerPortal: 'Manager',
+      defaultUserName: 'EcoPest user',
+      defaultUserRole: 'Field team',
       versionTitle: 'App version',
       clearDrafts: 'Clear all drafts',
       clearDraftsConfirmTitle: 'Clear all drafts?',
@@ -560,6 +720,62 @@ const englishStrings: LocaleStrings = {
       copyright: 'Copyright',
       privacy: 'Privacy Policy',
       terms: 'Terms of Use',
+      termsContent: {
+        title: 'Terms of Use',
+        subtitle: 'Read this once before using the app during field visits.',
+        sections: [
+          {
+            title: 'Service Description',
+            body: 'EcoPest helps pest control teams manage bait stations, scan QR codes, save visit reports, and follow operational reviews.',
+          },
+          {
+            title: 'Acceptable Use',
+            body: 'Use the app only for real visits and stations assigned to your company. Do not enter station data you did not inspect or share access with anyone else.',
+          },
+          {
+            title: 'Account Responsibilities',
+            body: 'Your account is tied to the reports you submit. Protect your password and tell your supervisor if your device is lost or activity looks unusual.',
+          },
+          {
+            title: 'Limitation of Liability',
+            body: 'The app supports recording and follow-up. It does not replace safety procedures, company instructions, or professional judgment during inspection.',
+          },
+          {
+            title: 'Contact',
+            body: 'For legal or operational questions, use the approved support channel inside your organization.',
+          },
+        ],
+      },
+      privacyContent: {
+        title: 'Privacy Policy',
+        subtitle: 'What the app stores, and what it does not collect.',
+        sections: [
+          {
+            title: 'Data Collected',
+            body: 'We store report data such as station ID, inspection status, notes, submission time, and the technician account that submitted the report. Device location is not collected in this version.',
+          },
+          {
+            title: 'How We Use Data',
+            body: 'Data is used to track visits, review reports, identify stations that need action, and keep an operational record for follow-up.',
+          },
+          {
+            title: 'Data Storage',
+            body: 'App data is stored in a secure SQL database. Photos are outside this version, and report data is tied to the technician account in Better Auth.',
+          },
+          {
+            title: 'User Rights',
+            body: 'You can request account corrections or review reports tied to your account through your company system administrator.',
+          },
+          {
+            title: 'Data Retention',
+            body: 'Reports and review logs are retained according to your company operations policy. Local drafts stay on your device until submitted or deleted.',
+          },
+          {
+            title: 'Contact',
+            body: 'For privacy questions, use the approved support channel inside your organization.',
+          },
+        ],
+      },
     },
     offline: {
       banner: 'You are offline. Reports will be saved locally until the connection returns.',

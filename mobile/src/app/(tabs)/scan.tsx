@@ -48,7 +48,7 @@ export default function ScanScreen() {
   const { isRtl, language, strings } = useLanguage();
   const t = strings.scan;
   const normalizedStationId = normalizeStationId(stationId);
-  const preview = useStation(previewStationId ?? '');
+  const preview = useStation(previewStationId ?? '', strings.errors.loadStation);
   const { showToast } = useToast();
   const currentUser = useCurrentUser();
   const isTechnician = currentUser?.profile.role === 'technician';
@@ -144,7 +144,7 @@ export default function ScanScreen() {
           <MobileTopBar leftIcon="arrow-left" leftLabel={strings.actions.back} onLeftPress={() => router.push('/(tabs)')} title={t.title} />
 
           <ThemedText themeColor="textSecondary" style={styles.instruction}>
-            وجه الكاميرا نحو رمز QR الخاص بالمحطة
+            {t.instruction}
           </ThemedText>
 
           <View style={[styles.cameraFrame, Shadow.md, { backgroundColor: theme.surfaceCardDark, borderColor: theme.border }]}>
@@ -189,7 +189,7 @@ export default function ScanScreen() {
 
           <View style={styles.manualSection}>
             <ThemedText type="title" style={styles.manualTitle}>
-              أدخل رقم المحطة يدويًا
+              {t.manualTitle}
             </ThemedText>
             <InputField
               autoCapitalize="none"
@@ -241,7 +241,8 @@ export default function ScanScreen() {
             <View style={styles.previewContent}>
               {previewPhotoUrl ? (
                 <Image
-                  accessibilityLabel={`صورة المحطة ${preview.station.label}`}
+                  accessibilityLabel={`${t.stationImageLabel} ${preview.station.label}`}
+                  accessibilityIgnoresInvertColors
                   resizeMode="cover"
                   source={{ uri: previewPhotoUrl }}
                   style={[styles.previewPhoto, { borderColor: theme.border }]}

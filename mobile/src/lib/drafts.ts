@@ -207,7 +207,7 @@ export async function deleteDraft(id: string): Promise<void> {
   await setStoredReports(reports.filter((draft) => draft.id !== id));
 }
 
-export async function syncDraft(draftId: string): Promise<void> {
+export async function syncDraft(draftId: string, fallbackError = 'Could not sync the draft right now.'): Promise<void> {
   const reports = await getStoredReports();
   const target = reports.find((draft) => draft.id === draftId);
 
@@ -258,7 +258,7 @@ export async function syncDraft(draftId: string): Promise<void> {
       ),
     );
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'تعذر مزامنة المسودة الآن.';
+    const message = error instanceof Error ? error.message : fallbackError;
     const nextReports = await getStoredReports();
 
     await setStoredReports(

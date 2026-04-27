@@ -28,6 +28,7 @@ export function stationFromData(stationId: string, data: Partial<Station>): Stat
     coordinates: data.coordinates,
     qrCodeValue: data.qrCodeValue ?? "",
     isActive: data.isActive ?? false,
+    requiresImmediateSupervision: data.requiresImmediateSupervision ?? false,
     createdAt: data.createdAt as Station["createdAt"],
     createdBy: data.createdBy ?? "",
     updatedAt: data.updatedAt,

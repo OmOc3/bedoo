@@ -66,6 +66,7 @@ export interface Station {
   coordinates?: Coordinates;
   qrCodeValue?: string;
   isActive: boolean;
+  requiresImmediateSupervision?: boolean;
   createdAt?: string;
   createdBy?: string;
   updatedAt?: string;

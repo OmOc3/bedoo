@@ -22,10 +22,11 @@ function isValidEmail(value: string): boolean {
 
 function LoginField({ icon, label, style, ...props }: TextInputProps & { icon: EcoPestIconName; label: string }) {
   const theme = useTheme();
+  const { isRtl } = useLanguage();
 
   return (
     <View style={styles.fieldGroup}>
-      <ThemedText type="smallBold" style={styles.fieldLabel}>
+      <ThemedText type="smallBold" style={[styles.fieldLabel, { textAlign: isRtl ? 'right' : 'left' }]}>
         {label}
       </ThemedText>
       <View style={[styles.inputShell, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
@@ -213,7 +214,7 @@ export default function LoginScreen() {
 
               <View style={[styles.loginFooter, { borderTopColor: theme.border }]}>
                 <ThemedText type="small" themeColor="textSecondary" style={styles.footerText}>
-                  تواجه مشكلة في تسجيل الدخول؟ <ThemedText type="linkPrimary">اتصل بالدعم الفني</ThemedText>
+                  {strings.auth.supportPrompt} <ThemedText type="linkPrimary">{strings.auth.supportCta}</ThemedText>
                 </ThemedText>
               </View>
             </View>
@@ -234,7 +235,6 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontSize: Typography.fontSize.base,
-    textAlign: 'right',
   },
   footerText: {
     textAlign: 'center',

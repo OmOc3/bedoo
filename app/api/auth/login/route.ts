@@ -17,6 +17,11 @@ export const runtime = "nodejs";
 
 const validRoles = new Set<UserRole>(["technician", "supervisor", "manager"]);
 
+interface AuthClassification {
+  blocked: boolean;
+  profile: AppUser | null;
+}
+
 function getClientIp(request: NextRequest): string {
   const forwardedFor = request.headers.get("x-forwarded-for");
 
@@ -34,6 +39,16 @@ function unauthorizedResponse(): NextResponse<ApiErrorResponse> {
       code: "AUTH_INVALID_CREDENTIALS",
     },
     { status: 401 },
+  );
+}
+
+function disabledAccountResponse(): NextResponse<ApiErrorResponse> {
+  return NextResponse.json(
+    {
+      message: i18n.auth.inactiveAccount,
+      code: "AUTH_ACCOUNT_DISABLED",
+    },
+    { status: 403 },
   );
 }
 
@@ -55,9 +70,9 @@ function appendAuthCookies(response: NextResponse, headers: Headers): void {
   });
 }
 
-function authUserToAppUser(value: unknown): AppUser | null {
+function authUserToAppUser(value: unknown): AuthClassification {
   if (!isRecord(value)) {
-    return null;
+    return { blocked: false, profile: null };
   }
 
   const role = value.role;
@@ -66,29 +81,40 @@ function authUserToAppUser(value: unknown): AppUser | null {
   const email = value.email;
   const name = value.name;
 
-  if (
-    typeof id !== "string" ||
-    typeof email !== "string" ||
-    typeof name !== "string" ||
-    typeof role !== "string" ||
-    !validRoles.has(role as UserRole) ||
-    banned === true
-  ) {
-    return null;
+  if (banned === true) {
+    return { blocked: true, profile: null };
+  }
+
+  if (typeof id !== "string" || typeof email !== "string" || typeof name !== "string" || typeof role !== "string" || !validRoles.has(role as UserRole)) {
+    return { blocked: false, profile: null };
   }
 
   return {
-    uid: id,
-    email,
-    displayName: name,
-    role: role as UserRole,
-    createdAt: requiredTimestamp(value.createdAt instanceof Date ? value.createdAt : null),
-    isActive: true,
+    blocked: false,
+    profile: {
+      uid: id,
+      email,
+      displayName: name,
+      role: role as UserRole,
+      createdAt: requiredTimestamp(value.createdAt instanceof Date ? value.createdAt : null),
+      isActive: true,
+    },
   };
 }
 
 function errorStatus(error: unknown): number | null {
   return isRecord(error) && typeof error.status === "number" ? error.status : null;
+}
+
+function isDisabledAuthError(error: unknown): boolean {
+  if (!isRecord(error)) {
+    return false;
+  }
+
+  const errorCode = typeof error.code === "string" ? error.code : "";
+  const errorMessage = typeof error.message === "string" ? error.message.toLowerCase() : "";
+
+  return errorCode === "USER_DISABLED" || errorCode === "ACCOUNT_DISABLED" || errorMessage.includes("banned");
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorResponse | LoginSuccessResponse>> {
@@ -139,9 +165,14 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorR
         returnHeaders: true,
         returnStatus: true,
       });
-      const appUser = authUserToAppUser(signIn.response.user);
+      const authClassification = authUserToAppUser(signIn.response.user);
 
-      if (!appUser) {
+      if (authClassification.blocked) {
+        await recordFailedLogin(email, ipAddress);
+        return disabledAccountResponse();
+      }
+
+      if (!authClassification.profile) {
         await recordFailedLogin(email, ipAddress);
         return unauthorizedResponse();
       }
@@ -149,12 +180,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorR
       await resetLoginRateLimit(email, ipAddress);
 
       const response = NextResponse.json<LoginSuccessResponse>({
-        redirectTo: getRoleRedirect(appUser.role),
-        user: toAuthenticatedUserResponse(appUser),
+        redirectTo: getRoleRedirect(authClassification.profile.role),
+        user: toAuthenticatedUserResponse(authClassification.profile),
       });
       const roleCookie = await createSignedRoleCookie({
-        uid: appUser.uid,
-        role: appUser.role,
+        uid: authClassification.profile.uid,
+        role: authClassification.profile.role,
         expiresAt: Date.now() + getSessionMaxAgeMs(),
       });
 
@@ -163,6 +194,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorR
 
       return response;
     } catch (error: unknown) {
+      if (isDisabledAuthError(error)) {
+        await recordFailedLogin(email, ipAddress);
+        return disabledAccountResponse();
+      }
+
       if (errorStatus(error) === 401 || errorStatus(error) === 403) {
         await recordFailedLogin(email, ipAddress);
         return unauthorizedResponse();

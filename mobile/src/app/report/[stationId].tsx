@@ -52,6 +52,8 @@ function StatusOptionRow({ label, onPress, selected }: { label: string; onPress:
 
 function PhotoPlaceholder() {
   const theme = useTheme();
+  const { strings } = useLanguage();
+  const t = strings.report;
 
   return (
     <View style={[styles.photoBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
@@ -59,10 +61,10 @@ function PhotoPlaceholder() {
         <EcoPestIcon color={theme.textSecondary} name="camera" size={34} />
       </View>
       <ThemedText type="smallBold" style={{ color: theme.primary }}>
-        إضافة صورة
+        {t.addPhoto}
       </ThemedText>
       <ThemedText type="small" themeColor="textSecondary" style={styles.photoHint}>
-        التقط صورة للمحطة أو النشاط المكتشف...
+        {t.photoHint}
       </ThemedText>
     </View>
   );
@@ -76,7 +78,7 @@ export default function StationReportScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { isRtl, statusOptionLabels, strings } = useLanguage();
-  const { error: stationError, loading: stationLoading, station } = useStation(stationId);
+  const { error: stationError, loading: stationLoading, station } = useStation(stationId, strings.errors.loadStation);
   const theme = useTheme();
   const { showToast } = useToast();
   const currentUser = useCurrentUser();
@@ -248,7 +250,7 @@ export default function StationReportScreen() {
       });
 
       await clearWorkingDraft(stationId.trim());
-      await syncDraft(queuedReport.id);
+      await syncDraft(queuedReport.id, strings.errors.syncDraft);
       showToast(strings.report.queued, 'success');
       await successHaptic();
       setNotes('');
@@ -298,12 +300,12 @@ export default function StationReportScreen() {
             contentInsetAdjustmentBehavior="automatic"
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}>
-            <MobileTopBar leftIcon="arrow-left" leftLabel={strings.actions.back} onLeftPress={() => router.back()} title="تقرير فحص" />
+            <MobileTopBar leftIcon="arrow-left" leftLabel={strings.actions.back} onLeftPress={() => router.back()} title={strings.report.screenTitle} />
 
             <View style={[styles.stationCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
               {stationPhotoUrl ? (
                 <Image
-                  accessibilityLabel={`صورة المحطة ${station?.label ?? stationId}`}
+                  accessibilityLabel={`${strings.report.stationImageLabel} ${station?.label ?? stationId}`}
                   resizeMode="cover"
                   source={{ uri: stationPhotoUrl }}
                   style={[styles.stationPhoto, { borderColor: theme.border }]}
@@ -315,15 +317,15 @@ export default function StationReportScreen() {
               )}
               <View style={styles.stationCopy}>
                 <ThemedText type="title" style={styles.stationTitle}>
-                  {station?.label ?? `محطة رقم: #${stationId || '-'}`}
+                  {station?.label ?? `${strings.report.stationFallbackPrefix} #${stationId || '-'}`}
                 </ThemedText>
                 <ThemedText type="smallBold" style={[styles.stationNumber, { color: theme.primary }]}>
-                  رقم المحطة #{station?.stationId ?? stationId}
+                  {strings.report.stationNumberPrefix} #{station?.stationId ?? stationId}
                 </ThemedText>
                 <View style={[styles.locationRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
                   <EcoPestIcon color={theme.textSecondary} name="map-pin" size={18} />
                   <ThemedText type="small" themeColor="textSecondary">
-                    {station?.location ?? stationError ?? 'الموقع غير متاح'}
+                    {station?.location ?? stationError ?? strings.report.locationUnavailable}
                   </ThemedText>
                 </View>
               </View>
@@ -341,7 +343,7 @@ export default function StationReportScreen() {
 
             <View style={styles.section}>
               <ThemedText type="title" style={styles.sectionTitle}>
-                حالة المحطة
+                {strings.report.stationStatusTitle}
               </ThemedText>
               <View style={styles.statusList}>
                 {StatusOptions.map((option) => (
@@ -357,13 +359,13 @@ export default function StationReportScreen() {
 
             <View style={styles.section}>
               <ThemedText type="title" style={styles.sectionTitle}>
-                ملاحظات إضافية
+                {strings.report.notesTitle}
               </ThemedText>
               <InputField
                 label={strings.report.notesLabel}
                 multiline
                 onChangeText={setNotes}
-                placeholder="أدخل أي ملاحظات حول حالة المحطة أو النشاط المكتشف..."
+                placeholder={strings.report.notesPlaceholder}
                 style={styles.notes}
                 value={notes}
               />
@@ -371,7 +373,7 @@ export default function StationReportScreen() {
 
             <View style={styles.section}>
               <ThemedText type="title" style={styles.sectionTitle}>
-                التوثيق المرئي
+                {strings.report.visualDocumentation}
               </ThemedText>
               <PhotoPlaceholder />
             </View>

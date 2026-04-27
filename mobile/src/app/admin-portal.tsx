@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
+import { openBrowserAsync, WebBrowserPresentationStyle } from 'expo-web-browser';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BrandHeader, Card, PrimaryButton, ScreenShell, SecondaryButton, StatusChip, useToast } from '@/components/ecopest-ui';
@@ -11,6 +12,18 @@ import { useTheme } from '@/hooks/use-theme';
 import { useCurrentUser, signOut } from '@/lib/auth';
 import { isWebPortalRole } from '@/lib/auth-routes';
 import { errorHaptic, successHaptic } from '@/lib/haptics';
+import { createMobileWebSession } from '@/lib/sync/api-client';
+
+async function openHandoffUrl(url: string): Promise<void> {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    window.location.assign(url);
+    return;
+  }
+
+  await openBrowserAsync(url, {
+    presentationStyle: WebBrowserPresentationStyle.AUTOMATIC,
+  });
+}
 
 export default function AdminPortalScreen() {
   const currentUser = useCurrentUser();
@@ -23,11 +36,12 @@ export default function AdminPortalScreen() {
   const t = strings.adminPortal;
   const role = currentUser?.profile.role;
   const isPortalUser = role ? isWebPortalRole(role) : false;
-  const portalPath = null;
+  const [portalUrl, setPortalUrl] = useState<string | null>(null);
 
   const openPortal = useCallback(async (): Promise<void> => {
     if (!isPortalUser) {
       router.replace('/(tabs)');
+      showToast(t.technicianRedirect, 'warning');
       return;
     }
 
@@ -35,8 +49,10 @@ export default function AdminPortalScreen() {
     setIsOpening(true);
 
     try {
-      router.replace('/(tabs)');
-      showToast(t.technicianRedirect, 'success');
+      const session = await createMobileWebSession();
+
+      setPortalUrl(session.url);
+      await openHandoffUrl(session.url);
       await successHaptic();
     } catch (portalError: unknown) {
       const message = portalError instanceof Error ? portalError.message : t.openError;
@@ -47,7 +63,7 @@ export default function AdminPortalScreen() {
     } finally {
       setIsOpening(false);
     }
-  }, [isPortalUser, showToast, strings.auth.networkError, t.openError]);
+  }, [isPortalUser, showToast, t.openError, t.technicianRedirect]);
 
   useEffect(() => {
     if (!currentUser || openedAutomatically.current) {
@@ -99,9 +115,9 @@ export default function AdminPortalScreen() {
             <ThemedText themeColor="textSecondary">
               {isPortalUser ? t.body : t.technicianRedirect}
             </ThemedText>
-            {portalPath ? (
+            {portalUrl ? (
               <ThemedText selectable type="small" themeColor="textSecondary">
-                {portalPath}
+                {portalUrl}
               </ThemedText>
             ) : null}
             {error ? (

@@ -2,6 +2,7 @@
 import { AppState, type AppStateStatus } from 'react-native';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
+import { useLanguage } from '@/contexts/language-context';
 import { hasStoredAuthCookie } from '@/lib/auth-client';
 import { getQueuedDrafts, syncDraft, type DraftReport } from '@/lib/drafts';
 
@@ -17,13 +18,14 @@ interface SyncContextValue extends SyncStatusState {
 
 const SyncContext = createContext<SyncContextValue | null>(null);
 
-async function syncPendingDrafts(drafts: DraftReport[]): Promise<void> {
+async function syncPendingDrafts(drafts: DraftReport[], fallbackError: string): Promise<void> {
   for (const draft of drafts) {
-    await syncDraft(draft.id);
+    await syncDraft(draft.id, fallbackError);
   }
 }
 
 function useSyncQueueController() {
+  const { strings } = useLanguage();
   const [pendingCount, setPendingCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
@@ -51,13 +53,13 @@ function useSyncQueueController() {
     setIsSyncing(true);
 
     try {
-      await syncPendingDrafts(drafts);
+      await syncPendingDrafts(drafts, strings.errors.syncDraft);
       setLastSyncedAt(new Date().toISOString());
     } finally {
       setIsSyncing(false);
       await refreshPendingCount();
     }
-  }, [refreshPendingCount]);
+  }, [refreshPendingCount, strings.errors.syncDraft]);
 
   useEffect(() => {
     void refreshPendingCount();
