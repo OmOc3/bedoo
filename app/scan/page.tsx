@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { LogoutButton } from "@/components/auth/logout-button";
 import { RoleRedirectWatcher } from "@/components/auth/role-redirect-watcher";
 import { CopyrightFooter } from "@/components/legal/copyright-footer";
 import { BrandLockup } from "@/components/layout/brand";
@@ -137,7 +138,10 @@ export default async function ScanInstructionsPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-control sm:p-6">
           <div className="flex items-start justify-between gap-3">
             <BrandLockup />
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              {session ? <LogoutButton buttonClassName="min-h-10 px-3 py-2 text-sm" /> : null}
+            </div>
           </div>
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
             <div>
