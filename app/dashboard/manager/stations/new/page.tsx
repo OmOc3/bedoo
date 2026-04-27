@@ -16,7 +16,7 @@ export default async function NewStationPage() {
       <section className="mx-auto max-w-3xl">
         <PageHeader
           backHref="/dashboard/manager/stations"
-          description="أدخل بيانات المحطة ليتم إنشاء رابط QR خاص بها."
+          description="أدخل بيانات المحطة وسيتم توليد رقم المحطة ورابط QR تلقائيا بعد الحفظ."
           title="إضافة محطة"
         />
         <DashboardNav role="manager" />

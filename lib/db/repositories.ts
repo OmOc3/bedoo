@@ -96,6 +96,22 @@ function now(): Date {
   return new Date();
 }
 
+const generatedStationIdLength = 6;
+
+export async function generateNextStationId(): Promise<string> {
+  const [row] = await db
+    .select({
+      maxStationNumber: sql<number>`coalesce(max(cast(${stations.stationId} as integer)), 0)`,
+    })
+    .from(stations)
+    .where(sql`${stations.stationId} <> '' and ${stations.stationId} not glob '*[^0-9]*'`);
+  const rawMaxStationNumber = row?.maxStationNumber;
+  const currentMax =
+    typeof rawMaxStationNumber === "number" ? rawMaxStationNumber : Number(rawMaxStationNumber ?? 0);
+
+  return String(currentMax + 1).padStart(generatedStationIdLength, "0");
+}
+
 function idempotentReportId(actorUid: string, clientReportId: string): string {
   const digest = createHash("sha256").update(`${actorUid}:${clientReportId}`).digest("hex").slice(0, 40);
 

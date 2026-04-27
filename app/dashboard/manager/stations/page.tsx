@@ -103,9 +103,12 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-control">
             <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
+            <table className="w-full min-w-[1000px]">
               <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                    رقم المحطة
+                  </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     اسم المحطة
                   </th>
@@ -138,6 +141,9 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
 
                   return (
                       <tr className="transition-colors hover:bg-slate-50" key={station.stationId}>
+                        <td className="px-4 py-3 text-sm font-semibold text-slate-900" dir="ltr">
+                          #{station.stationId}
+                        </td>
                         <td className="px-4 py-3 text-sm font-medium text-slate-900">{station.label}</td>
                         <td className="px-4 py-3 text-sm text-slate-700">{station.location}</td>
                         <td className="px-4 py-3 text-sm text-slate-700">{station.zone ?? "غير محدد"}</td>

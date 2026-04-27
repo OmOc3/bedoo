@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'expo-camera';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Mawqi3Icon } from '@/components/icons';
@@ -51,6 +51,7 @@ export default function ScanScreen() {
   const { showToast } = useToast();
   const locale = languageDateLocales[language];
   const lastVisitedAt = useMemo(() => timestampToDate(preview.station?.lastVisitedAt), [preview.station?.lastVisitedAt]);
+  const previewPhotoUrl = preview.station?.photoUrls?.[0];
 
   useEffect(() => {
     if (!lastScannedValue) {
@@ -166,7 +167,7 @@ export default function ScanScreen() {
               autoCorrect={false}
               label={t.manualStationLabel}
               onChangeText={setStationId}
-              placeholder="مثال: STN-1234"
+              placeholder={t.manualStationPlaceholder}
               style={styles.input}
               value={stationId}
             />
@@ -209,6 +210,14 @@ export default function ScanScreen() {
 
           {!preview.loading && preview.station ? (
             <View style={styles.previewContent}>
+              {previewPhotoUrl ? (
+                <Image
+                  accessibilityLabel={`صورة المحطة ${preview.station.label}`}
+                  resizeMode="cover"
+                  source={{ uri: previewPhotoUrl }}
+                  style={[styles.previewPhoto, { borderColor: theme.border }]}
+                />
+              ) : null}
               <ThemedText type="title">{preview.station.label}</ThemedText>
               <ThemedText themeColor="textSecondary">
                 {t.stationLocation}: {preview.station.location}
@@ -310,6 +319,12 @@ const styles = StyleSheet.create({
   },
   previewContent: {
     gap: Spacing.sm,
+  },
+  previewPhoto: {
+    aspectRatio: 16 / 9,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    width: '100%',
   },
   safeArea: {
     flex: 1,

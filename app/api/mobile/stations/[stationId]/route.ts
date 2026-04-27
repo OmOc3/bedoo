@@ -9,10 +9,12 @@ export const runtime = "nodejs";
 
 interface MobileStationResponse {
   createdAt?: string;
+  description?: string;
   isActive: boolean;
   label: string;
   lastVisitedAt?: string;
   location: string;
+  photoUrls?: string[];
   stationId: string;
   totalReports: number;
   updatedAt?: string;
@@ -40,7 +42,9 @@ function stationResponse(stationId: string, data: Partial<Station>): MobileStati
     stationId: data.stationId ?? stationId,
     label: data.label ?? "محطة بدون اسم",
     location: data.location ?? "غير محدد",
+    ...(data.description ? { description: data.description } : {}),
     ...(data.zone ? { zone: data.zone } : {}),
+    ...(data.photoUrls?.length ? { photoUrls: data.photoUrls } : {}),
     isActive: data.isActive ?? false,
     totalReports: data.totalReports ?? 0,
     ...(timestampToIso(data.createdAt) ? { createdAt: timestampToIso(data.createdAt) } : {}),

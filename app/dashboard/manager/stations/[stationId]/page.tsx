@@ -69,6 +69,12 @@ export default async function StationDetailPage({ params }: StationDetailPagePro
             <h2 className="mb-4 text-lg font-semibold text-slate-800">بيانات المحطة</h2>
             <dl className="grid gap-4 sm:grid-cols-2">
               <div>
+                <dt className="text-sm font-medium text-slate-500">رقم المحطة</dt>
+                <dd className="mt-1 text-sm font-semibold text-slate-900" dir="ltr">
+                  #{station.stationId}
+                </dd>
+              </div>
+              <div>
                 <dt className="text-sm font-medium text-slate-500">الموقع</dt>
                 <dd className="mt-1 text-sm text-slate-900">{station.location}</dd>
               </div>

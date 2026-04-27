@@ -67,6 +67,9 @@ export default async function StationReportPage({ params }: StationReportPagePro
               />
             ) : null}
             <p className="text-sm font-medium text-slate-500">المحطة</p>
+            <p className="mt-1 text-sm font-semibold text-teal-700" dir="ltr">
+              #{station.stationId}
+            </p>
             <p className="mt-1 text-lg font-semibold text-slate-900">{station.label ?? "محطة بدون اسم"}</p>
             <p className="mt-1 text-base leading-7 text-slate-600">{station.location ?? "غير محدد"}</p>
             {station.description ? <p className="mt-2 text-sm leading-6 text-slate-600">{station.description}</p> : null}

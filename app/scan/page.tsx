@@ -77,6 +77,9 @@ function StationCard({ station }: { station: Station }) {
       ) : null}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
+          <p className="text-xs font-semibold text-teal-700" dir="ltr">
+            #{station.stationId}
+          </p>
           <h3 className="truncate text-base font-bold text-slate-950">{station.label}</h3>
           <p className="mt-1 text-sm leading-6 text-slate-600">{station.location}</p>
         </div>

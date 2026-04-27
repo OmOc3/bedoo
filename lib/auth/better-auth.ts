@@ -15,7 +15,19 @@ function getAuthSecret(): string {
 }
 
 function getBaseUrl(): string | undefined {
-  return process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_BASE_URL || undefined;
+  if (process.env.BETTER_AUTH_URL) {
+    return process.env.BETTER_AUTH_URL;
+  }
+
+  if (process.env.NEXT_PUBLIC_BASE_URL) {
+    return process.env.NEXT_PUBLIC_BASE_URL;
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  return undefined;
 }
 
 function trustedOrigins(): string[] {

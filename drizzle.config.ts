@@ -1,4 +1,7 @@
 import { defineConfig } from "drizzle-kit";
+import { loadEnvConfig } from "@next/env";
+
+loadEnvConfig(process.cwd());
 
 const databaseUrl = process.env.DATABASE_URL ?? "file:./data/mawqi3.db";
 const isHostedLibsql = databaseUrl.startsWith("libsql://") || databaseUrl.startsWith("turso://");

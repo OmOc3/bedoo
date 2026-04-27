@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/server-session";
 import { uploadStationImageToCloudinary } from "@/lib/cloudinary/station-images";
-import { createStationRecord, getStationById, toggleStationStatusRecord, updateStationRecord } from "@/lib/db/repositories";
+import {
+  createStationRecord,
+  generateNextStationId,
+  getStationById,
+  toggleStationStatusRecord,
+  updateStationRecord,
+} from "@/lib/db/repositories";
 import { buildStationReportUrl } from "@/lib/url/base-url";
 import { createStationSchema, updateStationSchema } from "@/lib/validation/stations";
 import { writeAuditLog } from "@/lib/audit";
@@ -78,7 +84,7 @@ function optionalCoordinates(formData: FormData): { lat: number; lng: number } |
 
 export async function createStationAction(formData: FormData): Promise<StationActionResult> {
   const session = await requireRole(["manager"]);
-  const stationId = crypto.randomUUID();
+  const stationId = await generateNextStationId();
   let uploadedPhotoUrls: string[];
 
   try {

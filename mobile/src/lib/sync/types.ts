@@ -38,7 +38,9 @@ export interface Station {
   stationId: string;
   label: string;
   location: string;
+  description?: string;
   zone?: string;
+  photoUrls?: string[];
   coordinates?: Coordinates;
   qrCodeValue?: string;
   isActive: boolean;

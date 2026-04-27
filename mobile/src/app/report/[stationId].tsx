@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, type AppStateStatus } from 'react-native';
+import { AppState, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, type AppStateStatus } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Mawqi3Icon } from '@/components/icons';
@@ -78,6 +78,7 @@ export default function StationReportScreen() {
   const { error: stationError, loading: stationLoading, station } = useStation(stationId);
   const theme = useTheme();
   const { showToast } = useToast();
+  const stationPhotoUrl = station?.photoUrls?.[0];
   const notesRef = useRef(notes);
   const statusRef = useRef(status);
   const lastAutoSavedSignature = useRef('');
@@ -271,12 +272,24 @@ export default function StationReportScreen() {
             <MobileTopBar leftIcon="arrow-left" leftLabel={strings.actions.back} onLeftPress={() => router.back()} title="تقرير فحص" />
 
             <View style={[styles.stationCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-              <View style={[styles.stationIcon, { backgroundColor: theme.primarySoft }]}>
-                <Mawqi3Icon color={theme.primary} name="target" size={32} />
-              </View>
+              {stationPhotoUrl ? (
+                <Image
+                  accessibilityLabel={`صورة المحطة ${station?.label ?? stationId}`}
+                  resizeMode="cover"
+                  source={{ uri: stationPhotoUrl }}
+                  style={[styles.stationPhoto, { borderColor: theme.border }]}
+                />
+              ) : (
+                <View style={[styles.stationIcon, { backgroundColor: theme.primarySoft }]}>
+                  <Mawqi3Icon color={theme.primary} name="target" size={32} />
+                </View>
+              )}
               <View style={styles.stationCopy}>
                 <ThemedText type="title" style={styles.stationTitle}>
                   {station?.label ?? `محطة رقم: #${stationId || '-'}`}
+                </ThemedText>
+                <ThemedText type="smallBold" style={[styles.stationNumber, { color: theme.primary }]}>
+                  رقم المحطة #{station?.stationId ?? stationId}
                 </ThemedText>
                 <View style={[styles.locationRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
                   <Mawqi3Icon color={theme.textSecondary} name="map-pin" size={18} />
@@ -427,6 +440,15 @@ const styles = StyleSheet.create({
     height: 66,
     justifyContent: 'center',
     width: 66,
+  },
+  stationNumber: {
+    textAlign: 'right',
+  },
+  stationPhoto: {
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    height: 74,
+    width: 74,
   },
   stationTitle: {
     textAlign: 'right',

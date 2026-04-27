@@ -92,6 +92,12 @@ export function StationForm({ mode, station }: StationFormProps) {
         <p className="rounded-lg bg-red-100 px-4 py-3 text-sm font-medium text-red-700">{actionResult.error}</p>
       ) : null}
 
+      {mode === "create" ? (
+        <p className="rounded-lg bg-teal-50 px-4 py-3 text-sm font-medium text-teal-800">
+          سيتم توليد رقم المحطة تلقائيا بعد الحفظ، وسيظهر في QR ولوحة الفني.
+        </p>
+      ) : null}
+
       <TextField
         autoComplete="off"
         error={form.formState.errors.label?.message ?? getFieldError(actionResult, "label")}

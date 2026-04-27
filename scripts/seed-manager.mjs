@@ -2,8 +2,13 @@ import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadEnvConfig } from "@next/env";
 import { createClient } from "@libsql/client";
 import { hashPassword } from "better-auth/crypto";
+
+const projectDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+loadEnvConfig(projectDir);
 
 function readRequiredEnv(name) {
   const value = process.env[name]?.trim();
@@ -21,7 +26,7 @@ async function ensureLocalDatabaseDirectory(databaseUrl) {
   }
 
   const filePath = databaseUrl.slice("file:".length);
-  const absolutePath = filePath.startsWith("/") ? filePath : resolve(dirname(fileURLToPath(import.meta.url)), "..", filePath);
+  const absolutePath = filePath.startsWith("/") ? filePath : resolve(projectDir, filePath);
 
   await mkdir(dirname(absolutePath), { recursive: true });
 }

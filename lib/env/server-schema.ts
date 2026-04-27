@@ -13,19 +13,18 @@ const envSchema = z
     DATABASE_AUTH_TOKEN: z.string().optional(),
     DATABASE_URL: z.string().min(1, "DATABASE_URL is required.").default("file:./data/mawqi3.db"),
     NEXT_PUBLIC_BASE_URL: z.string().optional(),
+    NEXT_PHASE: z.string().optional(),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
     ROLE_COOKIE_SECRET: z.string().min(32, "ROLE_COOKIE_SECRET must be at least 32 characters.").optional(),
-    SEED_MANAGER_EMAIL: z.string().email().optional(),
-    SEED_MANAGER_NAME: z.string().min(1).optional(),
-    SEED_MANAGER_PASSWORD: z.string().min(8).optional(),
     SESSION_MAX_AGE_SECONDS: z.coerce
       .number()
       .int("SESSION_MAX_AGE_SECONDS must be an integer.")
       .positive("SESSION_MAX_AGE_SECONDS must be positive.")
       .default(432000),
+    VERCEL_URL: z.string().optional(),
   })
   .superRefine((env, context) => {
-    if (env.NODE_ENV !== "production") {
+    if (env.NODE_ENV !== "production" || env.NEXT_PHASE === "phase-production-build") {
       return;
     }
 
@@ -35,6 +34,32 @@ const envSchema = z
         message: "BETTER_AUTH_SECRET is required in production.",
         path: ["BETTER_AUTH_SECRET"],
       });
+    }
+
+    if (!env.BETTER_AUTH_URL) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "BETTER_AUTH_URL is required in production.",
+        path: ["BETTER_AUTH_URL"],
+      });
+    } else {
+      try {
+        const authUrl = new URL(env.BETTER_AUTH_URL);
+
+        if (authUrl.protocol !== "https:") {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "BETTER_AUTH_URL must use https in production.",
+            path: ["BETTER_AUTH_URL"],
+          });
+        }
+      } catch {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "BETTER_AUTH_URL must be a valid URL.",
+          path: ["BETTER_AUTH_URL"],
+        });
+      }
     }
 
     if (!env.NEXT_PUBLIC_BASE_URL) {
@@ -61,6 +86,25 @@ const envSchema = z
         code: z.ZodIssueCode.custom,
         message: "NEXT_PUBLIC_BASE_URL must be a valid URL.",
         path: ["NEXT_PUBLIC_BASE_URL"],
+      });
+    }
+
+    if (env.DATABASE_URL.startsWith("file:")) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "DATABASE_URL must use hosted libSQL/Turso in production; file: SQLite is local-only.",
+        path: ["DATABASE_URL"],
+      });
+    }
+
+    if (
+      (env.DATABASE_URL.startsWith("libsql://") || env.DATABASE_URL.startsWith("turso://")) &&
+      !env.DATABASE_AUTH_TOKEN
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "DATABASE_AUTH_TOKEN is required for hosted libSQL/Turso in production.",
+        path: ["DATABASE_AUTH_TOKEN"],
       });
     }
   });
