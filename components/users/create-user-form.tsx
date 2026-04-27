@@ -66,7 +66,7 @@ export function CreateUserForm() {
     <form className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-control sm:grid-cols-2" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
       <div className="sm:col-span-2">
         <h2 className="text-lg font-semibold text-slate-800">إنشاء مستخدم جديد</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-500">ينشئ حساب دخول في Better Auth ويحفظ بيانات المستخدم في قاعدة SQL. كود الدخول هو كلمة مرور هذا المستخدم.</p>
+        <p className="mt-1 text-sm leading-6 text-slate-500">إنشاء مستخدم جديد في قاعدة البيانات.</p>
       </div>
 
       {result?.error ? <p className="rounded-lg bg-red-100 px-4 py-3 text-sm font-medium text-red-700 sm:col-span-2">{result.error}</p> : null}
