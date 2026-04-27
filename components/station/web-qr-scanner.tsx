@@ -64,16 +64,33 @@ export function WebQrScanner() {
       return;
     }
 
+    // Check for secure context (HTTPS) requirement
+    if (typeof window !== "undefined" && window.isSecureContext === false) {
+      setError("الكاميرا تحتاج اتصال آمن (HTTPS). لا يمكن المسح عبر HTTP.");
+      return;
+    }
+
     setError(null);
-    setMessage("شغّلنا الكاميرا. وجّهها إلى QR الخاص بالمحطة.");
+    setMessage("جاري تشغيل الكاميرا...");
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: {
-          facingMode: { ideal: "environment" },
-        },
-      });
+      let stream: MediaStream;
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: { ideal: "environment" },
+          },
+        });
+      } catch (firstError) {
+        console.warn("First camera attempt failed, trying fallback:", firstError);
+        // Fallback: try without ideal constraints (some devices don't support facingMode)
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: true,
+        });
+      }
 
       streamRef.current = stream;
       const video = videoRef.current;
@@ -131,8 +148,21 @@ export function WebQrScanner() {
       frameRequestRef.current = requestAnimationFrame(() => {
         void tick();
       });
-    } catch {
-      setError("تعذر الوصول إلى الكاميرا. تأكد من إعطاء صلاحية للمتصفح.");
+    } catch (err) {
+      console.error("Camera access error:", err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      // Show specific error for debugging
+      if (errorMessage.includes("Permission denied") || errorMessage.includes("NotAllowed")) {
+        setError("تم رفض صلاحية الكاميرا. تأكد من السماح للمتصفح بالوصول في إعدادات الموقع.");
+      } else if (errorMessage.includes("NotFound")) {
+        setError("لم يتم العثور على كاميرا. تأكد من توصيل كاميرا بالجهاز.");
+      } else if (errorMessage.includes("NotReadable") || errorMessage.includes("Source")) {
+        setError("الكاميرا مشغولة من تطبيق آخر. أغلق التطبيقات الأخرى وحاول مرة أخرى.");
+      } else if (errorMessage.includes("HTTPS") || errorMessage.includes("secure context")) {
+        setError("الكاميرا تحتاج اتصال آمن (HTTPS). تأكد من استخدام https://");
+      } else {
+        setError(`تعذر الوصول إلى الكاميرا: ${errorMessage}`);
+      }
       stopScanner();
     }
   }, [router, stopScanner, supportsBarcodeDetector]);
