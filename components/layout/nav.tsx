@@ -258,16 +258,16 @@ export function DashboardNav({ role }: DashboardNavProps) {
           >
             <div className="border-b border-slate-800 px-5 py-6">
               <div className="flex items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-3">
-                  <BrandMark className="h-12 w-12" />
+                <Link href="/" className="flex min-w-0 items-center gap-3">
+                  <BrandMark className="h-10 w-10 shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-xl font-extrabold leading-6 text-white">
+                    <p className="text-lg font-extrabold leading-tight text-white truncate">
                       إيكوبست
-                      <span className="ms-2 text-sm font-semibold text-slate-400">EcoPest</span>
+                      <span className="ms-1.5 text-xs font-semibold text-slate-400">EcoPest</span>
                     </p>
-                    <p className="mt-1 text-xs font-medium text-teal-400">إدارة محطات الطعوم</p>
+                    <p className="text-[11px] font-medium text-teal-400 truncate">إدارة محطات الطعوم</p>
                   </div>
-                </div>
+                </Link>
                 <button
                   aria-label="إغلاق القائمة"
                   className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-slate-900 text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
@@ -325,16 +325,16 @@ export function DashboardNav({ role }: DashboardNavProps) {
       >
         <div className={cn("border-b border-slate-800 py-6", isSidebarOpen ? "px-5" : "px-3")}>
           <div className={cn("flex items-center gap-3", isSidebarOpen ? "justify-between" : "flex-col")}>
-            <div className={cn("flex min-w-0 items-center gap-3", isSidebarOpen ? "flex-1" : "justify-center")}>
-              <BrandMark className="h-12 w-12" />
+            <Link href="/" className={cn("flex min-w-0 items-center gap-2.5", isSidebarOpen ? "flex-1" : "justify-center")}>
+              <BrandMark className={cn("shrink-0 transition-all", isSidebarOpen ? "h-10 w-10" : "h-12 w-12")} />
               <div className={cn("min-w-0", isSidebarOpen ? "block" : "sr-only")}>
-                <p className="text-xl font-extrabold leading-6 text-white">
+                <p className="text-lg font-extrabold leading-tight text-white truncate">
                   إيكوبست
-                  <span className="ms-2 text-sm font-semibold text-slate-400">EcoPest</span>
+                  <span className="ms-1.5 text-xs font-semibold text-slate-400">EcoPest</span>
                 </p>
-                <p className="mt-1 text-xs font-medium text-teal-400">إدارة محطات الطعوم</p>
+                <p className="text-[11px] font-medium text-teal-400 truncate">إدارة محطات الطعوم</p>
               </div>
-            </div>
+            </Link>
             <button
               aria-controls="dashboard-sidebar"
               aria-expanded={isSidebarOpen}

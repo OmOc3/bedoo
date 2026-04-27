@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { LogoLockupSvg, LogoMarkSvg } from "@/components/layout/logo";
+import Link from "next/link";
 
 interface BrandProps {
   className?: string;
@@ -17,8 +18,8 @@ export function BrandMark({ className }: Omit<BrandProps, "compact" | "inverse">
 
 export function BrandLockup({ className, compact = false, inverse = false }: BrandProps) {
   return (
-    <div className={cn("shrink-0", className)}>
+    <Link href="/" className={cn("shrink-0 block", className)}>
       <LogoLockupSvg className={cn(compact ? "h-12" : "h-16 sm:h-20")} inverse={inverse} />
-    </div>
+    </Link>
   );
 }
