@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
 import { i18n } from "@/lib/i18n";
+import { Analytics } from "@vercel/analytics/next";
 
 const themeScript = `
 (() => {
@@ -42,6 +43,7 @@ export default function RootLayout({
       <body>
         {children}
         <RegisterServiceWorker />
+        <Analytics />
       </body>
     </html>
   );
