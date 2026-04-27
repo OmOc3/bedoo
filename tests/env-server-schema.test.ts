@@ -16,7 +16,7 @@ const baseEnv: NodeJS.ProcessEnv = {
 const productionEnv: NodeJS.ProcessEnv = {
   ...baseEnv,
   DATABASE_AUTH_TOKEN: "database-token",
-  DATABASE_URL: "libsql://mawqi3-example.turso.io",
+  DATABASE_URL: "libsql://ecopest-example.turso.io",
   NEXT_PUBLIC_BASE_URL: "https://example.com",
   NODE_ENV: "production",
 };

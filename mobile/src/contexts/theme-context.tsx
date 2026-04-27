@@ -16,7 +16,7 @@ interface ThemeModeContextValue {
 }
 
 const ThemeModeContext = createContext<ThemeModeContextValue | null>(null);
-const themeModeStorageKey = 'mawqi3-theme-mode';
+const themeModeStorageKey = 'ecopest-theme-mode';
 
 function isThemeMode(value: unknown): value is ThemeMode {
   return value === 'dark' || value === 'light' || value === 'system';

@@ -1,4 +1,4 @@
-# DESIGN.md — Mawqi3 موقعي
+# DESIGN.md — EcoPest إيكوبست
 
 > Design system document for AI coding agents.
 > Read this before generating any UI component, page, or layout.
@@ -8,7 +8,7 @@
 
 ## Brand Identity
 
-**Product:** Mawqi3 — إدارة محطات الطعوم  
+**Product:** EcoPest — إدارة محطات الطعوم  
 **Category:** Field operations management dashboard  
 **Audience:** Pest control field teams — technicians in the field (mobile) + supervisors and managers at a desk (desktop)  
 **Tone:** Functional, trustworthy, Arabic-first. No decorative flourishes. Every pixel earns its place.  
@@ -166,7 +166,7 @@ Sidebar padding:             px-3 py-2 per nav item, px-4 for section labels
 <nav className="w-60 bg-slate-950 min-h-screen flex flex-col py-4">
   // App name
   <div className="px-4 mb-6">
-    <span className="text-white font-bold text-lg">موقعي</span>
+    <span className="text-white font-bold text-lg">إيكوبست</span>
     <span className="text-slate-500 text-xs block">إدارة محطات الطعوم</span>
   </div>
 
@@ -353,7 +353,7 @@ All cards use `rounded-xl` (12px). Use `rounded-lg` (8px) for inner elements lik
 
 ## Mobile Considerations
 
-Mawqi3 technicians use their phones in the field. These rules apply to all pages under `/scan` and `/station/`:
+EcoPest technicians use their phones in the field. These rules apply to all pages under `/scan` and `/station/`:
 
 ```
 Touch targets:     min-h-[44px] min-w-[44px] for all interactive elements

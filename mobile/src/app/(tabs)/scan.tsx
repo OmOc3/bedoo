@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Mawqi3Icon } from '@/components/icons';
-import { BottomSheet, InputField, MobileTopBar, PrimaryButton, ScreenShell, SecondaryButton, useToast } from '@/components/mawqi3-ui';
+import { EcoPestIcon } from '@/components/icons';
+import { BottomSheet, InputField, MobileTopBar, PrimaryButton, ScreenShell, SecondaryButton, useToast } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
 import { useTheme } from '@/hooks/use-theme';
 import { useStation } from '@/hooks/use-station';
+import { useCurrentUser } from '@/lib/auth';
 import { errorHaptic, successHaptic, warningHaptic } from '@/lib/haptics';
 import { languageDateLocales } from '@/lib/i18n';
 
@@ -49,6 +50,8 @@ export default function ScanScreen() {
   const normalizedStationId = normalizeStationId(stationId);
   const preview = useStation(previewStationId ?? '');
   const { showToast } = useToast();
+  const currentUser = useCurrentUser();
+  const isTechnician = currentUser?.profile.role === 'technician';
   const locale = languageDateLocales[language];
   const lastVisitedAt = useMemo(() => timestampToDate(preview.station?.lastVisitedAt), [preview.station?.lastVisitedAt]);
   const previewPhotoUrl = preview.station?.photoUrls?.[0];
@@ -108,6 +111,32 @@ export default function ScanScreen() {
     void errorHaptic();
   }
 
+  useEffect(() => {
+    if (currentUser && !isTechnician) {
+      showToast(strings.errors.accessDenied, 'error');
+      void warningHaptic();
+      router.replace('/(tabs)');
+    }
+  }, [currentUser, isTechnician, showToast, strings.errors.accessDenied]);
+
+  if (currentUser && !isTechnician) {
+    return (
+      <ScreenShell>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.permissionBox}>
+            <ThemedText type="title" style={styles.manualTitle}>
+              {strings.errors.accessDeniedTitle}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={styles.permissionText}>
+              {strings.errors.accessDenied}
+            </ThemedText>
+            <PrimaryButton onPress={() => router.replace('/(tabs)')}>{strings.actions.back}</PrimaryButton>
+          </View>
+        </SafeAreaView>
+      </ScreenShell>
+    );
+  }
+
   return (
     <ScreenShell>
       <SafeAreaView style={styles.safeArea}>
@@ -136,7 +165,7 @@ export default function ScanScreen() {
             ) : (
               <View style={styles.permissionBox}>
                 <View style={[styles.permissionIcon, { backgroundColor: theme.primarySoft }]}>
-                  <Mawqi3Icon color={theme.primary} name="qr-code" size={34} />
+                  <EcoPestIcon color={theme.primary} name="qr-code" size={34} />
                 </View>
                 <ThemedText type="small" themeColor="textSecondary" style={styles.permissionText}>
                   {t.cameraPermissionBody}

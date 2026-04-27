@@ -8,8 +8,8 @@ interface KeepAwakeContextValue {
 }
 
 const KeepAwakeContext = createContext<KeepAwakeContextValue | null>(null);
-const keepAwakeStorageKey = 'mawqi3-keep-awake';
-const keepAwakeTag = 'mawqi3-field-app';
+const keepAwakeStorageKey = 'ecopest-keep-awake';
+const keepAwakeTag = 'ecopest-field-app';
 
 function deactivateActiveKeepAwake(): void {
   try {

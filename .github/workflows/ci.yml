@@ -13,14 +13,14 @@ jobs:
       AUTH_SESSION_SECRET: 12345678901234567890123456789012
       AUTH_ROLE_COOKIE_SECRET: 21098765432109876543210987654321
       SESSION_MAX_AGE_SECONDS: 432000
-      FIREBASE_ADMIN_PROJECT_ID: mawqi3-ci-demo
-      FIREBASE_ADMIN_CLIENT_EMAIL: firebase-admin@mawqi3-ci-demo.iam.gserviceaccount.com
+      FIREBASE_ADMIN_PROJECT_ID: ecopest-ci-demo
+      FIREBASE_ADMIN_CLIENT_EMAIL: firebase-admin@ecopest-ci-demo.iam.gserviceaccount.com
       FIREBASE_ADMIN_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n-----END PRIVATE KEY-----\n"
       NEXT_PUBLIC_BASE_URL: https://example.com
       NEXT_PUBLIC_FIREBASE_API_KEY: ci-api-key
-      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: mawqi3-ci-demo.firebaseapp.com
-      NEXT_PUBLIC_FIREBASE_PROJECT_ID: mawqi3-ci-demo
-      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: mawqi3-ci-demo.appspot.com
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ecopest-ci-demo.firebaseapp.com
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ecopest-ci-demo
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ecopest-ci-demo.appspot.com
       NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "000000000000"
       NEXT_PUBLIC_FIREBASE_APP_ID: "1:000000000000:web:0000000000000000000000"
     steps:

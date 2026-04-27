@@ -38,7 +38,7 @@ const supervisorItems: NavItem[] = [
 
 type IconName = "analytics" | "audit" | "dashboard" | "reports" | "stations" | "supervisor" | "tasks" | "team";
 
-const SIDEBAR_STORAGE_KEY = "mawqi3-dashboard-sidebar";
+const SIDEBAR_STORAGE_KEY = "ecopest-dashboard-sidebar";
 
 function IconFrame({ children, className, ...props }: SVGProps<SVGSVGElement>) {
   return (
@@ -262,8 +262,8 @@ export function DashboardNav({ role }: DashboardNavProps) {
                   <BrandMark className="h-12 w-12 rounded-xl border-slate-800 bg-teal-600 text-white" inverse />
                   <div className="min-w-0">
                     <p className="text-xl font-extrabold leading-6 text-white">
-                      موقعي
-                      <span className="ms-2 text-sm font-semibold text-slate-400">Mawqi3</span>
+                      إيكوبست
+                      <span className="ms-2 text-sm font-semibold text-slate-400">EcoPest</span>
                     </p>
                     <p className="mt-1 text-xs font-medium text-teal-400">إدارة محطات الطعوم</p>
                   </div>
@@ -329,8 +329,8 @@ export function DashboardNav({ role }: DashboardNavProps) {
               <BrandMark className="h-12 w-12 rounded-xl border-slate-800 bg-teal-600 text-white" inverse />
               <div className={cn("min-w-0", isSidebarOpen ? "block" : "sr-only")}>
                 <p className="text-xl font-extrabold leading-6 text-white">
-                  موقعي
-                  <span className="ms-2 text-sm font-semibold text-slate-400">Mawqi3</span>
+                  إيكوبست
+                  <span className="ms-2 text-sm font-semibold text-slate-400">EcoPest</span>
                 </p>
                 <p className="mt-1 text-xs font-medium text-teal-400">إدارة محطات الطعوم</p>
               </div>

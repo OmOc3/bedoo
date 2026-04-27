@@ -1,7 +1,7 @@
-# Mawqi3 / موقعي — Brand Identity
+# EcoPest / إيكوبست — Brand Identity
 
 ## Logo
-The Mawqi3 mark is a single-color geometric location pin with a calculated inner field. Inside the pin, a filled angular Meem structure suggests the Arabic name موقعي without becoming a literal illustration. The standard circular pin dot is replaced by a small square to reference bait stations and inspected field points.
+The EcoPest mark is a single-color geometric location pin with a calculated inner field. Inside the pin, a filled angular Meem structure suggests the Arabic name إيكوبست without becoming a literal illustration. The standard circular pin dot is replaced by a small square to reference bait stations and inspected field points.
 
 ## Colors
 Primary:       #0f766e — Teal (trust, precision)

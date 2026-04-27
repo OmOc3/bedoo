@@ -4,7 +4,7 @@ import { createClient } from "@libsql/client";
 
 loadEnvConfig(resolve("."));
 
-const databaseUrl = process.env.DATABASE_URL || "file:./data/mawqi3.db";
+const databaseUrl = process.env.DATABASE_URL || "file:./data/ecopest.db";
 
 const client = createClient({
   url: databaseUrl,

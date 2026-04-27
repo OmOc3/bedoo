@@ -31,7 +31,7 @@ function getBaseUrl(): string | undefined {
 }
 
 function trustedOrigins(): string[] {
-  const origins = ["mawqi3://", "mawqi3://*"];
+  const origins = ["ecopest://", "ecopest://*"];
 
   if (process.env.NODE_ENV !== "production") {
     origins.push("exp://", "exp://**", "http://localhost:3000", "http://localhost:3001", "http://localhost:3002");
@@ -53,7 +53,7 @@ const appRoles = {
 };
 
 export const auth = betterAuth({
-  appName: "Mawqi3",
+  appName: "EcoPest",
   baseURL: getBaseUrl(),
   secret: getAuthSecret(),
   database: drizzleAdapter(db, {

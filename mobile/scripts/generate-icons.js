@@ -22,7 +22,7 @@ function ensureMacTools() {
 }
 
 function rasterizeSvg(svgPath, size, outputPath) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mawqi3-icon-'));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ecopest-icon-'));
   run('qlmanage', ['-t', '-s', String(size), '-o', tempDir, svgPath]);
 
   const renderedPath = path.join(tempDir, `${path.basename(svgPath)}.png`);

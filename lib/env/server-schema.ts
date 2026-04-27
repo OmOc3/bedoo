@@ -11,7 +11,7 @@ const envSchema = z
     CLOUDINARY_CLOUD_NAME: z.string().optional(),
     CLOUDINARY_STATION_FOLDER: z.string().optional(),
     DATABASE_AUTH_TOKEN: z.string().optional(),
-    DATABASE_URL: z.string().min(1, "DATABASE_URL is required.").default("file:./data/mawqi3.db"),
+    DATABASE_URL: z.string().min(1, "DATABASE_URL is required.").default("file:./data/ecopest.db"),
     NEXT_PUBLIC_BASE_URL: z.string().optional(),
     NEXT_PHASE: z.string().optional(),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),

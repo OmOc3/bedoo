@@ -9,11 +9,11 @@ import * as schema from "@/lib/db/schema";
 type AppDatabase = LibSQLDatabase<typeof schema> & { $client: Client };
 
 declare global {
-  var __mawqi3Db: AppDatabase | undefined;
+  var __ecopestDb: AppDatabase | undefined;
 }
 
 export function getDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL || "file:./data/mawqi3.db";
+  const url = process.env.DATABASE_URL || "file:./data/ecopest.db";
   const isProductionRuntime = process.env.NODE_ENV === "production" && process.env.NEXT_PHASE !== "phase-production-build";
 
   if (isProductionRuntime && url.startsWith("file:")) {
@@ -48,11 +48,11 @@ function createDatabase(): AppDatabase {
 }
 
 export function getDb(): AppDatabase {
-  if (!globalThis.__mawqi3Db) {
-    globalThis.__mawqi3Db = createDatabase();
+  if (!globalThis.__ecopestDb) {
+    globalThis.__ecopestDb = createDatabase();
   }
 
-  return globalThis.__mawqi3Db;
+  return globalThis.__ecopestDb;
 }
 
 export const db: AppDatabase = new Proxy({} as AppDatabase, {

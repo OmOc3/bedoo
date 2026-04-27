@@ -3,8 +3,8 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Mawqi3Icon, type Mawqi3IconName } from '@/components/icons';
-import { MobileTopBar, PrimaryButton, ScreenShell, StatusChip } from '@/components/mawqi3-ui';
+import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
+import { MobileTopBar, PrimaryButton, ScreenShell, StatusChip } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Fonts, Radius, Shadow, Spacing, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
@@ -26,12 +26,12 @@ function displayDate(value?: string): string {
   return new Intl.DateTimeFormat('ar-EG', { hour: '2-digit', minute: '2-digit', weekday: 'short' }).format(date);
 }
 
-function StatCard({ icon, label, value, wide = false }: { icon: Mawqi3IconName; label: string; value: string; wide?: boolean }) {
+function StatCard({ icon, label, value, wide = false }: { icon: EcoPestIconName; label: string; value: string; wide?: boolean }) {
   const theme = useTheme();
 
   return (
     <View style={[styles.statCard, Shadow.sm, wide ? styles.statCardWide : null, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-      <Mawqi3Icon color={theme.primary} name={icon} size={28} />
+      <EcoPestIcon color={theme.primary} name={icon} size={28} />
       <View style={styles.statCopy}>
         <ThemedText type="small" themeColor="textSecondary" style={styles.statLabel}>
           {label}
@@ -51,7 +51,7 @@ function RecentReportItem({ report }: { report: DraftReport }) {
   return (
     <View style={[styles.reportItem, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
       <View style={[styles.reportIcon, { backgroundColor: theme.backgroundSelected }]}>
-        <Mawqi3Icon color={theme.primary} name="file-text" size={25} />
+        <EcoPestIcon color={theme.primary} name="file-text" size={25} />
       </View>
       <View style={styles.reportCopy}>
         <ThemedText type="smallBold" style={styles.reportTitle} numberOfLines={1}>
@@ -75,6 +75,7 @@ export default function HomeScreen() {
   const [queueCount, setQueueCount] = useState(0);
   const [recentReports, setRecentReports] = useState<DraftReport[]>([]);
   const displayName = currentUser?.profile.displayName?.trim() || 'الفريق';
+  const isTechnician = currentUser?.profile.role === 'technician';
 
   const refreshLocalCounts = useCallback(async () => {
     const [drafts, queue, submitted] = await Promise.all([getDrafts(), getSyncQueueReports(), getSubmittedReports()]);
@@ -110,7 +111,7 @@ export default function HomeScreen() {
             onRightPress={() => router.push('/(tabs)/settings')}
             rightIcon="user"
             rightLabel="الإعدادات"
-            title="MAWQI3"
+            title="ECOPEST"
           />
 
           <View style={styles.heroCopy}>
@@ -122,7 +123,7 @@ export default function HomeScreen() {
 
           <View style={[styles.syncCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: pendingTotal > 0 ? theme.warningStrong : theme.successStrong }]}>
             <View style={[styles.syncIcon, { backgroundColor: pendingTotal > 0 ? theme.warningSoft : theme.primarySoft }]}>
-              <Mawqi3Icon color={pendingTotal > 0 ? theme.warningStrong : theme.successStrong} name={pendingTotal > 0 ? 'alert-circle' : 'check-cloud'} size={30} />
+              <EcoPestIcon color={pendingTotal > 0 ? theme.warningStrong : theme.successStrong} name={pendingTotal > 0 ? 'alert-circle' : 'check-cloud'} size={30} />
             </View>
             <View style={styles.syncCopy}>
               <ThemedText type="title" style={[styles.syncTitle, { color: pendingTotal > 0 ? theme.warningStrong : theme.successStrong }]}>
@@ -145,9 +146,11 @@ export default function HomeScreen() {
             <StatCard icon="dashboard" label="تقارير اليوم" value={String(recentReports.length)} wide />
           </View>
 
-          <PrimaryButton icon="qr-code" onPress={() => router.push('/(tabs)/scan')}>
-            مسح QR بالكاميرا
-          </PrimaryButton>
+          {isTechnician ? (
+            <PrimaryButton icon="qr-code" onPress={() => router.push('/(tabs)/scan')}>
+              مسح QR بالكاميرا
+            </PrimaryButton>
+          ) : null}
 
           <View style={styles.sectionHeader}>
             <Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/history')}>
@@ -166,7 +169,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             <View style={[styles.emptyReports, { borderColor: theme.border }]}>
-              <Mawqi3Icon color={theme.textSecondary} name="file-text" size={28} />
+              <EcoPestIcon color={theme.textSecondary} name="file-text" size={28} />
               <ThemedText themeColor="textSecondary" style={styles.emptyText}>
                 لا توجد تقارير حديثة على هذا الجهاز.
               </ThemedText>

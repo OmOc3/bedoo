@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandHeader, Card, PrimaryButton, ScreenShell, SecondaryButton, StatusChip, useToast } from '@/components/mawqi3-ui';
+import { BrandHeader, Card, PrimaryButton, ScreenShell, SecondaryButton, StatusChip, useToast } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';

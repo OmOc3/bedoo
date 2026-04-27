@@ -5,7 +5,7 @@ import { i18n } from "@/lib/i18n";
 
 const themeScript = `
 (() => {
-  const storageKey = "mawqi3-theme";
+  const storageKey = "ecopest-theme";
   const root = document.documentElement;
   const savedTheme = window.localStorage.getItem(storageKey);
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;

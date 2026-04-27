@@ -8,7 +8,7 @@ interface TextScaleContextValue {
 }
 
 const TextScaleContext = createContext<TextScaleContextValue | null>(null);
-const textScaleStorageKey = 'mawqi3-large-text';
+const textScaleStorageKey = 'ecopest-large-text';
 
 export function TextScaleProvider({ children }: { children: ReactNode }) {
   const [largeTextEnabled, setLargeTextEnabledState] = useState(false);

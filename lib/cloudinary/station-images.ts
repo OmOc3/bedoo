@@ -24,7 +24,7 @@ function getCloudinaryConfig(): CloudinaryConfig | null {
     apiKey,
     apiSecret,
     cloudName,
-    folder: process.env.CLOUDINARY_STATION_FOLDER?.trim() || "mawqi3/stations",
+    folder: process.env.CLOUDINARY_STATION_FOLDER?.trim() || "ecopest/stations",
   };
 }
 

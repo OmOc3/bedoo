@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Mawqi3Icon, type Mawqi3IconName } from '@/components/icons';
-import { PrimaryButton, ScreenShell, useToast } from '@/components/mawqi3-ui';
+import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
+import { PrimaryButton, ScreenShell, useToast } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Fonts, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
@@ -18,7 +18,7 @@ function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function LoginField({ icon, label, style, ...props }: TextInputProps & { icon: Mawqi3IconName; label: string }) {
+function LoginField({ icon, label, style, ...props }: TextInputProps & { icon: EcoPestIconName; label: string }) {
   const theme = useTheme();
 
   return (
@@ -33,7 +33,7 @@ function LoginField({ icon, label, style, ...props }: TextInputProps & { icon: M
           textAlign="left"
           {...props}
         />
-        <Mawqi3Icon color={theme.textSecondary} name={icon} size={24} />
+        <EcoPestIcon color={theme.textSecondary} name={icon} size={24} />
       </View>
     </View>
   );
@@ -132,7 +132,7 @@ export default function LoginScreen() {
             <View style={[styles.loginCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
               <View style={[styles.loginHero, { backgroundColor: theme.surfaceCard }]}>
                 <View style={[styles.logoCircle, { backgroundColor: theme.primaryLight }]}>
-                  <Mawqi3Icon color={theme.onPrimary} name="map-pin" size={32} strokeWidth={2.6} />
+                  <EcoPestIcon color={theme.onPrimary} name="map-pin" size={32} strokeWidth={2.6} />
                 </View>
                 <ThemedText type="subtitle" style={styles.brandTitle}>
                   {strings.appNameArabic}

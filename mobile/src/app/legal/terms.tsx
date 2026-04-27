@@ -1,9 +1,9 @@
-// Mobile Terms of Use screen for Mawqi3 field technicians and operations teams.
+// Mobile Terms of Use screen for EcoPest field technicians and operations teams.
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandHeader, Card, ScreenShell, SecondaryButton } from '@/components/mawqi3-ui';
+import { BrandHeader, Card, ScreenShell, SecondaryButton } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
@@ -22,7 +22,7 @@ const termsContent: Record<LegalLanguage, { subtitle: string; title: string; sec
     sections: [
       {
         title: 'وصف الخدمة',
-        body: 'موقعي يساعد فرق مكافحة الآفات على إدارة محطات الطعوم، مسح رموز QR، حفظ تقارير الزيارة، ومتابعة المراجعات التشغيلية.',
+        body: 'إيكوبست يساعد فرق مكافحة الآفات على إدارة محطات الطعوم، مسح رموز QR، حفظ تقارير الزيارة، ومتابعة المراجعات التشغيلية.',
       },
       {
         title: 'الاستخدام المقبول',
@@ -48,7 +48,7 @@ const termsContent: Record<LegalLanguage, { subtitle: string; title: string; sec
     sections: [
       {
         title: 'Service Description',
-        body: 'Mawqi3 helps pest control teams manage bait stations, scan QR codes, save visit reports, and follow operational reviews.',
+        body: 'EcoPest helps pest control teams manage bait stations, scan QR codes, save visit reports, and follow operational reviews.',
       },
       {
         title: 'Acceptable Use',

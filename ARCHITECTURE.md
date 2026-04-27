@@ -1,4 +1,4 @@
-# Mawqi3 Architecture Notes
+# EcoPest Architecture Notes
 
 ## Shared Contracts
 

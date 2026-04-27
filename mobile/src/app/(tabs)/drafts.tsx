@@ -15,7 +15,7 @@ import {
   StatusBadge,
   SyncBanner,
   useToast,
-} from '@/components/mawqi3-ui';
+} from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { StatusOptions } from '@/constants/status-options';

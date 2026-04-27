@@ -41,7 +41,7 @@ export function Logo({ size = 48, theme, variant }: LogoProps) {
 
   if (variant === 'mark') {
     return (
-      <Svg accessibilityLabel="Mawqi3" height={size} role="img" viewBox="0 0 100 100" width={size}>
+      <Svg accessibilityLabel="EcoPest" height={size} role="img" viewBox="0 0 100 100" width={size}>
         <LogoMarkPaths accent={palette.accent} mark={palette.mark} />
       </Svg>
     );
@@ -50,7 +50,7 @@ export function Logo({ size = 48, theme, variant }: LogoProps) {
   const width = size * 3.35;
 
   return (
-    <Svg accessibilityLabel="Mawqi3" height={size} role="img" viewBox="0 0 335 100" width={width}>
+    <Svg accessibilityLabel="EcoPest" height={size} role="img" viewBox="0 0 335 100" width={width}>
       <Rect fill="transparent" height="100" rx="24" width="335" />
       <G transform="translate(235 0)">
         <LogoMarkPaths accent={palette.accent} mark={palette.mark} />
@@ -63,7 +63,7 @@ export function Logo({ size = 48, theme, variant }: LogoProps) {
         textAnchor="end"
         x="220"
         y="48">
-        موقعي
+        إيكوبست
       </SvgText>
       <SvgText
         fill={palette.mark}
@@ -74,7 +74,7 @@ export function Logo({ size = 48, theme, variant }: LogoProps) {
         textAnchor="end"
         x="220"
         y="74">
-        MAWQI3 FIELD
+        ECOPEST FIELD
       </SvgText>
     </Svg>
   );

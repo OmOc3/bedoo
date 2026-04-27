@@ -13,9 +13,9 @@ const sections = [
     titleAr: "وصف الخدمة",
     titleEn: "Service Description",
     bodyAr:
-      "توفر موقعي منصة ويب لإدارة محطات الطعوم، الزيارات الميدانية، تقارير الفنيين، مراجعات المشرفين، وسجلات التدقيق التشغيلية.",
+      "توفر إيكوبست منصة ويب لإدارة محطات الطعوم، الزيارات الميدانية، تقارير الفنيين، مراجعات المشرفين، وسجلات التدقيق التشغيلية.",
     bodyEn:
-      "Mawqi3 provides a web platform for managing bait stations, field visits, technician reports, supervisor reviews, and operational audit records.",
+      "EcoPest provides a web platform for managing bait stations, field visits, technician reports, supervisor reviews, and operational audit records.",
   },
   {
     titleAr: "الاستخدام المقبول",

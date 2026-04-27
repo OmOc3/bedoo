@@ -11,7 +11,7 @@ export type Language = (typeof languages)[number];
 export type TextDirection = 'ltr' | 'rtl';
 
 export const defaultLanguage: Language = 'ar';
-export const languageStorageKey = 'mawqi3-language';
+export const languageStorageKey = 'ecopest-language';
 
 export const languageDirections: Record<Language, TextDirection> = {
   ar: 'rtl',
@@ -31,13 +31,13 @@ const arabicStrings = {
     manager: 'مدير',
   },
   i18n: {
-    appName: 'Mawqi3',
-    appNameArabic: 'موقعي',
+    appName: 'EcoPest',
+    appNameArabic: 'إيكوبست',
     appTitle: 'إدارة محطات الطعوم',
     brandTagline: 'تشغيل ميداني واضح لمحطات الطعوم وفرق الفحص',
     brand: {
-      name: 'Mawqi3',
-      nameArabic: 'موقعي',
+      name: 'EcoPest',
+      nameArabic: 'إيكوبست',
       tagline: 'Clear field operations for bait stations and inspection teams',
       taglineArabic: 'تشغيل ميداني واضح لمحطات الطعوم وفرق الفحص',
     },
@@ -136,7 +136,7 @@ const arabicStrings = {
       phaseNotice: 'سيتم تفعيل نموذج الفحص في المرحلة الثالثة.',
       cameraPermissionBody: 'فعّل الكاميرا لمسح QR مباشرة من التطبيق.',
       enableCamera: 'تفعيل الكاميرا',
-      invalidQr: 'تم مسح QR، لكنه لا يطابق رابط محطة Mawqi3.',
+      invalidQr: 'تم مسح QR، لكنه لا يطابق رابط محطة EcoPest.',
       manualStationLabel: 'رقم المحطة',
       manualStationPlaceholder: '000001',
       manualSubtitle: 'أدخل رقم المحطة يدويًا إذا لم يتوفر QR.',
@@ -169,7 +169,20 @@ const arabicStrings = {
       scan: 'المسح',
       drafts: 'المسودات',
       history: 'التقارير',
+      team: 'الفريق',
+      admin: 'الإدارة',
       settings: 'الإعدادات',
+    },
+    team: {
+      title: 'الفريق',
+      subtitle: 'عرض كل المستخدمين المرتبطين بالنظام مع أدوارهم وحالاتهم.',
+      totalLabel: 'إجمالي المستخدمين',
+      activeLabel: 'النشطون',
+      searchPlaceholder: 'ابحث بالاسم أو البريد أو المعرّف...',
+      filterAll: 'كل الأدوار',
+      loadErrorTitle: 'تعذر تحميل الفريق',
+      emptyTitle: 'لا يوجد مستخدمون',
+      emptyBody: 'لا توجد نتائج مطابقة للفلاتر الحالية.',
     },
     home: {
       brandSubtitle: 'رفيق الفني اليومي لمحطات الطعوم',
@@ -254,7 +267,7 @@ const arabicStrings = {
       clearDraftsConfirmTitle: 'مسح كل المسودات؟',
       clearDraftsConfirmBody: 'لا يمكن التراجع عن هذه العملية.',
       securityTitle: 'الأمان',
-      securityBody: 'لا يتم تخزين أسرار قاعدة البيانات أو Gemini داخل تطبيق الموبايل. كل العمليات الحساسة تظل على خادم Mawqi3.',
+      securityBody: 'لا يتم تخزين أسرار قاعدة البيانات أو Gemini داخل تطبيق الموبايل. كل العمليات الحساسة تظل على خادم EcoPest.',
       logoutTitle: 'تسجيل الخروج',
       logoutBody: 'اخرج من الحساب الحالي على هذا الجهاز.',
       logoutCta: 'تسجيل الخروج',
@@ -300,13 +313,13 @@ const englishStrings: LocaleStrings = {
     manager: 'Manager',
   },
   i18n: {
-    appName: 'Mawqi3',
-    appNameArabic: 'موقعي',
+    appName: 'EcoPest',
+    appNameArabic: 'إيكوبست',
     appTitle: 'Bait Station Management',
     brandTagline: 'Clear field operations for bait stations and inspection teams',
     brand: {
-      name: 'Mawqi3',
-      nameArabic: 'موقعي',
+      name: 'EcoPest',
+      nameArabic: 'إيكوبست',
       tagline: 'Clear field operations for bait stations and inspection teams',
       taglineArabic: 'تشغيل ميداني واضح لمحطات الطعوم وفرق الفحص',
     },
@@ -405,7 +418,7 @@ const englishStrings: LocaleStrings = {
       phaseNotice: 'The inspection form will be enabled in phase three.',
       cameraPermissionBody: 'Enable the camera to scan QR codes directly in the app.',
       enableCamera: 'Enable camera',
-      invalidQr: 'A QR code was scanned, but it is not a Mawqi3 station link.',
+      invalidQr: 'A QR code was scanned, but it is not a EcoPest station link.',
       manualStationLabel: 'Station ID',
       manualStationPlaceholder: '000001',
       manualSubtitle: 'Enter the station ID manually if the QR code is unavailable.',
@@ -438,7 +451,20 @@ const englishStrings: LocaleStrings = {
       scan: 'Scan',
       drafts: 'Drafts',
       history: 'Reports',
+      team: 'Team',
+      admin: 'Admin',
       settings: 'Settings',
+    },
+    team: {
+      title: 'Team',
+      subtitle: 'View all system users, roles, and account status.',
+      totalLabel: 'Total users',
+      activeLabel: 'Active',
+      searchPlaceholder: 'Search by name, email, or ID...',
+      filterAll: 'All roles',
+      loadErrorTitle: 'Could not load team',
+      emptyTitle: 'No users found',
+      emptyBody: 'No users match the current filters.',
     },
     home: {
       brandSubtitle: 'A daily field companion for bait stations',
@@ -523,7 +549,7 @@ const englishStrings: LocaleStrings = {
       clearDraftsConfirmTitle: 'Clear all drafts?',
       clearDraftsConfirmBody: 'This cannot be undone.',
       securityTitle: 'Security',
-      securityBody: 'Database and Gemini secrets are never stored in the mobile app. Sensitive operations remain on the Mawqi3 server.',
+      securityBody: 'Database and Gemini secrets are never stored in the mobile app. Sensitive operations remain on the EcoPest server.',
       logoutTitle: 'Sign out',
       logoutBody: 'Sign out of the current account on this device.',
       logoutCta: 'Sign out',

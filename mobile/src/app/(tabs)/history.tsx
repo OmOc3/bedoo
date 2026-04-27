@@ -3,8 +3,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Mawqi3Icon } from '@/components/icons';
-import { EmptyState, MobileTopBar, ScreenShell, StatusChip, SyncBanner } from '@/components/mawqi3-ui';
+import { EcoPestIcon } from '@/components/icons';
+import { EmptyState, MobileTopBar, ScreenShell, StatusChip, SyncBanner } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Fonts, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
@@ -91,7 +91,7 @@ function ReportListItem({ report }: { report: VisibleReport }) {
   return (
     <View style={[styles.reportCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
       <View style={[styles.reportIcon, { backgroundColor: iconBackground }]}>
-        <Mawqi3Icon color={iconColor} name={iconName} size={28} />
+        <EcoPestIcon color={iconColor} name={iconName} size={28} />
       </View>
       <View style={styles.reportCopy}>
         <ThemedText type="title" numberOfLines={1} style={styles.reportTitle}>
@@ -182,7 +182,7 @@ export default function HistoryScreen() {
 
           <View style={styles.searchRow}>
             <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-              <Mawqi3Icon color={theme.textSecondary} name="search" size={26} />
+              <EcoPestIcon color={theme.textSecondary} name="search" size={26} />
               <TextInput
                 onChangeText={setSearchText}
                 placeholder="البحث في التقارير..."
@@ -192,7 +192,7 @@ export default function HistoryScreen() {
               />
             </View>
             <Pressable accessibilityRole="button" style={[styles.filterButton, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-              <Mawqi3Icon color={theme.text} name="sliders" size={26} />
+              <EcoPestIcon color={theme.text} name="sliders" size={26} />
             </Pressable>
           </View>
 

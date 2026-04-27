@@ -3,14 +3,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, type AppStateStatus } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Mawqi3Icon } from '@/components/icons';
-import { InputField, MobileTopBar, PrimaryButton, ScreenShell, SecondaryButton, SyncBanner, useToast } from '@/components/mawqi3-ui';
+import { EcoPestIcon } from '@/components/icons';
+import { InputField, MobileTopBar, PrimaryButton, ScreenShell, SecondaryButton, SyncBanner, useToast } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { StatusOptions } from '@/constants/status-options';
 import { useLanguage } from '@/contexts/language-context';
 import { useStation } from '@/hooks/use-station';
 import { useTheme } from '@/hooks/use-theme';
+import { useCurrentUser } from '@/lib/auth';
 import { clearWorkingDraft, getWorkingDraft, saveSubmittedReport, syncDraft, upsertWorkingDraft } from '@/lib/drafts';
 import { errorHaptic, successHaptic, warningHaptic } from '@/lib/haptics';
 import type { StatusOption } from '@/lib/sync/types';
@@ -40,7 +41,7 @@ function StatusOptionRow({ label, onPress, selected }: { label: string; onPress:
         },
       ]}>
       <View style={[styles.checkbox, { backgroundColor: selected ? theme.primary : theme.backgroundElement, borderColor: selected ? theme.primary : theme.border }]}>
-        {selected ? <Mawqi3Icon color={theme.onPrimary} name="check" size={18} /> : null}
+        {selected ? <EcoPestIcon color={theme.onPrimary} name="check" size={18} /> : null}
       </View>
       <ThemedText type="smallBold" style={styles.statusLabel}>
         {label}
@@ -55,7 +56,7 @@ function PhotoPlaceholder() {
   return (
     <View style={[styles.photoBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
       <View style={[styles.photoIcon, { backgroundColor: theme.background }]}>
-        <Mawqi3Icon color={theme.textSecondary} name="camera" size={34} />
+        <EcoPestIcon color={theme.textSecondary} name="camera" size={34} />
       </View>
       <ThemedText type="smallBold" style={{ color: theme.primary }}>
         إضافة صورة
@@ -78,6 +79,8 @@ export default function StationReportScreen() {
   const { error: stationError, loading: stationLoading, station } = useStation(stationId);
   const theme = useTheme();
   const { showToast } = useToast();
+  const currentUser = useCurrentUser();
+  const isTechnician = currentUser?.profile.role === 'technician';
   const stationPhotoUrl = station?.photoUrls?.[0];
   const notesRef = useRef(notes);
   const statusRef = useRef(status);
@@ -260,6 +263,32 @@ export default function StationReportScreen() {
     }
   }
 
+  useEffect(() => {
+    if (currentUser && !isTechnician) {
+      showToast(strings.errors.accessDenied, 'error');
+      void warningHaptic();
+      router.replace('/(tabs)');
+    }
+  }, [currentUser, isTechnician, showToast, strings.errors.accessDenied]);
+
+  if (currentUser && !isTechnician) {
+    return (
+      <ScreenShell>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.section}>
+            <ThemedText type="title" style={styles.sectionTitle}>
+              {strings.errors.accessDeniedTitle}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {strings.errors.accessDenied}
+            </ThemedText>
+            <PrimaryButton onPress={() => router.replace('/(tabs)')}>{strings.actions.back}</PrimaryButton>
+          </View>
+        </SafeAreaView>
+      </ScreenShell>
+    );
+  }
+
   return (
     <ScreenShell>
       <SafeAreaView style={styles.safeArea}>
@@ -281,7 +310,7 @@ export default function StationReportScreen() {
                 />
               ) : (
                 <View style={[styles.stationIcon, { backgroundColor: theme.primarySoft }]}>
-                  <Mawqi3Icon color={theme.primary} name="target" size={32} />
+                  <EcoPestIcon color={theme.primary} name="target" size={32} />
                 </View>
               )}
               <View style={styles.stationCopy}>
@@ -292,7 +321,7 @@ export default function StationReportScreen() {
                   رقم المحطة #{station?.stationId ?? stationId}
                 </ThemedText>
                 <View style={[styles.locationRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
-                  <Mawqi3Icon color={theme.textSecondary} name="map-pin" size={18} />
+                  <EcoPestIcon color={theme.textSecondary} name="map-pin" size={18} />
                   <ThemedText type="small" themeColor="textSecondary">
                     {station?.location ?? stationError ?? 'الموقع غير متاح'}
                   </ThemedText>

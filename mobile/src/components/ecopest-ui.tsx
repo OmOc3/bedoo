@@ -1,4 +1,4 @@
-// Mawqi3 mobile UI primitives for field-first screens and shared interaction feedback.
+// EcoPest mobile UI primitives for field-first screens and shared interaction feedback.
 import {
   ActivityIndicator,
   Animated,
@@ -18,7 +18,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Mawqi3Icon, type Mawqi3IconName } from '@/components/icons';
+import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
 import { Fonts, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
 import { useTheme } from '@/hooks/use-theme';
@@ -33,7 +33,7 @@ type ToastVariant = 'success' | 'warning' | 'error' | 'info';
 
 interface LoadingButtonProps extends PressableProps {
   children: ReactNode;
-  icon?: Mawqi3IconName;
+  icon?: EcoPestIconName;
   loading?: boolean;
   selected?: boolean;
   stretch?: boolean;
@@ -288,7 +288,7 @@ export function PrimaryButton({
           pressed && !isDisabled ? styles.pressed : null,
         ]}
         {...props}>
-        {loading ? <ActivityIndicator color={theme.onPrimary} /> : icon ? <Mawqi3Icon color={theme.onPrimary} name={icon} size={22} /> : null}
+        {loading ? <ActivityIndicator color={theme.onPrimary} /> : icon ? <EcoPestIcon color={theme.onPrimary} name={icon} size={22} /> : null}
         <ThemedText style={[styles.buttonText, { color: theme.onPrimary }]}>{children}</ThemedText>
       </Pressable>
     </Animated.View>
@@ -340,7 +340,7 @@ export function SecondaryButton({
           pressed && !isDisabled ? styles.pressed : null,
         ]}
         {...props}>
-        {loading ? <ActivityIndicator color={theme.primary} /> : icon ? <Mawqi3Icon color={selected ? theme.primary : theme.textSecondary} name={icon} size={20} /> : null}
+        {loading ? <ActivityIndicator color={theme.primary} /> : icon ? <EcoPestIcon color={selected ? theme.primary : theme.textSecondary} name={icon} size={20} /> : null}
         <ThemedText type="smallBold" style={{ color: selected ? theme.primary : theme.text }}>
           {children}
         </ThemedText>
@@ -359,7 +359,7 @@ export function IconButton({
   onPressOut,
   variant = 'surface',
   ...props
-}: Omit<LoadingButtonProps, 'children' | 'icon'> & { icon: Mawqi3IconName; label: string; variant?: 'primary' | 'surface' | 'ghost' }) {
+}: Omit<LoadingButtonProps, 'children' | 'icon'> & { icon: EcoPestIconName; label: string; variant?: 'primary' | 'surface' | 'ghost' }) {
   const theme = useTheme();
   const { pressIn, pressOut, scale } = usePressScale(0.94);
   const isDisabled = disabled || loading;
@@ -397,7 +397,7 @@ export function IconButton({
         {loading ? (
           <ActivityIndicator color={iconColor} />
         ) : (
-          <Mawqi3Icon color={iconColor} name={icon} size={23} />
+          <EcoPestIcon color={iconColor} name={icon} size={23} />
         )}
       </Pressable>
     </Animated.View>
@@ -413,16 +413,18 @@ export function MobileTopBar({
   rightLabel,
   title,
 }: {
-  leftIcon?: Mawqi3IconName;
+  leftIcon?: EcoPestIconName;
   leftLabel?: string;
   onLeftPress?: () => void;
   onRightPress?: () => void;
-  rightIcon?: Mawqi3IconName;
+  rightIcon?: EcoPestIconName;
   rightLabel?: string;
   title: string;
 }) {
+  const { isRtl } = useLanguage();
+
   return (
-    <View style={styles.topBar}>
+    <View style={[styles.topBar, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
       {leftIcon ? (
         <IconButton icon={leftIcon} label={leftLabel ?? title} onPress={onLeftPress} variant="ghost" />
       ) : (
@@ -539,10 +541,19 @@ export function SyncBanner({
   tone?: ChipTone;
 }) {
   const theme = useTheme();
+  const { isRtl } = useLanguage();
   const toneColor = chipToneColor(tone, theme);
 
   return (
-    <View style={[styles.syncBanner, { backgroundColor: toneColor.backgroundColor, borderColor: toneColor.textColor }]}>
+    <View
+      style={[
+        styles.syncBanner,
+        {
+          backgroundColor: toneColor.backgroundColor,
+          borderColor: toneColor.textColor,
+          flexDirection: isRtl ? 'row-reverse' : 'row',
+        },
+      ]}>
       <View style={styles.syncBannerCopy}>
         <ThemedText type="smallBold" style={{ color: toneColor.textColor }}>
           {title}
@@ -639,7 +650,7 @@ export function ReportCard({
 
   return (
     <Card>
-      <View style={styles.reportHeader}>
+      <View style={[styles.reportHeader, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
         <View style={styles.summaryCopy}>
           <ThemedText type="smallBold">{stationLabel ?? `${strings.report.stationLabel} ${stationId}`}</ThemedText>
           <ThemedText selectable type="small" themeColor="textSecondary">
@@ -794,6 +805,7 @@ export function useToast() {
 
 function ToastBanner({ toast, topOffset, translateY }: { toast: ToastMessage; topOffset: number; translateY: Animated.Value }) {
   const theme = useTheme();
+  const { isRtl } = useLanguage();
   const color =
     toast.variant === 'success'
       ? theme.successStrong
@@ -812,6 +824,7 @@ function ToastBanner({ toast, topOffset, translateY }: { toast: ToastMessage; to
         {
           backgroundColor: theme.surfaceCard,
           borderColor: color,
+          flexDirection: isRtl ? 'row-reverse' : 'row',
           top: topOffset,
           transform: [{ translateY }],
         },
@@ -1083,7 +1096,7 @@ const styles = StyleSheet.create({
   },
   reportHeader: {
     alignItems: 'flex-start',
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: Spacing.md,
     justifyContent: 'space-between',
   },
@@ -1091,7 +1104,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: Radius.lg,
     borderWidth: 1,
-    flexDirection: 'row-reverse',
     gap: Spacing.sm,
     padding: Spacing.md,
   },
@@ -1108,7 +1120,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: Radius.lg,
     borderWidth: 1,
-    flexDirection: 'row',
     gap: Spacing.sm,
     left: Spacing.md,
     minHeight: TouchTarget,

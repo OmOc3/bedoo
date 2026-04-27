@@ -25,7 +25,7 @@ export class ApiClientError extends Error {
   }
 }
 
-const apiBaseUrlStorageKey = "mawqi3-api-base-url";
+const apiBaseUrlStorageKey = "ecopest-api-base-url";
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/+$/, "");

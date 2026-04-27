@@ -4,8 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { useEffect, useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Mawqi3Icon, type Mawqi3IconName } from '@/components/icons';
-import { InputField, MobileTopBar, ScreenShell, SecondaryButton, useToast } from '@/components/mawqi3-ui';
+import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
+import { InputField, MobileTopBar, ScreenShell, SecondaryButton, useToast } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Brand, Fonts, Radius, Shadow, Spacing, TouchTarget, Typography, WebBaseUrl } from '@/constants/theme';
 import { useKeepAwakeMode } from '@/contexts/keep-awake-context';
@@ -50,7 +50,7 @@ function SettingsRow({
   title,
 }: {
   children?: ReactNode;
-  icon: Mawqi3IconName;
+  icon: EcoPestIconName;
   subtitle?: string;
   title: string;
 }) {
@@ -59,7 +59,7 @@ function SettingsRow({
   return (
     <View style={styles.settingsRow}>
       <View style={[styles.rowIcon, { backgroundColor: theme.background }]}>
-        <Mawqi3Icon color={theme.textSecondary} name={icon} size={25} />
+        <EcoPestIcon color={theme.textSecondary} name={icon} size={25} />
       </View>
       <View style={styles.rowCopy}>
         <ThemedText type="smallBold" style={styles.rowTitle}>
@@ -142,14 +142,14 @@ export default function SettingsScreen() {
 
           <View style={[styles.profileCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
             <View style={[styles.avatar, { backgroundColor: theme.surfaceCardDark }]}>
-              <Mawqi3Icon color={theme.onPrimary} name="user" size={30} />
+              <EcoPestIcon color={theme.onPrimary} name="user" size={30} />
             </View>
             <View style={styles.profileCopy}>
-              <ThemedText type="title">{profile?.displayName ?? 'مستخدم Mawqi3'}</ThemedText>
+              <ThemedText type="title">{profile?.displayName ?? 'مستخدم EcoPest'}</ThemedText>
               <ThemedText themeColor="textSecondary">{profile ? roleLabels[profile.role] : 'فريق ميداني'}</ThemedText>
             </View>
             <View style={[styles.editCircle, { backgroundColor: theme.background }]}>
-              <Mawqi3Icon color={theme.text} name="edit" size={22} />
+              <EcoPestIcon color={theme.text} name="edit" size={22} />
             </View>
           </View>
 
@@ -220,7 +220,7 @@ export default function SettingsScreen() {
               الحساب والأمان
             </ThemedText>
             <View style={[styles.securityCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-              <Mawqi3Icon color={theme.textSecondary} name="shield" size={28} />
+              <EcoPestIcon color={theme.textSecondary} name="shield" size={28} />
               <ThemedText themeColor="textSecondary" style={styles.securityText}>
                 {t.securityBody}
               </ThemedText>
@@ -234,7 +234,7 @@ export default function SettingsScreen() {
               styles.logoutButton,
               { borderColor: theme.danger, opacity: pressed ? 0.76 : 1 },
             ]}>
-            <Mawqi3Icon color={theme.danger} name="logout" size={26} />
+            <EcoPestIcon color={theme.danger} name="logout" size={26} />
             <ThemedText type="title" style={[styles.logoutText, { color: theme.danger }]}>
               {t.logoutCta}
             </ThemedText>

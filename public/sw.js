@@ -1,6 +1,6 @@
 /* global self, caches, fetch, Response */
 
-const CACHE_NAME = "mawqi3-offline-v1";
+const CACHE_NAME = "ecopest-offline-v1";
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [OFFLINE_URL, "/scan"];
 

@@ -56,7 +56,7 @@ async function upsertCredentialAccount(client, userId, passwordHash, now) {
   });
 }
 
-const databaseUrl = process.env.DATABASE_URL || "file:./data/mawqi3.db";
+const databaseUrl = process.env.DATABASE_URL || "file:./data/ecopest.db";
 const email = readRequiredEnv("SEED_MANAGER_EMAIL").toLowerCase();
 const password = readRequiredEnv("SEED_MANAGER_PASSWORD");
 const name = process.env.SEED_MANAGER_NAME?.trim() || "مدير النظام";

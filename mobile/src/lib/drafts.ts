@@ -21,7 +21,7 @@ export interface DraftReport {
   status: StatusOption[];
 }
 
-const key = 'mawqi3-report-drafts';
+const key = 'ecopest-report-drafts';
 const maxStoredReports = 50;
 const workingDraftPrefix = 'working-report-';
 

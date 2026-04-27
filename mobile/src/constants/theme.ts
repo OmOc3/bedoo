@@ -163,17 +163,17 @@ export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
 
 export const Brand = {
-  appName: 'Mawqi3',
-  appNameArabic: 'موقعي',
+  appName: 'EcoPest',
+  appNameArabic: 'إيكوبست',
   appTitle: 'إدارة محطات الطعوم',
   tagline: 'تشغيل ميداني واضح لمحطات الطعوم وفرق الفحص',
   taglineEnglish: 'Clear field operations for bait stations and inspection teams',
-  companyName: 'Mawqi3 Ltd.',
-  companyNameArabic: 'موقعي المحدودة',
+  companyName: 'EcoPest Ltd.',
+  companyNameArabic: 'إيكوبست المحدودة',
   foundedYear: 2025,
   copyrightYear: () => new Date().getFullYear(),
-  scheme: 'mawqi3',
-  slug: 'mawqi3',
+  scheme: 'ecopest',
+  slug: 'ecopest',
 } as const;
 
-export const WebBaseUrl = process.env.EXPO_PUBLIC_MAWQI3_WEB_BASE_URL ?? 'http://localhost:3000';
+export const WebBaseUrl = process.env.EXPO_PUBLIC_ECOPEST_WEB_BASE_URL ?? 'http://localhost:3000';

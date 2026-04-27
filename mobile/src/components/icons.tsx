@@ -2,7 +2,7 @@ import Svg, { Circle, Line, Path, Polyline, Rect } from 'react-native-svg';
 
 import { useTheme } from '@/hooks/use-theme';
 
-export type Mawqi3IconName =
+export type EcoPestIconName =
   | 'alert-circle'
   | 'arrow-left'
   | 'arrow-right'
@@ -39,14 +39,14 @@ export type Mawqi3IconName =
   | 'type'
   | 'user';
 
-interface Mawqi3IconProps {
+interface EcoPestIconProps {
   color?: string;
-  name: Mawqi3IconName;
+  name: EcoPestIconName;
   size?: number;
   strokeWidth?: number;
 }
 
-export function Mawqi3Icon({ color, name, size = 24, strokeWidth = 2.2 }: Mawqi3IconProps) {
+export function EcoPestIcon({ color, name, size = 24, strokeWidth = 2.2 }: EcoPestIconProps) {
   const theme = useTheme();
   const iconColor = color ?? theme.text;
   const common = {

@@ -1,9 +1,9 @@
-// Mobile Privacy Policy screen for Mawqi3 field data and technician account transparency.
+// Mobile Privacy Policy screen for EcoPest field data and technician account transparency.
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandHeader, Card, ScreenShell, SecondaryButton } from '@/components/mawqi3-ui';
+import { BrandHeader, Card, ScreenShell, SecondaryButton } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Spacing } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';

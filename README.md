@@ -1,6 +1,6 @@
-# Mawqi3 — إدارة محطات الطعوم
+# EcoPest — إدارة محطات الطعوم
 
-Mawqi3 is an Arabic RTL bait station management system for pest control teams. Technicians submit station inspection reports by QR code, while supervisors and managers review operations from role-protected dashboards.
+EcoPest is an Arabic RTL bait station management system for pest control teams. Technicians submit station inspection reports by QR code, while supervisors and managers review operations from role-protected dashboards.
 
 Brand identity rules live in `BRAND.md`.
 
@@ -37,7 +37,7 @@ Brand identity rules live in `BRAND.md`.
 
 Copy `.env.example` to `.env.local` and fill the values. Do not commit real secrets.
 
-- `DATABASE_URL` defaults to `file:./data/mawqi3.db`; use `libsql://...` in production.
+- `DATABASE_URL` defaults to `file:./data/ecopest.db`; use `libsql://...` in production.
 - `DATABASE_AUTH_TOKEN` for hosted libSQL/Turso.
 - `BETTER_AUTH_SECRET` minimum 32 characters.
 - `BETTER_AUTH_URL` deployment origin.
@@ -46,7 +46,7 @@ Copy `.env.example` to `.env.local` and fill the values. Do not commit real secr
 - `NEXT_PUBLIC_BASE_URL` required in production and must be HTTPS.
 - `SEED_MANAGER_EMAIL`, `SEED_MANAGER_PASSWORD`, `SEED_MANAGER_NAME` for `npm run db:seed`.
 - `GEMINI_API_KEY` optional.
-- `EXPO_PUBLIC_MAWQI3_WEB_BASE_URL` points the Expo app at the web backend.
+- `EXPO_PUBLIC_ECOPEST_WEB_BASE_URL` points the Expo app at the web backend.
 
 Server-only environment variables are validated centrally in `lib/env/server.ts`. QR report links use `NEXT_PUBLIC_BASE_URL` in production and only infer request headers during development.
 
@@ -102,7 +102,7 @@ npm run mobile:typecheck
 - Set `DATABASE_URL` and `DATABASE_AUTH_TOKEN` for hosted libSQL/Turso.
 - Run migrations before serving traffic.
 - Seed the first manager once, then rotate/remove seed env values.
-- Confirm Expo `EXPO_PUBLIC_MAWQI3_WEB_BASE_URL` points to the deployed web origin for real devices.
+- Confirm Expo `EXPO_PUBLIC_ECOPEST_WEB_BASE_URL` points to the deployed web origin for real devices.
 
 ## Next Recommended Tasks
 

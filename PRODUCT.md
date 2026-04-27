@@ -1,4 +1,4 @@
-# PRODUCT.md — Mawqi3 موقعي
+# PRODUCT.md — EcoPest إيكوبست
 
 ## Register
 
@@ -6,7 +6,7 @@ product
 
 ## Product Purpose
 
-Mawqi3 is an Arabic-first field operations system for pest control companies managing bait stations. It turns QR station visits, technician reports, manager reviews, and operational follow-up into one auditable workflow.
+EcoPest is an Arabic-first field operations system for pest control companies managing bait stations. It turns QR station visits, technician reports, manager reviews, and operational follow-up into one auditable workflow.
 
 ## Users
 

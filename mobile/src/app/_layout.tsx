@@ -1,13 +1,19 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { router, useSegments } from 'expo-router';
 import { Stack } from 'expo-router/stack';
+import {
+  IBMPlexSansArabic_400Regular,
+  IBMPlexSansArabic_500Medium,
+  IBMPlexSansArabic_600SemiBold,
+  IBMPlexSansArabic_700Bold,
+} from '@expo-google-fonts/ibm-plex-sans-arabic';
 import { useFonts } from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, I18nManager, StyleSheet, View } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import { BrandHeader, ScreenShell, ToastProvider } from '@/components/mawqi3-ui';
+import { BrandHeader, ScreenShell, ToastProvider } from '@/components/ecopest-ui';
 import { OfflineBanner, OnlineStateProvider } from '@/components/offline-banner';
 import { KeepAwakeProvider } from '@/contexts/keep-awake-context';
 import { LanguageProvider } from '@/contexts/language-context';
@@ -18,27 +24,26 @@ import { getMobileHomeRoute } from '@/lib/auth-routes';
 import { SyncProvider } from '@/lib/sync/report-sync';
 
 I18nManager.allowRTL(true);
-I18nManager.forceRTL(true);
 
 export default function TabLayout() {
   return (
     <LanguageProvider>
       <ThemeModeProvider>
         <Providers>
-          <Mawqi3Layout />
+          <EcoPestLayout />
         </Providers>
       </ThemeModeProvider>
     </LanguageProvider>
   );
 }
 
-function Mawqi3Layout() {
+function EcoPestLayout() {
   const { resolvedTheme } = useThemeMode();
   const [fontsLoaded, fontError] = useFonts({
-    Tajawal: require('../../assets/fonts/Tajawal-Regular.ttf'),
-    'Tajawal-Medium': require('../../assets/fonts/Tajawal-Medium.ttf'),
-    'Tajawal-Bold': require('../../assets/fonts/Tajawal-Bold.ttf'),
-    'Tajawal-ExtraBold': require('../../assets/fonts/Tajawal-ExtraBold.ttf'),
+    Tajawal: IBMPlexSansArabic_400Regular,
+    'Tajawal-Medium': IBMPlexSansArabic_500Medium,
+    'Tajawal-Bold': IBMPlexSansArabic_600SemiBold,
+    'Tajawal-ExtraBold': IBMPlexSansArabic_700Bold,
   });
 
   return (

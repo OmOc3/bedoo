@@ -34,6 +34,28 @@ export interface AppUser {
   isActive: boolean;
 }
 
+export interface MobileAppUser {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt?: string;
+}
+
+export interface MobileReviewReport {
+  notes?: string;
+  reportId: string;
+  reviewNotes?: string;
+  reviewStatus: "pending" | "reviewed" | "rejected";
+  stationId: string;
+  stationLabel: string;
+  status: StatusOption[];
+  submittedAt?: string;
+  technicianName: string;
+  technicianUid: string;
+}
+
 export interface Station {
   stationId: string;
   label: string;

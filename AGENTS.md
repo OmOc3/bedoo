@@ -1,4 +1,4 @@
-# AGENTS.md — Mawqi3 موقعي
+# AGENTS.md — EcoPest إيكوبست
 
 This file is for AI coding agents working in this repository. Read it before editing files.
 
@@ -6,7 +6,7 @@ This file is for AI coding agents working in this repository. Read it before edi
 
 | Key | Value |
 |-----|-------|
-| Name | Mawqi3 — إدارة محطات الطعوم |
+| Name | EcoPest — إدارة محطات الطعوم |
 | Purpose | Arabic RTL bait station management system for pest control field teams |
 | Language | TypeScript strict mode, Arabic UI strings |
 | Direction | RTL throughout (`dir="rtl"`) |
@@ -50,7 +50,7 @@ Keep `requireRole(...)` as the main authorization boundary for protected pages a
 
 ## Database
 
-Local development uses `DATABASE_URL=file:./data/mawqi3.db`. Hosted deployments can use `libsql://...` with `DATABASE_AUTH_TOKEN`.
+Local development uses `DATABASE_URL=file:./data/ecopest.db`. Hosted deployments can use `libsql://...` with `DATABASE_AUTH_TOKEN`.
 
 Main tables:
 
@@ -78,7 +78,7 @@ Required/important vars are documented in `.env.example`:
 - `SEED_MANAGER_EMAIL`
 - `SEED_MANAGER_PASSWORD`
 - `SEED_MANAGER_NAME`
-- `EXPO_PUBLIC_MAWQI3_WEB_BASE_URL`
+- `EXPO_PUBLIC_ECOPEST_WEB_BASE_URL`
 
 Never hardcode secrets or deployment origins.
 

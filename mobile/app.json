@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Mawqi3",
-    "slug": "mawqi3",
+    "name": "EcoPest",
+    "slug": "ecopest",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mawqi3",
+    "scheme": "ecopest",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/images/splash-icon.png",
@@ -33,7 +33,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "يحتاج Mawqi3 إلى الكاميرا لمسح رمز QR الخاص بالمحطة."
+          "cameraPermission": "يحتاج EcoPest إلى الكاميرا لمسح رمز QR الخاص بالمحطة."
         }
       ],
       [
