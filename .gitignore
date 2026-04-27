@@ -1,5 +1,5 @@
 .DS_Store
-.env*.local
+.env.local
 .next/
 node_modules/
 out/
@@ -12,3 +12,5 @@ data/*.db-*
 *.tsbuildinfo
 ui-debug.log
 mobile/eslint/
+.env
+.env.production
