@@ -1,8 +1,7 @@
-import Svg, { G, Path, Rect, Text as SvgText } from 'react-native-svg';
-
-import { Fonts } from '@/constants/theme';
+import Svg, { Circle, Ellipse, G, Path, Text as SvgText } from 'react-native-svg';
 
 export type LogoProps = {
+  layout?: 'horizontal' | 'stacked';
   size?: number;
   theme: 'light' | 'dark';
   variant: 'mark' | 'full';
@@ -10,71 +9,107 @@ export type LogoProps = {
 
 const palettes = {
   light: {
-    accent: '#14b8a6',
-    mark: '#0f766e',
-    text: '#0f172a',
+    eco: '#0f172a',
+    leafDark: '#0b6b3b',
+    leafLight: '#22c55e',
+    pest: '#2f87d8',
+    subtitle: '#475569',
+    vein: '#dcfce7',
   },
   dark: {
-    accent: '#5eead4',
-    mark: '#2dd4bf',
-    text: '#f8fafc',
+    eco: '#f8fafc',
+    leafDark: '#16a34a',
+    leafLight: '#4ade80',
+    pest: '#60a5fa',
+    subtitle: '#dbeafe',
+    vein: '#ecfccb',
   },
 } as const;
 
-function LogoMarkPaths({ accent, mark }: { accent: string; mark: string }) {
+function LogoMarkPaths({ leafDark, leafLight, vein }: { leafDark: string; leafLight: string; vein: string }) {
   return (
-    <G>
+    <>
       <Path
-        d="M50 6C29.4 6 14 21.4 14 41.1c0 22.8 24.3 40.5 33 46.2a5.6 5.6 0 0 0 6 0c8.7-5.7 33-23.4 33-46.2C86 21.4 70.6 6 50 6Zm0 12c13.8 0 24 9.8 24 23.1 0 13.1-11.7 25.4-19.4 31.8a7.2 7.2 0 0 1-9.2 0C37.7 66.5 26 54.2 26 41.1 26 27.8 36.2 18 50 18Z"
-        fill={mark}
+        d="M66 122c-22-5-40-17-50-35C7 71 8 49 18 31c10-17 27-29 47-31-7 16-12 33-14 50-3 25 0 49 15 72Z"
+        fill={leafDark}
       />
       <Path
-        d="M28 60h14.1V42.6c0-5 3.4-8.2 7.9-8.2s7.9 3.2 7.9 8.2V60H72V42.6C72 30.4 62.8 22 50 22S28 30.4 28 42.6V60Zm18.1-15.2h7.8v8h-7.8v-8Z"
-        fill={accent}
+        d="M70 122c-5-30-3-55 6-78 8-21 22-39 40-52 12 14 18 32 17 52-1 35-24 64-63 78Z"
+        fill={leafLight}
       />
-    </G>
+      <Path d="M46 27c-7 17-10 35-8 53 1 11 4 22 9 32" fill="none" stroke={vein} strokeLinecap="round" strokeWidth="5" />
+      <G rotation="-18" originX="70" originY="60">
+        <Ellipse cx="99" cy="41" fill="#ffffff" rx="10" ry="7" />
+        <Ellipse cx="77" cy="53" fill="#ffffff" rx="18" ry="13" />
+        <Ellipse cx="53" cy="63" fill="#ffffff" rx="13" ry="10" />
+        <Circle cx="103" cy="40" fill={leafLight} r="2" />
+        <Path
+          d="M104 35c7-9 14-13 22-13M104 41c9-2 18-1 27 4"
+          fill="none"
+          stroke="#ffffff"
+          strokeLinecap="round"
+          strokeWidth="4"
+        />
+        <Path
+          d="M62 51 38 36M76 54 48 43M90 55 64 48M64 67 37 79M78 68 51 87M92 66 66 97"
+          fill="none"
+          stroke="#ffffff"
+          strokeLinecap="round"
+          strokeWidth="4.5"
+        />
+      </G>
+    </>
   );
 }
 
-export function Logo({ size = 48, theme, variant }: LogoProps) {
+export function Logo({ layout = 'horizontal', size = 48, theme, variant }: LogoProps) {
   const palette = palettes[theme];
 
   if (variant === 'mark') {
     return (
-      <Svg accessibilityLabel="EcoPest" height={size} role="img" viewBox="0 0 100 100" width={size}>
-        <LogoMarkPaths accent={palette.accent} mark={palette.mark} />
+      <Svg accessibilityLabel="EcoPest" height={size} role="img" viewBox="0 0 140 140" width={size}>
+        <LogoMarkPaths leafDark={palette.leafDark} leafLight={palette.leafLight} vein={palette.vein} />
       </Svg>
     );
   }
 
-  const width = size * 3.35;
+  if (layout === 'stacked') {
+    const width = size * 0.92;
+
+    return (
+      <Svg accessibilityLabel="EcoPest Pest Control Team" height={size} role="img" viewBox="0 0 210 260" width={width}>
+        <G transform="translate(35 0)">
+          <LogoMarkPaths leafDark={palette.leafDark} leafLight={palette.leafLight} vein={palette.vein} />
+        </G>
+        <SvgText fill={palette.eco} fontFamily="Arial" fontSize="54" fontWeight="700" textAnchor="middle" x="84" y="168">
+          eco
+        </SvgText>
+        <SvgText fill={palette.pest} fontFamily="Arial" fontSize="54" fontWeight="700" textAnchor="middle" x="150" y="168">
+          pest
+        </SvgText>
+        <SvgText fill={palette.subtitle} fontFamily="Arial" fontSize="24" fontWeight="700" textAnchor="middle" x="105" y="210">
+          Pest Control
+        </SvgText>
+        <SvgText fill={palette.subtitle} fontFamily="Arial" fontSize="24" fontWeight="700" textAnchor="middle" x="105" y="238">
+          Team
+        </SvgText>
+      </Svg>
+    );
+  }
+
+  const width = size * 2.8;
 
   return (
-    <Svg accessibilityLabel="EcoPest" height={size} role="img" viewBox="0 0 335 100" width={width}>
-      <Rect fill="transparent" height="100" rx="24" width="335" />
-      <G transform="translate(235 0)">
-        <LogoMarkPaths accent={palette.accent} mark={palette.mark} />
-      </G>
-      <SvgText
-        fill={palette.text}
-        fontFamily={Fonts.sansHeavy}
-        fontSize="42"
-        fontWeight="800"
-        textAnchor="end"
-        x="220"
-        y="48">
-        إيكوبست
+    <Svg accessibilityLabel="EcoPest Pest Control Team" height={size} role="img" viewBox="0 0 390 140" width={width}>
+      <LogoMarkPaths leafDark={palette.leafDark} leafLight={palette.leafLight} vein={palette.vein} />
+      <SvgText fill={palette.eco} fontFamily="Arial" fontSize="58" fontWeight="700" x="145" y="70">
+        eco
       </SvgText>
-      <SvgText
-        fill={palette.mark}
-        fontFamily={Fonts.sansMedium}
-        fontSize="18"
-        fontWeight="700"
-        letterSpacing="1.4"
-        textAnchor="end"
-        x="220"
-        y="74">
-        ECOPEST FIELD
+      <SvgText fill={palette.pest} fontFamily="Arial" fontSize="58" fontWeight="700" x="232" y="70">
+        pest
+      </SvgText>
+      <SvgText fill={palette.subtitle} fontFamily="Arial" fontSize="24" fontWeight="700" x="145" y="102">
+        Pest Control Team
       </SvgText>
     </Svg>
   );

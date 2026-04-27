@@ -1,10 +1,10 @@
 // Typed API client for mobile-to-web sync with Better Auth cookie authentication.
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { WebBaseUrl } from "@/constants/theme";
-import { authClient } from "@/lib/auth-client";
+import { WebBaseUrl } from '@/constants/theme';
+import { readAuthCookieHeader } from '@/lib/auth-client';
 
-type ApiMethod = "DELETE" | "GET" | "PATCH" | "POST" | "PUT";
+type ApiMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
 
 export interface ApiClientOptions<TBody = unknown> {
   authenticated?: boolean;
@@ -17,26 +17,26 @@ export class ApiClientError extends Error {
   code: string;
   status: number;
 
-  constructor(message: string, status: number, code = "api_error") {
+  constructor(message: string, status: number, code = 'api_error') {
     super(message);
-    this.name = "ApiClientError";
+    this.name = 'ApiClientError';
     this.status = status;
     this.code = code;
   }
 }
 
-const apiBaseUrlStorageKey = "ecopest-api-base-url";
+const apiBaseUrlStorageKey = 'ecopest-api-base-url';
 
 function trimTrailingSlash(value: string): string {
-  return value.replace(/\/+$/, "");
+  return value.replace(/\/+$/, '');
 }
 
 function normalizePath(path: string): string {
-  return path.startsWith("/") ? path : `/${path}`;
+  return path.startsWith('/') ? path : `/${path}`;
 }
 
 function isFormData(value: unknown): value is FormData {
-  return typeof FormData !== "undefined" && value instanceof FormData;
+  return typeof FormData !== 'undefined' && value instanceof FormData;
 }
 
 async function readResponseBody(response: Response): Promise<unknown> {
@@ -54,19 +54,19 @@ async function readResponseBody(response: Response): Promise<unknown> {
 }
 
 function errorMessageFromBody(body: unknown): string {
-  if (typeof body === "object" && body !== null && "message" in body && typeof body.message === "string") {
+  if (typeof body === 'object' && body !== null && 'message' in body && typeof body.message === 'string') {
     return body.message;
   }
 
-  return "تعذر إكمال الطلب. تحقق من الاتصال وحاول مرة أخرى.";
+  return 'تعذر إكمال الطلب. تحقق من الاتصال وحاول مرة أخرى.';
 }
 
 function errorCodeFromBody(body: unknown): string {
-  if (typeof body === "object" && body !== null && "code" in body && typeof body.code === "string") {
+  if (typeof body === 'object' && body !== null && 'code' in body && typeof body.code === 'string') {
     return body.code;
   }
 
-  return "api_error";
+  return 'api_error';
 }
 
 export async function getApiBaseUrl(): Promise<string> {
@@ -79,41 +79,33 @@ export async function setApiBaseUrl(baseUrl: string): Promise<void> {
   await AsyncStorage.setItem(apiBaseUrlStorageKey, trimTrailingSlash(baseUrl));
 }
 
-async function buildHeaders(headers: Record<string, string>, authenticated: boolean, forceRefresh: boolean): Promise<Headers> {
+async function buildHeaders(headers: Record<string, string>, authenticated: boolean): Promise<Headers> {
   const requestHeaders = new Headers(headers);
 
   if (authenticated) {
-    if (forceRefresh) {
-      await authClient.getSession().catch(() => undefined);
-    }
-
-    const cookie = authClient.getCookie();
+    const cookie = await readAuthCookieHeader();
 
     if (!cookie) {
-      throw new ApiClientError("سجل الدخول قبل مزامنة البيانات.", 401, "auth_required");
+      throw new ApiClientError('سجل الدخول قبل مزامنة البيانات.', 401, 'auth_required');
     }
 
-    requestHeaders.set("Cookie", cookie);
+    requestHeaders.set('Cookie', cookie);
   }
 
   return requestHeaders;
 }
 
-async function sendRequest<TBody>(
-  path: string,
-  options: ApiClientOptions<TBody>,
-  forceRefresh: boolean,
-): Promise<{ body: unknown; response: Response }> {
+async function sendRequest<TBody>(path: string, options: ApiClientOptions<TBody>): Promise<{ body: unknown; response: Response }> {
   const baseUrl = await getApiBaseUrl();
-  const method = options.method ?? "GET";
+  const method = options.method ?? 'GET';
   const hasBody = options.body !== undefined;
-  const headers = await buildHeaders(options.headers ?? {}, options.authenticated ?? true, forceRefresh);
+  const headers = await buildHeaders(options.headers ?? {}, options.authenticated ?? true);
   let body: BodyInit | undefined;
 
   if (hasBody && isFormData(options.body)) {
     body = options.body;
   } else if (hasBody) {
-    headers.set("Content-Type", "application/json");
+    headers.set('Content-Type', 'application/json');
     body = JSON.stringify(options.body);
   }
 
@@ -126,7 +118,7 @@ async function sendRequest<TBody>(
       method,
     });
   } catch {
-    throw new ApiClientError("تعذر الوصول إلى الخادم. تحقق من الاتصال وحاول مرة أخرى.", 0, "NETWORK_ERROR");
+    throw new ApiClientError('تعذر الوصول إلى الخادم. تحقق من الاتصال وحاول مرة أخرى.', 0, 'NETWORK_ERROR');
   }
 
   const responseBody = await readResponseBody(response);
@@ -138,31 +130,23 @@ export async function apiRequest<TResponse, TBody = unknown>(
   path: string,
   options: ApiClientOptions<TBody> = {},
 ): Promise<TResponse> {
-  let result = await sendRequest(path, options, false);
-
-  if (result.response.status === 401 && options.authenticated !== false) {
-    result = await sendRequest(path, options, true);
-  }
+  const result = await sendRequest(path, options);
 
   if (!result.response.ok) {
-    throw new ApiClientError(
-      errorMessageFromBody(result.body),
-      result.response.status,
-      errorCodeFromBody(result.body),
-    );
+    throw new ApiClientError(errorMessageFromBody(result.body), result.response.status, errorCodeFromBody(result.body));
   }
 
   return result.body as TResponse;
 }
 
-export function apiGet<TResponse>(path: string, options: Omit<ApiClientOptions, "body" | "method"> = {}): Promise<TResponse> {
-  return apiRequest<TResponse>(path, { ...options, method: "GET" });
+export function apiGet<TResponse>(path: string, options: Omit<ApiClientOptions, 'body' | 'method'> = {}): Promise<TResponse> {
+  return apiRequest<TResponse>(path, { ...options, method: 'GET' });
 }
 
 export function apiPost<TResponse, TBody = unknown>(
   path: string,
   body: TBody,
-  options: Omit<ApiClientOptions<TBody>, "body" | "method"> = {},
+  options: Omit<ApiClientOptions<TBody>, 'body' | 'method'> = {},
 ): Promise<TResponse> {
-  return apiRequest<TResponse, TBody>(path, { ...options, body, method: "POST" });
+  return apiRequest<TResponse, TBody>(path, { ...options, body, method: 'POST' });
 }

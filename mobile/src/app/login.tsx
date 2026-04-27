@@ -1,18 +1,20 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Logo } from '@/components/brand/logo';
 import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
 import { PrimaryButton, ScreenShell, useToast } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Fonts, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
+import { useThemeMode } from '@/contexts/theme-context';
 import { useTheme } from '@/hooks/use-theme';
-import { authClient } from '@/lib/auth-client';
-import { loadMobileUserProfile } from '@/lib/auth';
+import { signInWithPassword } from '@/lib/auth';
 import { getMobileHomeRoute } from '@/lib/auth-routes';
 import { errorHaptic, successHaptic } from '@/lib/haptics';
+import { getApiBaseUrl, setApiBaseUrl } from '@/lib/sync/api-client';
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -42,13 +44,33 @@ function LoginField({ icon, label, style, ...props }: TextInputProps & { icon: E
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [accessCode, setAccessCode] = useState('');
+  const [serverUrl, setServerUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSigningIn, setIsSigningIn] = useState(false);
   const { strings } = useLanguage();
   const theme = useTheme();
+  const { resolvedTheme } = useThemeMode();
   const { showToast } = useToast();
 
+  useEffect(() => {
+    let isMounted = true;
+
+    void getApiBaseUrl().then((value) => {
+      if (isMounted) {
+        setServerUrl(value);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   function mapAuthError(errorValue: unknown): string {
+    if (errorValue instanceof TypeError) {
+      return strings.auth.networkError;
+    }
+
     if (errorValue instanceof Error && errorValue.message === strings.auth.missingProfile) {
       return strings.auth.missingProfile;
     }
@@ -63,6 +85,10 @@ export default function LoginScreen() {
 
     if (errorValue instanceof Error && errorValue.message === 'INVALID_CREDENTIALS') {
       return strings.auth.invalidCredentials;
+    }
+
+    if (errorValue instanceof Error && (errorValue.message === 'AUTH_COOKIE_MISSING' || errorValue.message === 'PROFILE_LOAD_FAILED')) {
+      return strings.auth.networkError;
     }
 
     return strings.auth.genericLoginError;
@@ -86,31 +112,24 @@ export default function LoginScreen() {
       return;
     }
 
+    const cleanServerUrl = serverUrl.trim();
+
+    if (!cleanServerUrl) {
+      setError(strings.validation.invalidUrl);
+      return;
+    }
+
     setError(null);
     setIsSigningIn(true);
 
     try {
-      const result = await authClient.signIn.email({
-        email: cleanEmail,
-        password: accessCode.trim(),
-      });
-
-      if (result.error) {
-        throw new Error(result.error.code === 'USER_BANNED' ? 'USER_DISABLED' : 'INVALID_CREDENTIALS');
-      }
-
-      const profile = await loadMobileUserProfile();
-
-      if (!profile) {
-        await authClient.signOut();
-        throw new Error(strings.auth.missingProfile);
-      }
+      await setApiBaseUrl(cleanServerUrl);
+      const profile = await signInWithPassword(cleanEmail, accessCode.trim());
 
       await successHaptic();
       setAccessCode('');
       router.replace(getMobileHomeRoute(profile.role));
     } catch (loginError: unknown) {
-      await authClient.signOut().catch(() => undefined);
       const message = mapAuthError(loginError);
       setError(message);
       showToast(message, 'error');
@@ -131,9 +150,7 @@ export default function LoginScreen() {
             showsVerticalScrollIndicator={false}>
             <View style={[styles.loginCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
               <View style={[styles.loginHero, { backgroundColor: theme.surfaceCard }]}>
-                <View style={[styles.logoCircle, { backgroundColor: theme.primaryLight }]}>
-                  <EcoPestIcon color={theme.onPrimary} name="map-pin" size={32} strokeWidth={2.6} />
-                </View>
+                <Logo layout="stacked" size={136} theme={resolvedTheme} variant="full" />
                 <ThemedText type="subtitle" style={styles.brandTitle}>
                   {strings.appNameArabic}
                 </ThemedText>
@@ -146,6 +163,20 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.loginForm}>
+                <LoginField
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  icon="link"
+                  inputMode="url"
+                  label={strings.auth.serverUrl}
+                  onChangeText={setServerUrl}
+                  placeholder="http://192.168.1.10:3000"
+                  value={serverUrl}
+                />
+                <ThemedText type="small" themeColor="textSecondary">
+                  {strings.auth.serverUrlHint}
+                </ThemedText>
+
                 <LoginField
                   autoCapitalize="none"
                   autoComplete="email"
@@ -176,8 +207,8 @@ export default function LoginScreen() {
                 ) : null}
 
                 <PrimaryButton disabled={isSigningIn} icon="login" loading={isSigningIn} onPress={() => void submitLogin()}>
-                {isSigningIn ? strings.auth.signingIn : strings.actions.login}
-              </PrimaryButton>
+                  {isSigningIn ? strings.auth.signingIn : strings.actions.login}
+                </PrimaryButton>
               </View>
 
               <View style={[styles.loginFooter, { borderTopColor: theme.border }]}>
@@ -256,13 +287,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.regular,
     textAlign: 'center',
-  },
-  logoCircle: {
-    alignItems: 'center',
-    borderRadius: Radius.full,
-    height: 56,
-    justifyContent: 'center',
-    width: 56,
   },
   safeArea: {
     flex: 1,

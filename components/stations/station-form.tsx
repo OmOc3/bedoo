@@ -196,7 +196,7 @@ export function StationForm({ mode, station }: StationFormProps) {
           name="photos"
           type="file"
         />
-        <p className="text-xs leading-5 text-slate-500">يمكن رفع صور JPG أو PNG أو WebP. يتم حفظ الصور في Cloudinary عند ضبط إعداداته.</p>
+        <p className="text-xs leading-5 text-slate-500">يمكن رفع صور JPG أو PNG أو WebP.</p>
       </div>
 
       <div className="flex flex-col gap-3 pt-2 sm:flex-row">

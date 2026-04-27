@@ -2,7 +2,7 @@
 import { AppState, type AppStateStatus } from 'react-native';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { authClient } from '@/lib/auth-client';
+import { hasStoredAuthCookie } from '@/lib/auth-client';
 import { getQueuedDrafts, syncDraft, type DraftReport } from '@/lib/drafts';
 
 interface SyncStatusState {
@@ -34,9 +34,9 @@ function useSyncQueueController() {
   }, []);
 
   const syncAllDrafts = useCallback(async () => {
-    const session = await authClient.getSession();
+    const isAuthenticated = await hasStoredAuthCookie();
 
-    if (!session.data) {
+    if (!isAuthenticated) {
       await refreshPendingCount();
       return;
     }

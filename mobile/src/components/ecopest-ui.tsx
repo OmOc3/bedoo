@@ -16,11 +16,13 @@ import {
 } from 'react-native';
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
+import { Logo } from '@/components/brand/logo';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
 import { Fonts, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
+import { useThemeMode } from '@/contexts/theme-context';
 import { useTheme } from '@/hooks/use-theme';
 import { selectionHaptic } from '@/lib/haptics';
 import { languageDateLocales } from '@/lib/i18n';
@@ -130,29 +132,14 @@ function callHandler(
 }
 
 export function BrandHeader({ compact = false, subtitle }: { compact?: boolean; subtitle?: string }) {
-  const theme = useTheme();
+  const { resolvedTheme } = useThemeMode();
   const { isRtl, strings } = useLanguage();
   const brandSubtitle = subtitle ?? strings.brandTagline;
 
   return (
     <View style={[styles.brandRow, compact && styles.brandRowCompact, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
-      <View
-        style={[
-          styles.brandMark,
-          compact && styles.brandMarkCompact,
-          { backgroundColor: theme.primarySoft, borderColor: theme.primaryLight },
-        ]}>
-        <ThemedText style={[styles.brandLetter, compact && styles.brandLetterCompact, { color: theme.primary }]}>م</ThemedText>
-      </View>
       <View style={styles.brandCopy}>
-        <View style={[styles.wordmarkRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
-          <ThemedText type="smallBold" style={[styles.brandNameArabic, compact && styles.brandNameCompact]}>
-            {strings.appNameArabic}
-          </ThemedText>
-          <ThemedText type="smallBold" themeColor="textSecondary" style={compact && styles.brandNameCompact}>
-            {strings.appName}
-          </ThemedText>
-        </View>
+        <Logo layout="horizontal" size={compact ? 34 : 44} theme={resolvedTheme} variant="full" />
         {compact ? null : (
           <ThemedText type="small" themeColor="textSecondary">
             {brandSubtitle}
@@ -1157,3 +1144,4 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
 });
+

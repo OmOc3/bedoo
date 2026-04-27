@@ -259,7 +259,7 @@ export function DashboardNav({ role }: DashboardNavProps) {
             <div className="border-b border-slate-800 px-5 py-6">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
-                  <BrandMark className="h-12 w-12 rounded-xl border-slate-800 bg-teal-600 text-white" inverse />
+                  <BrandMark className="h-12 w-12" />
                   <div className="min-w-0">
                     <p className="text-xl font-extrabold leading-6 text-white">
                       إيكوبست
@@ -326,7 +326,7 @@ export function DashboardNav({ role }: DashboardNavProps) {
         <div className={cn("border-b border-slate-800 py-6", isSidebarOpen ? "px-5" : "px-3")}>
           <div className={cn("flex items-center gap-3", isSidebarOpen ? "justify-between" : "flex-col")}>
             <div className={cn("flex min-w-0 items-center gap-3", isSidebarOpen ? "flex-1" : "justify-center")}>
-              <BrandMark className="h-12 w-12 rounded-xl border-slate-800 bg-teal-600 text-white" inverse />
+              <BrandMark className="h-12 w-12" />
               <div className={cn("min-w-0", isSidebarOpen ? "block" : "sr-only")}>
                 <p className="text-xl font-extrabold leading-6 text-white">
                   إيكوبست
