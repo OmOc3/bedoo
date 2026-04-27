@@ -35,7 +35,19 @@ export function WebQrScanner() {
   const [isScanning, setIsScanning] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const supportsBarcodeDetector = useMemo(() => typeof window !== "undefined" && typeof window.BarcodeDetector !== "undefined", []);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const supportsBarcodeDetector = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const hasBarcodeDetector = typeof window.BarcodeDetector !== "undefined";
+    const userAgent = navigator.userAgent;
+    const isChromeMobile = /Chrome/.test(userAgent) && /Mobile/.test(userAgent);
+    const isAndroid = /Android/.test(userAgent);
+    const isIOS = /iPhone|iPad|iPod/.test(userAgent);
+    console.log("[QR Scanner] BarcodeDetector available:", hasBarcodeDetector);
+    console.log("[QR Scanner] User agent:", userAgent);
+    console.log("[QR Scanner] Chrome Mobile:", isChromeMobile, "Android:", isAndroid, "iOS:", isIOS);
+    return hasBarcodeDetector;
+  }, []);
 
   const stopScanner = useCallback(() => {
     if (frameRequestRef.current !== null) {
@@ -59,14 +71,24 @@ export function WebQrScanner() {
   }, []);
 
   const startScanner = useCallback(async () => {
-    if (!supportsBarcodeDetector) {
-      setError("متصفحك لا يدعم مسح QR بالكاميرا. استخدم الإدخال اليدوي.");
-      return;
-    }
-
     // Check for secure context (HTTPS) requirement
     if (typeof window !== "undefined" && window.isSecureContext === false) {
       setError("الكاميرا تحتاج اتصال آمن (HTTPS). لا يمكن المسح عبر HTTP.");
+      return;
+    }
+
+    // Check if mediaDevices is available
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setError("المتصفح لا يدعم الوصول للكاميرا. جرب متصفح حديث (Chrome, Safari, Edge).");
+      return;
+    }
+
+    // Check for BarcodeDetector support
+    if (!supportsBarcodeDetector) {
+      const isChromeMobile = /Chrome/.test(navigator.userAgent) && /Mobile/.test(navigator.userAgent);
+      const browserInfo = isChromeMobile ? " (Chrome Mobile detected)" : "";
+      setDebugInfo(`BarcodeDetector API not available${browserInfo}. UserAgent: ${navigator.userAgent.slice(0, 50)}...`);
+      setError("متصفحك لا يدعم ميزة مسح QR التلقائي. استخدم الإدخال اليدوي أو جرب Chrome/Safari المحدث على الكمبيوتر.");
       return;
     }
 
@@ -76,20 +98,34 @@ export function WebQrScanner() {
     try {
       let stream: MediaStream;
 
+      // Mobile Chrome works better with exact constraints sometimes
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
           video: {
             facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
           },
         });
       } catch (firstError) {
-        console.warn("First camera attempt failed, trying fallback:", firstError);
-        // Fallback: try without ideal constraints (some devices don't support facingMode)
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: true,
-        });
+        console.warn("First camera attempt failed, trying exact environment:", firstError);
+        // Second try: exact environment facing mode
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: {
+              facingMode: { exact: "environment" },
+            },
+          });
+        } catch (secondError) {
+          console.warn("Exact environment failed, trying any camera:", secondError);
+          // Final fallback: any camera
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: true,
+          });
+        }
       }
 
       streamRef.current = stream;
@@ -107,10 +143,19 @@ export function WebQrScanner() {
       const BarcodeDetector = window.BarcodeDetector;
       if (!BarcodeDetector) {
         stopScanner();
-        setError("تعذر تشغيل ماسح QR على هذا المتصفح.");
+        setError("تعذر تشغيل ماسح QR على هذا المتصفح. BarcodeDetector غير متاح.");
         return;
       }
-      const detector = new BarcodeDetector({ formats: ["qr_code"] });
+
+      let detector: BarcodeDetectorInstance;
+      try {
+        detector = new BarcodeDetector({ formats: ["qr_code"] });
+      } catch (detectorError) {
+        console.error("BarcodeDetector creation failed:", detectorError);
+        stopScanner();
+        setError("تعذر تهيئة ماسح QR. جرب متصفحًا آخر.");
+        return;
+      }
 
       setIsScanning(true);
 
@@ -203,6 +248,12 @@ export function WebQrScanner() {
 
       {message ? <p className="text-xs text-slate-600">{message}</p> : null}
       {error ? <p className="text-xs font-medium text-red-700">{error}</p> : null}
+      {debugInfo ? (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-xs text-slate-400">معلومات تقنية (للدعم)</summary>
+          <p className="mt-1 break-all text-[10px] text-slate-400">{debugInfo}</p>
+        </details>
+      ) : null}
     </div>
   );
 }
