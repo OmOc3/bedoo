@@ -22,11 +22,14 @@ interface AuthClassification {
   profile: AppUser | null;
 }
 
+// Vercel appends the real client IP as the last x-forwarded-for entry, while attackers may prepend spoofed values.
 function getClientIp(request: NextRequest): string {
   const forwardedFor = request.headers.get("x-forwarded-for");
 
   if (forwardedFor) {
-    return forwardedFor.split(",")[0]?.trim() || "unknown";
+    const ips = forwardedFor.split(",").map((ip) => ip.trim()).filter(Boolean);
+    // Use the last IP - on Vercel this is the real client IP appended by the edge
+    return ips[ips.length - 1] ?? "unknown";
   }
 
   return request.headers.get("x-real-ip") ?? "unknown";

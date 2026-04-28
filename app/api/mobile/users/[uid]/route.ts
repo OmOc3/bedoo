@@ -67,6 +67,18 @@ export async function PATCH(
       return NextResponse.json({ code: "UNAUTHORIZED", message: "غير مصرح" }, { status: 403 });
     }
 
+    // Prevent supervisors from editing users with equal or higher role
+    const roleRank: Record<string, number> = { technician: 1, supervisor: 2, manager: 3 };
+    const actorRank = roleRank[session.role] ?? 0;
+    const targetRank = roleRank[targetUser.role] ?? 0;
+
+    if (uid !== session.uid && actorRank <= targetRank && session.role !== "manager") {
+      return NextResponse.json(
+        { code: "UNAUTHORIZED", message: "لا يمكنك تعديل بيانات مستخدم بنفس مستواك أو أعلى منك." },
+        { status: 403 },
+      );
+    }
+
     if (body.displayName !== undefined || body.image !== undefined) {
       await db.update(usersTable).set({
         name: body.displayName !== undefined ? body.displayName : targetUser.displayName,

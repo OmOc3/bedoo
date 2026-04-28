@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
@@ -25,11 +27,13 @@ export const metadata: Metadata = {
   description: `${i18n.en.appName} manages bait stations, QR inspections, field reports, and review workflows. ${i18n.appNameArabic} لإدارة المحطات وتقارير الفحص الميدانية.`,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? "";
+
   return (
     <html data-default-locale="ar" dir="rtl" lang="ar" suppressHydrationWarning>
       <head>
@@ -39,7 +43,13 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap"
           rel="stylesheet"
         />
-        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        {/* Middleware provides x-nonce and a request CSP header; Next.js applies that nonce to its own scripts automatically. */}
+        <Script
+          id="theme-script"
+          nonce={nonce}
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: themeScript }}
+        />
       </head>
       <body>
         {children}

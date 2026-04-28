@@ -11,8 +11,10 @@ const nextConfig = {
   },
   async headers() {
     const isProduction = process.env.NODE_ENV === "production";
+    // Nonce is injected per-request via middleware; this static config is a fallback.
+    // In production, Next.js automatically uses the nonce from the x-nonce header.
     const scriptSrc = isProduction
-      ? "script-src 'self' 'unsafe-inline'"
+      ? "script-src 'self' 'nonce-PLACEHOLDER'"
       : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
     const csp = [
       "default-src 'self'",
