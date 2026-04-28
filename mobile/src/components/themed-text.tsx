@@ -52,31 +52,26 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sansMedium,
     fontSize: Typography.fontSize.sm,
     lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
-    fontWeight: Typography.fontWeight.medium,
   },
   smallBold: {
     fontFamily: Fonts.sansBold,
     fontSize: Typography.fontSize.sm,
     lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
-    fontWeight: Typography.fontWeight.bold,
   },
   default: {
     fontFamily: Fonts.sans,
     fontSize: Typography.fontSize.base,
     lineHeight: Typography.fontSize.base * Typography.lineHeight.normal,
-    fontWeight: Typography.fontWeight.regular,
   },
   title: {
     fontFamily: Fonts.sansHeavy,
     fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.heavy,
     lineHeight: Typography.fontSize.xl * Typography.lineHeight.tight,
   },
   subtitle: {
     fontFamily: Fonts.sansHeavy,
     fontSize: Typography.fontSize.xxl,
     lineHeight: Typography.fontSize.xxl * Typography.lineHeight.tight,
-    fontWeight: Typography.fontWeight.heavy,
   },
   link: {
     fontFamily: Fonts.sansMedium,

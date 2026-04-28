@@ -38,7 +38,7 @@ function UserCard({ user }: { user: MobileAppUser }) {
       style={[
         styles.userCard,
         Shadow.sm,
-        { backgroundColor: theme.backgroundElement, borderColor: theme.border, flexDirection: isRtl ? 'row-reverse' : 'row' },
+        { backgroundColor: theme.backgroundElement, borderColor: theme.border, flexDirection: 'row' },
       ]}>
       <View style={[styles.avatar, { backgroundColor: theme.backgroundSelected, borderColor: theme.border }]}>
         <ThemedText type="smallBold" style={{ color: theme.primary }}>
@@ -120,7 +120,7 @@ export default function TeamScreen() {
             </View>
           </View>
 
-          <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border, flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+          <View style={[styles.searchBox, { backgroundColor: theme.backgroundElement, borderColor: theme.border, flexDirection: 'row' }]}>
             <EcoPestIcon color={theme.textSecondary} name="search" size={22} />
             <TextInput
               onChangeText={setQuery}
@@ -132,7 +132,7 @@ export default function TeamScreen() {
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={[styles.filterRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.filterRow, { flexDirection: 'row' }]}>
               {roleFilters.map((role) => {
                 const selected = filterRole === role;
                 const label = role === 'all' ? t.filterAll : roleLabels[role];

@@ -5,6 +5,9 @@ import { auth } from "@/lib/auth/better-auth";
 import { requireBearerRole } from "@/lib/auth/bearer-session";
 import { writeAuditLog } from "@/lib/audit";
 import { getAppUser } from "@/lib/db/repositories";
+import { db } from "@/lib/db/client";
+import { user as usersTable } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 import { updateUserAccessCodeSchema, updateUserActiveSchema, updateUserRoleSchema } from "@/lib/validation/users";
 import type { ApiErrorResponse, UserRole } from "@/types";
 
@@ -20,6 +23,8 @@ interface UpdateMobileUserBody {
   isActive?: boolean;
   password?: string;
   role?: UserRole;
+  displayName?: string;
+  image?: string;
 }
 
 export async function PATCH(
@@ -27,7 +32,7 @@ export async function PATCH(
   { params }: MobileUserRouteContext,
 ): Promise<NextResponse<MobileUserResponse | ApiErrorResponse>> {
   try {
-    const session = await requireBearerRole(request, ["manager"]);
+    const session = await requireBearerRole(request, ["manager", "supervisor", "technician"]);
     const { uid } = await params;
     const body = (await request.json()) as UpdateMobileUserBody;
     const targetUser = await getAppUser(uid);
@@ -50,6 +55,32 @@ export async function PATCH(
         },
         { status: 409 },
       );
+    }
+
+    // Only managers can change role, isActive, password
+    if ((body.isActive !== undefined || body.role !== undefined || body.password !== undefined) && session.role !== "manager") {
+      return NextResponse.json({ code: "UNAUTHORIZED", message: "غير مصرح" }, { status: 403 });
+    }
+
+    // Only managers/supervisors can edit OTHER users
+    if (uid !== session.uid && session.role !== "manager" && session.role !== "supervisor") {
+      return NextResponse.json({ code: "UNAUTHORIZED", message: "غير مصرح" }, { status: 403 });
+    }
+
+    if (body.displayName !== undefined || body.image !== undefined) {
+      await db.update(usersTable).set({
+        name: body.displayName !== undefined ? body.displayName : targetUser.displayName,
+        image: body.image !== undefined ? body.image : targetUser.image,
+      }).where(eq(usersTable.id, uid));
+
+      await writeAuditLog({
+        actorUid: session.uid,
+        actorRole: session.role,
+        action: "user.profile_update",
+        entityType: "user",
+        entityId: uid,
+        metadata: { source: "mobile" },
+      });
     }
 
     if (body.role !== undefined) {

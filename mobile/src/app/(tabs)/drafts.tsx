@@ -126,7 +126,7 @@ export default function DraftsScreen() {
               placeholder={t.stationPlaceholder}
               value={stationId}
             />
-            <View style={[styles.statusGrid, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.statusGrid, { flexDirection: 'row' }]}>
               {StatusOptions.map((option) => (
                 <SecondaryButton key={option.value} selected={status.includes(option.value)} onPress={() => toggleStatus(option.value)}>
                   {statusOptionLabels[option.value]}
@@ -134,7 +134,7 @@ export default function DraftsScreen() {
               ))}
             </View>
             {status.length > 0 ? (
-              <View style={[styles.statusPreview, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.statusPreview, { flexDirection: 'row' }]}>
                 {status.map((item) => (
                   <StatusBadge key={item} status={item} />
                 ))}
@@ -158,7 +158,7 @@ export default function DraftsScreen() {
           {queueReports.map((draft) => (
             <ReportCard
               action={
-                <View style={[styles.actions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                <View style={[styles.actions, { flexDirection: 'row' }]}>
                   <SecondaryButton onPress={() => void retrySync(draft.id)}>{strings.actions.retry}</SecondaryButton>
                   <SecondaryButton onPress={() => void removeDraft(draft.id)}>{t.deleteDraft}</SecondaryButton>
                 </View>
@@ -182,7 +182,7 @@ export default function DraftsScreen() {
           {drafts.map((draft) => (
             <ReportCard
               action={
-                <View style={[styles.actions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                <View style={[styles.actions, { flexDirection: 'row' }]}>
                   <SecondaryButton onPress={() => router.push({ pathname: '/report/[stationId]', params: { stationId: draft.stationId } })}>
                     {t.openReport}
                   </SecondaryButton>

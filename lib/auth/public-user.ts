@@ -7,5 +7,6 @@ export function toAuthenticatedUserResponse(user: AppUser): AuthenticatedUserRes
     displayName: user.displayName,
     role: user.role,
     isActive: user.isActive,
+    image: user.image,
   };
 }

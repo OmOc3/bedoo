@@ -5,7 +5,10 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth/better-auth";
 import { requireRole } from "@/lib/auth/server-session";
 import { getAppUser, getUserByEmail } from "@/lib/db/repositories";
-import { createUserSchema, updateUserAccessCodeSchema, updateUserRoleSchema } from "@/lib/validation/users";
+import { db } from "@/lib/db/client";
+import { user as usersTable } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { createUserSchema, updateUserAccessCodeSchema, updateUserRoleSchema, updateUserProfileSchema } from "@/lib/validation/users";
 import { writeAuditLog } from "@/lib/audit";
 
 export interface UserActionResult {
@@ -28,6 +31,7 @@ export async function createUserAccountAction(formData: FormData): Promise<UserA
     email: requiredString(formData, "email"),
     password: requiredString(formData, "password"),
     role: formData.get("role"),
+    image: formData.get("image") || undefined,
   });
 
   if (!parsed.success) {
@@ -54,6 +58,10 @@ export async function createUserAccountAction(formData: FormData): Promise<UserA
       },
     });
     const createdUid = result.user.id;
+
+    if (parsed.data.image) {
+      await db.update(usersTable).set({ image: parsed.data.image }).where(eq(usersTable.id, createdUid));
+    }
 
     await writeAuditLog({
       actorUid: session.uid,
@@ -227,6 +235,59 @@ export async function updateUserAccessCodeAction(targetUid: string, formData: Fo
   });
 
   revalidatePath("/dashboard/manager/users");
+
+  return { success: true };
+}
+
+export async function updateUserProfileAction(targetUid: string, formData: FormData): Promise<UserActionResult> {
+  const session = await requireRole(["manager", "supervisor", "technician"]);
+
+  // Only manager/supervisor can update OTHER users
+  if (targetUid !== session.uid && session.role !== "manager" && session.role !== "supervisor") {
+    return { error: "ليس لديك صلاحية لتعديل حساب شخص آخر." };
+  }
+
+  const parsed = updateUserProfileSchema.safeParse({
+    displayName: requiredString(formData, "displayName"),
+    image: formData.get("image") || undefined,
+  });
+
+  if (!parsed.success) {
+    return {
+      error: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  const targetAppUser = await getAppUser(targetUid);
+
+  if (!targetAppUser) {
+    return { error: "المستخدم غير موجود" };
+  }
+
+  try {
+    await db.update(usersTable).set({
+      name: parsed.data.displayName,
+      image: parsed.data.image,
+    }).where(eq(usersTable.id, targetUid));
+  } catch (_error: unknown) {
+    return { error: "تعذر تحديث بيانات المستخدم." };
+  }
+
+  await writeAuditLog({
+    actorUid: session.uid,
+    actorRole: session.role,
+    action: "user.profile_update",
+    entityType: "user",
+    entityId: targetUid,
+    metadata: {
+      previousName: targetAppUser.displayName,
+      nextName: parsed.data.displayName,
+    },
+  });
+
+  revalidatePath("/dashboard/manager/users");
+  revalidatePath("/(tabs)/settings");
 
   return { success: true };
 }

@@ -96,7 +96,7 @@ function ReportListItem({ report }: { report: VisibleReport }) {
         {
           backgroundColor: theme.backgroundElement,
           borderColor: theme.border,
-          flexDirection: isRtl ? 'row-reverse' : 'row',
+          flexDirection: 'row',
         },
       ]}>
       <View style={[styles.reportIcon, { backgroundColor: iconBackground }]}>
@@ -189,14 +189,14 @@ export default function HistoryScreen() {
             title={strings.history.title}
           />
 
-          <View style={[styles.searchRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+          <View style={[styles.searchRow, { flexDirection: 'row' }]}>
             <View
               style={[
                 styles.searchBox,
                 {
                   backgroundColor: theme.backgroundElement,
                   borderColor: theme.border,
-                  flexDirection: isRtl ? 'row-reverse' : 'row',
+                  flexDirection: 'row',
                 },
               ]}>
               <EcoPestIcon color={theme.textSecondary} name="search" size={26} />
@@ -218,7 +218,7 @@ export default function HistoryScreen() {
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-            <View style={[styles.filterPills, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.filterPills, { flexDirection: 'row' }]}>
               {filters.map((filter) => {
                 const selected = activeFilter === filter.value;
 

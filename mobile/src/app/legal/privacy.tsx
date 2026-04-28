@@ -25,7 +25,7 @@ export default function PrivacyScreen() {
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <BrandHeader compact subtitle={content.subtitle} />
 
-          <View style={[styles.languageRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+          <View style={[styles.languageRow]}>
             <SecondaryButton selected={legalLanguage === 'ar'} onPress={() => setLegalLanguage('ar')}>
               {legalStrings.settings.languageArabic}
             </SecondaryButton>

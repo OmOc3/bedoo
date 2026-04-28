@@ -41,7 +41,6 @@ export default function AppTabs() {
         tabBarLabelStyle: {
           fontFamily: Fonts.sansBold,
           fontSize: Typography.fontSize.xs,
-          fontWeight: '700',
         },
         tabBarStyle: [
           styles.tabBar,

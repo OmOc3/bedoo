@@ -63,7 +63,7 @@ function StatusOptionRow({ label, onPress, selected }: { label: string; onPress:
         {
           backgroundColor: selected ? theme.primarySoft : theme.backgroundElement,
           borderColor: selected ? theme.primaryLight : theme.border,
-          flexDirection: isRtl ? 'row-reverse' : 'row',
+          flexDirection: 'row',
           opacity: pressed ? 0.82 : 1,
         },
       ]}>
@@ -144,7 +144,7 @@ function PhotoCapturePanel({
     return (
       <View style={[styles.cameraBox, { backgroundColor: theme.surfaceCardDark, borderColor: theme.border }]}>
         <CameraView ref={cameraRef} facing="back" style={StyleSheet.absoluteFill} />
-        <View style={[styles.cameraActions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+        <View style={[styles.cameraActions, { flexDirection: 'row' }]}>
           <SecondaryButton disabled={isCapturing} onPress={() => setIsCameraOpen(false)}>
             {strings.actions.cancel}
           </SecondaryButton>
@@ -165,7 +165,7 @@ function PhotoCapturePanel({
         <ThemedText type="small" themeColor="textSecondary" style={styles.photoHint}>
           {t.photoUploadHint}
         </ThemedText>
-        <View style={[styles.photoActions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+        <View style={[styles.photoActions, { flexDirection: 'row' }]}>
           <SecondaryButton icon="camera" onPress={() => void openCamera()}>
             {t.retakePhoto}
           </SecondaryButton>
@@ -485,7 +485,7 @@ export default function StationReportScreen() {
                 {
                   backgroundColor: theme.backgroundElement,
                   borderColor: theme.border,
-                  flexDirection: isRtl ? 'row-reverse' : 'row',
+                  flexDirection: 'row',
                 },
               ]}>
               {stationPhotoUrl ? (
@@ -507,7 +507,7 @@ export default function StationReportScreen() {
                 <ThemedText type="smallBold" style={{ color: theme.primary }}>
                   {strings.report.stationNumberPrefix} #{station?.stationId ?? stationId}
                 </ThemedText>
-                <View style={[styles.locationRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                <View style={[styles.locationRow, { flexDirection: 'row' }]}>
                   <EcoPestIcon color={theme.textSecondary} name="map-pin" size={18} />
                   <ThemedText type="small" themeColor="textSecondary">
                     {station?.location ?? stationError ?? strings.report.locationUnavailable}

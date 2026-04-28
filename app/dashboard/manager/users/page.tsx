@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { CreateUserForm } from "@/components/users/create-user-form";
 import { UserAccessCodeForm } from "@/components/users/user-access-code-form";
 import { UserRoleForm } from "@/components/users/user-role-form";
+import { UserProfileForm } from "@/components/users/user-profile-form";
 import { EmptyState } from "@/components/ui/empty-state";
 import { requireRole } from "@/lib/auth/server-session";
 import { listAppUsers } from "@/lib/db/repositories";
@@ -68,9 +69,13 @@ export default async function ManagerUsersPage() {
                 <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-control" key={user.uid}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-100 text-lg font-bold text-slate-500 ring-1 ring-slate-200">
-                        {getInitials(user.displayName)}
-                      </div>
+                      {user.image ? (
+                        <img src={user.image} alt={user.displayName} className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-slate-200" />
+                      ) : (
+                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-100 text-lg font-bold text-slate-500 ring-1 ring-slate-200">
+                          {getInitials(user.displayName)}
+                        </div>
+                      )}
                       <div className="min-w-0">
                         <h2 className="truncate text-lg font-bold text-slate-950">{user.displayName}</h2>
                         <p className="truncate text-sm text-slate-500">{user.email}</p>
@@ -95,6 +100,7 @@ export default async function ManagerUsersPage() {
                   </div>
 
                   <div className="mt-4 space-y-3">
+                    <UserProfileForm user={user} disabled={isCurrentUser} />
                     <UserRoleForm disabled={isCurrentUser} targetUid={user.uid} value={user.role} />
                     <form action={toggleActive}>
                       <button

@@ -28,6 +28,7 @@ export interface AppUser {
   role: UserRole;
   createdAt: AppTimestamp;
   isActive: boolean;
+  image?: string | null;
 }
 
 export interface Station {
@@ -93,6 +94,7 @@ export interface AuthenticatedUserResponse {
   displayName: string;
   role: UserRole;
   isActive: boolean;
+  image?: string | null;
 }
 
 export interface LoginSuccessResponse {

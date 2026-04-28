@@ -138,7 +138,7 @@ export function BrandHeader({ compact = false, subtitle }: { compact?: boolean; 
   const brandSubtitle = subtitle ?? strings.brandTagline;
 
   return (
-    <View style={[styles.brandRow, compact && styles.brandRowCompact, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+    <View style={[styles.brandRow, compact && styles.brandRowCompact, { flexDirection: 'row' }]}>
       <View style={styles.brandCopy}>
         <Logo layout="horizontal" size={compact ? 34 : 44} theme={resolvedTheme} variant="full" />
         {compact ? null : (
@@ -273,7 +273,7 @@ export function PrimaryButton({
           styles.button,
           {
             backgroundColor: isDisabled ? theme.backgroundSelected : theme.primary,
-            flexDirection: isRtl ? 'row-reverse' : 'row',
+            flexDirection: 'row',
             opacity: isDisabled ? 0.68 : 1,
           },
           pressed && !isDisabled ? styles.pressed : null,
@@ -325,7 +325,7 @@ export function SecondaryButton({
           {
             backgroundColor: selected ? theme.primarySoft : theme.surfaceCard,
             borderColor: selected ? theme.primary : theme.border,
-            flexDirection: isRtl ? 'row-reverse' : 'row',
+            flexDirection: 'row',
             opacity: isDisabled ? 0.62 : 1,
           },
           pressed && !isDisabled ? styles.pressed : null,
@@ -415,7 +415,7 @@ export function MobileTopBar({
   const { isRtl } = useLanguage();
 
   return (
-    <View style={[styles.topBar, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+    <View style={[styles.topBar, { flexDirection: 'row' }]}>
       {leftIcon ? (
         <IconButton icon={leftIcon} label={leftLabel ?? title} onPress={onLeftPress} variant="ghost" />
       ) : (
@@ -541,7 +541,7 @@ export function SyncBanner({
         {
           backgroundColor: toneColor.backgroundColor,
           borderColor: toneColor.textColor,
-          flexDirection: isRtl ? 'row-reverse' : 'row',
+          flexDirection: 'row',
         },
       ]}>
       <View style={styles.syncBannerCopy}>
@@ -566,7 +566,7 @@ export function StationSummary({ station }: { station: Station }) {
 
   return (
     <Card>
-      <View style={[styles.summaryHeader, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+      <View style={[styles.summaryHeader, { flexDirection: 'row' }]}>
         <View style={styles.summaryCopy}>
           <ThemedText type="title">{station.label}</ThemedText>
           <ThemedText selectable themeColor="textSecondary">
@@ -575,7 +575,7 @@ export function StationSummary({ station }: { station: Station }) {
         </View>
         <StatusChip label={station.isActive ? strings.report.stationActive : strings.report.stationInactive} tone={station.isActive ? 'success' : 'danger'} />
       </View>
-      <View style={[styles.metaRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+      <View style={[styles.metaRow, { flexDirection: 'row' }]}>
         <StatusChip label={`${strings.report.stationLabel} ${station.stationId}`} tone="info" />
         {station.zone ? <StatusChip label={station.zone} /> : null}
       </View>
@@ -640,7 +640,7 @@ export function ReportCard({
 
   return (
     <Card>
-      <View style={[styles.reportHeader, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+      <View style={[styles.reportHeader, { flexDirection: 'row' }]}>
         <View style={styles.summaryCopy}>
           <ThemedText type="smallBold">{stationLabel ?? `${strings.report.stationLabel} ${stationId}`}</ThemedText>
           <ThemedText selectable type="small" themeColor="textSecondary">
@@ -649,7 +649,7 @@ export function ReportCard({
         </View>
         {syncLabel ? <StatusChip label={syncLabel} tone={syncTone(syncStatus)} /> : null}
       </View>
-      <View style={[styles.metaRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+      <View style={[styles.metaRow, { flexDirection: 'row' }]}>
         {status.map((item) => (
           <StatusBadge key={item} status={item} />
         ))}
@@ -814,7 +814,7 @@ function ToastBanner({ toast, topOffset, translateY }: { toast: ToastMessage; to
         {
           backgroundColor: theme.surfaceCard,
           borderColor: color,
-          flexDirection: isRtl ? 'row-reverse' : 'row',
+          flexDirection: 'row',
           top: topOffset,
           transform: [{ translateY }],
         },
@@ -912,7 +912,6 @@ const styles = StyleSheet.create({
   brandLetter: {
     fontFamily: Fonts.sansHeavy,
     fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.heavy,
     lineHeight: Typography.fontSize.xl * Typography.lineHeight.tight,
   },
   brandLetterCompact: {
@@ -956,7 +955,6 @@ const styles = StyleSheet.create({
   buttonText: {
     fontFamily: Fonts.sansBold,
     fontSize: 17,
-    fontWeight: Typography.fontWeight.bold,
     textAlign: 'center',
   },
   card: {
@@ -1001,7 +999,6 @@ const styles = StyleSheet.create({
   emptyIconText: {
     fontFamily: Fonts.sansHeavy,
     fontSize: Typography.fontSize.xxl,
-    fontWeight: Typography.fontWeight.heavy,
   },
   emptyState: {
     alignItems: 'center',
@@ -1028,7 +1025,6 @@ const styles = StyleSheet.create({
   iconButtonText: {
     fontFamily: Fonts.sansBold,
     fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
     lineHeight: Typography.fontSize.lg * Typography.lineHeight.tight,
   },
   pressed: {

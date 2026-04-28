@@ -26,8 +26,8 @@ import { useReviewReports } from '@/hooks/use-review-reports';
 import { useTeamUsers } from '@/hooks/use-team-users';
 import { useCurrentUser } from '@/lib/auth';
 import { isMobileAdminRole } from '@/lib/auth-routes';
-import { errorHaptic, successHaptic } from '@/lib/haptics';
 import { apiGet, apiPatch, apiPost } from '@/lib/sync/api-client';
+import { pickAndUploadImage } from '@/lib/upload-image';
 import type {
   AuditLog,
   MobileAdminOverview,
@@ -58,8 +58,13 @@ interface StationFormState {
 interface UserFormState {
   displayName: string;
   email: string;
+  password?: string;
+  role: UserRole;
+  image?: string;
+}
   password: string;
   role: UserRole;
+  image?: string;
 }
 
 const emptyStationForm: StationFormState = {
@@ -343,7 +348,7 @@ function SectionPill({
         {
           backgroundColor: active ? theme.primary : theme.backgroundElement,
           borderColor: active ? theme.primary : theme.border,
-          flexDirection: isRtl ? 'row-reverse' : 'row',
+          flexDirection: 'row',
         },
       ]}>
       <EcoPestIcon color={active ? theme.onPrimary : theme.textSecondary} name={icon} size={18} />
@@ -379,7 +384,7 @@ function SectionHeader({ action, subtitle, title }: { action?: React.ReactNode; 
   const { isRtl } = useLanguage();
 
   return (
-    <View style={[styles.sectionHeaderRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+    <View style={[styles.sectionHeaderRow, { flexDirection: 'row' }]}>
       <View style={styles.sectionHeaderCopy}>
         <ThemedText type="title">{title}</ThemedText>
         {subtitle ? (
@@ -432,6 +437,7 @@ export default function AdminScreen() {
   const [selectedUser, setSelectedUser] = useState<MobileAppUser | null>(null);
   const [selectedUserRole, setSelectedUserRole] = useState<UserRole>('technician');
   const [selectedUserCode, setSelectedUserCode] = useState('');
+  const [selectedUserName, setSelectedUserName] = useState('');
   const [savingUserAction, setSavingUserAction] = useState(false);
   const [exportCsv, setExportCsv] = useState('');
   const [exportLoading, setExportLoading] = useState(false);
@@ -745,9 +751,10 @@ export default function AdminScreen() {
     setSelectedUser(user);
     setSelectedUserRole(user.role);
     setSelectedUserCode('');
+    setSelectedUserName(user.displayName);
   }
 
-  async function patchSelectedUser(payload: Partial<Pick<MobileAppUser, 'isActive' | 'role'>> & { password?: string }, successMessage: string): Promise<void> {
+  async function patchSelectedUser(payload: Partial<Pick<MobileAppUser, 'isActive' | 'role' | 'displayName' | 'image'>> & { password?: string }, successMessage: string): Promise<void> {
     if (!selectedUser) {
       return;
     }
@@ -763,6 +770,7 @@ export default function AdminScreen() {
       setSelectedUser(updatedUser);
       setSelectedUserRole(updatedUser.role);
       setSelectedUserCode('');
+      setSelectedUserName(updatedUser.displayName);
       await Promise.all([team.refresh(), loadOverview()]);
       showToast(successMessage, 'success');
       await successHaptic();
@@ -804,7 +812,7 @@ export default function AdminScreen() {
         {overviewLoading ? <ActivityIndicator color={theme.primary} /> : null}
         {overviewError ? <SyncBanner body={overviewError} title={t.loadOverviewError} tone="warning" /> : null}
 
-        <View style={[styles.metricsGrid, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+        <View style={[styles.metricsGrid, { flexDirection: 'row' }]}>
           {isManagerStats(stats) ? (
             <>
               <MetricCard icon="target" label={t.totalStations} value={String(stats.totalStations)} />
@@ -826,7 +834,7 @@ export default function AdminScreen() {
 
         {analytics ? (
           <Card>
-            <View style={[styles.headerRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.headerRow, { flexDirection: 'row' }]}>
               <StatusChip label={t.analyticsRange} tone="info" />
               <EcoPestIcon color={theme.primary} name="dashboard" size={24} />
             </View>
@@ -847,7 +855,7 @@ export default function AdminScreen() {
             <Card>
               <ThemedText type="title">{t.zonePerformance}</ThemedText>
               {analytics.zones.slice(0, 4).map((zone) => (
-                <View key={zone.zone} style={[styles.dataRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                <View key={zone.zone} style={[styles.dataRow, { flexDirection: 'row' }]}>
                   <ThemedText type="smallBold" style={styles.dataRowTitle}>
                     {zone.zone}
                   </ThemedText>
@@ -858,7 +866,7 @@ export default function AdminScreen() {
             <Card>
               <ThemedText type="title">{t.analytics}</ThemedText>
               {analytics.statusSummary.slice(0, 4).map((item) => (
-                <View key={item.status} style={[styles.dataRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                <View key={item.status} style={[styles.dataRow, { flexDirection: 'row' }]}>
                   <ThemedText type="smallBold" style={styles.dataRowTitle}>
                     {statusOptionLabels[item.status]}
                   </ThemedText>
@@ -902,7 +910,7 @@ export default function AdminScreen() {
         {reviews.error ? <SyncBanner body={reviews.error} title={strings.adminPortal.reviewLoadError} tone="warning" /> : null}
         <InputField label={t.search} onChangeText={setReportSearch} value={reportSearch} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={[styles.filterRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+          <View style={[styles.filterRow, { flexDirection: 'row' }]}>
             {(['all', 'pending', 'reviewed', 'rejected'] as const).map((filter) => (
               <FilterPill
                 active={reportFilter === filter}
@@ -927,7 +935,7 @@ export default function AdminScreen() {
             return (
               <ReportCard
                 action={
-                  <View style={[styles.reviewActions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                  <View style={[styles.reviewActions, { flexDirection: 'row' }]}>
                     <SecondaryButton
                       disabled={isReviewing}
                       icon="check"
@@ -992,7 +1000,7 @@ export default function AdminScreen() {
 
             return (
               <Card key={station.stationId}>
-                <View style={[styles.headerRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                <View style={[styles.headerRow, { flexDirection: 'row' }]}>
                   <View style={styles.summaryCopy}>
                     <ThemedText type="title">{station.label}</ThemedText>
                     <ThemedText selectable type="small" themeColor="textSecondary">
@@ -1001,7 +1009,7 @@ export default function AdminScreen() {
                   </View>
                   <StatusChip label={station.isActive ? t.active : t.inactive} tone={station.isActive ? 'success' : 'neutral'} />
                 </View>
-                <View style={[styles.metaRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                <View style={[styles.metaRow, { flexDirection: 'row' }]}>
                   <StatusChip label={health.label} tone={health.tone} />
                   {station.zone ? <StatusChip label={station.zone} tone="info" /> : null}
                   {station.requiresImmediateSupervision ? <StatusChip label={t.pendingReports} tone="warning" /> : null}
@@ -1014,7 +1022,7 @@ export default function AdminScreen() {
                     {station.qrCodeValue}
                   </ThemedText>
                 ) : null}
-                <View style={[styles.reviewActions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+                <View style={[styles.reviewActions, { flexDirection: 'row' }]}>
                   <SecondaryButton icon="edit" onPress={() => openStationSheet('edit', station)}>
                     {strings.actions.edit}
                   </SecondaryButton>
@@ -1075,7 +1083,7 @@ export default function AdminScreen() {
         {team.error ? <SyncBanner body={team.error} title={strings.team.loadErrorTitle} tone="warning" /> : null}
         <InputField label={t.search} onChangeText={setTeamSearch} value={teamSearch} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={[styles.filterRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+          <View style={[styles.filterRow, { flexDirection: 'row' }]}>
             {(['all', 'technician', 'supervisor', 'manager'] as const).map((filter) => (
               <FilterPill
                 active={teamRoleFilter === filter}
@@ -1086,14 +1094,14 @@ export default function AdminScreen() {
             ))}
           </View>
         </ScrollView>
-        <View style={[styles.metricsGrid, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+        <View style={[styles.metricsGrid, { flexDirection: 'row' }]}>
           <MetricCard icon="user" label={t.totalUsers} value={String(team.users.length)} />
           <MetricCard icon="check-circle" label={t.activeTeam} value={String(team.users.filter((user) => user.isActive).length)} />
         </View>
         <View style={styles.cardList}>
           {visibleUsers.map((user) => (
             <Card key={user.uid}>
-              <View style={[styles.headerRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.headerRow, { flexDirection: 'row' }]}>
                 <View style={styles.summaryCopy}>
                   <ThemedText type="title">{user.displayName}</ThemedText>
                   <ThemedText selectable type="small" themeColor="textSecondary">
@@ -1102,7 +1110,7 @@ export default function AdminScreen() {
                 </View>
                 <StatusChip label={user.isActive ? strings.team.activeStatus : strings.team.inactiveStatus} tone={user.isActive ? 'success' : 'neutral'} />
               </View>
-              <View style={[styles.metaRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.metaRow, { flexDirection: 'row' }]}>
                 <StatusChip label={roleLabels[user.role]} tone="info" />
                 <StatusChip label={formatDate(user.createdAt, locale, t.dateUnavailable)} tone="neutral" />
               </View>
@@ -1138,7 +1146,7 @@ export default function AdminScreen() {
         <View style={styles.cardList}>
           {auditLogs.map((log) => (
             <Card key={log.logId}>
-              <View style={[styles.headerRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.headerRow, { flexDirection: 'row' }]}>
                 <View style={styles.summaryCopy}>
                   <ThemedText type="title">{log.action}</ThemedText>
                   <ThemedText selectable type="small" themeColor="textSecondary">
@@ -1229,7 +1237,7 @@ export default function AdminScreen() {
           />
 
           <Card>
-            <View style={[styles.headerRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.headerRow, { flexDirection: 'row' }]}>
               <StatusChip label={roleLabels[role]} tone="info" />
               <ThemedText selectable type="small" themeColor="textSecondary">
                 {currentUser.profile.displayName}
@@ -1243,7 +1251,7 @@ export default function AdminScreen() {
           </Card>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={[styles.sectionsRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.sectionsRow, { flexDirection: 'row' }]}>
               {sections.map((section) => (
                 <SectionPill
                   active={activeSection === section.id}
@@ -1277,7 +1285,7 @@ export default function AdminScreen() {
                 status={selectedReport.status}
               />
               <InputField label={t.reviewNotes} multiline onChangeText={setReviewNotes} value={reviewNotes} />
-              <View style={[styles.reviewActions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.reviewActions, { flexDirection: 'row' }]}>
                 <PrimaryButton
                   icon="check"
                   loading={reviewingReportId === selectedReport.reportId}
@@ -1304,7 +1312,7 @@ export default function AdminScreen() {
             <InputField label={strings.scan.stationLocation} onChangeText={(value) => setStationForm((current) => ({ ...current, location: value }))} value={stationForm.location} />
             <InputField label={strings.scan.stationZone} onChangeText={(value) => setStationForm((current) => ({ ...current, zone: value }))} value={stationForm.zone} />
             <InputField label={strings.report.notesLabel} multiline onChangeText={(value) => setStationForm((current) => ({ ...current, description: value }))} value={stationForm.description} />
-            <View style={[styles.coordinateRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.coordinateRow, { flexDirection: 'row' }]}>
               <View style={styles.coordinateInput}>
                 <InputField contentDirection="ltr" label="Lat" onChangeText={(value) => setStationForm((current) => ({ ...current, lat: value }))} value={stationForm.lat} />
               </View>
@@ -1320,7 +1328,7 @@ export default function AdminScreen() {
                 {
                   backgroundColor: stationForm.requiresImmediateSupervision ? theme.warningSoft : theme.backgroundElement,
                   borderColor: stationForm.requiresImmediateSupervision ? theme.warningStrong : theme.border,
-                  flexDirection: isRtl ? 'row-reverse' : 'row',
+                  flexDirection: 'row',
                 },
               ]}>
               <EcoPestIcon color={stationForm.requiresImmediateSupervision ? theme.warningStrong : theme.textSecondary} name="alert-circle" size={22} />
@@ -1337,7 +1345,13 @@ export default function AdminScreen() {
             <InputField label={strings.auth.account} onChangeText={(value) => setUserForm((current) => ({ ...current, displayName: value }))} value={userForm.displayName} />
             <InputField contentDirection="ltr" label={strings.auth.email} onChangeText={(value) => setUserForm((current) => ({ ...current, email: value }))} value={userForm.email} />
             <InputField contentDirection="ltr" label={t.accessCode} onChangeText={(value) => setUserForm((current) => ({ ...current, password: value }))} placeholder={t.accessCodePlaceholder} value={userForm.password} />
-            <View style={[styles.filterRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+            <SecondaryButton icon="camera" onPress={async () => {
+              const url = await pickAndUploadImage();
+              if (url) setUserForm(c => ({ ...c, image: url }));
+            }}>
+              {userForm.image ? 'تم اختيار صورة' : 'إضافة صورة (اختياري)'}
+            </SecondaryButton>
+            <View style={[styles.filterRow, { flexDirection: 'row' }]}>
               {(['technician', 'supervisor', 'manager'] as const).map((nextRole) => (
                 <FilterPill
                   active={userForm.role === nextRole}
@@ -1363,7 +1377,7 @@ export default function AdminScreen() {
               <ThemedText selectable type="small" themeColor="textSecondary">
                 {selectedUser.email}
               </ThemedText>
-              <View style={[styles.filterRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.filterRow, { flexDirection: 'row' }]}>
                 {(['technician', 'supervisor', 'manager'] as const).map((nextRole) => (
                   <FilterPill
                     active={selectedUserRole === nextRole}
@@ -1375,10 +1389,41 @@ export default function AdminScreen() {
               </View>
               <SecondaryButton
                 disabled={selectedUser.uid === currentUser.profile.uid}
+                icon="camera"
+                loading={savingUserAction}
+                onPress={async () => {
+                  const url = await pickAndUploadImage(selectedUser.uid);
+                  if (url) {
+                     await patchSelectedUser({ image: url }, "تم تحديث الصورة بنجاح");
+                  }
+                }}>
+                تحديث الصورة
+              </SecondaryButton>
+              <SecondaryButton
+                disabled={selectedUser.uid === currentUser.profile.uid}
+                icon="camera"
+                loading={savingUserAction}
+                onPress={async () => {
+                  const url = await pickAndUploadImage(selectedUser.uid);
+                  if (url) {
+                     await patchSelectedUser({ image: url }, "تم تحديث الصورة بنجاح");
+                  }
+                }}>
+                تحديث الصورة
+              </SecondaryButton>
+              <SecondaryButton
+                disabled={selectedUser.uid === currentUser.profile.uid}
                 icon="check"
                 loading={savingUserAction}
                 onPress={() => void patchSelectedUser({ role: selectedUserRole }, t.roleSaved)}>
                 {t.roleSaved}
+              </SecondaryButton>
+              <InputField label="الاسم" onChangeText={setSelectedUserName} value={selectedUserName} />
+              <SecondaryButton
+                icon="edit"
+                loading={savingUserAction}
+                onPress={() => void patchSelectedUser({ displayName: selectedUserName }, "تم تحديث الاسم")}>
+                تحديث الاسم
               </SecondaryButton>
               <InputField contentDirection="ltr" label={t.accessCode} onChangeText={setSelectedUserCode} placeholder={t.accessCodePlaceholder} value={selectedUserCode} />
               <SecondaryButton
@@ -1464,7 +1509,7 @@ function StationTaskGroup({ stations, title }: { stations: Station[]; title: str
 
         return (
           <Card key={station.stationId}>
-            <View style={[styles.headerRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+            <View style={[styles.headerRow, { flexDirection: 'row' }]}>
               <View style={styles.summaryCopy}>
                 <ThemedText type="smallBold">{station.label}</ThemedText>
                 <ThemedText selectable type="small" themeColor="textSecondary">
@@ -1562,7 +1607,6 @@ const styles = StyleSheet.create({
   metricValue: {
     fontFamily: Fonts.sansHeavy,
     fontSize: Typography.fontSize.xxl,
-    fontWeight: Typography.fontWeight.heavy,
     textAlign: 'right',
   },
   metricsGrid: {

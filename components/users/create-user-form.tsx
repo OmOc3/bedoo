@@ -19,6 +19,9 @@ function toFormData(values: CreateUserValues): FormData {
   formData.set("email", values.email);
   formData.set("password", values.password);
   formData.set("role", values.role);
+  if (values.image) {
+    formData.set("image", values.image);
+  }
 
   return formData;
 }
@@ -36,6 +39,7 @@ function generateAccessCode(length = 10): string {
 
 export function CreateUserForm() {
   const [result, setResult] = useState<UserActionResult | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const form = useForm<CreateUserValues>({
     resolver: zodResolver(createUserSchema),
     defaultValues: {
@@ -48,7 +52,25 @@ export function CreateUserForm() {
 
   async function onSubmit(values: CreateUserValues): Promise<void> {
     setResult(null);
-    const actionResult = await createUserAccountAction(toFormData(values));
+
+    let imageUrl = values.image;
+    if (imageFile) {
+      const fileForm = new FormData();
+      fileForm.set("image", imageFile);
+      // We don't send uid because the user doesn't exist yet! We need to upload the image without uid, 
+      // or we can wait, the backend might require uid.
+      // Wait, in app/api/upload-profile-image/route.ts, if there's no uid, it uses session.user.id!
+      // This means the image will be uploaded to the admin's folder if we don't provide uid. That's fine, it's just a cloudinary path.
+      
+      const res = await fetch("/api/upload-profile-image", { method: "POST", body: fileForm });
+      if (res.ok) {
+        const { url } = await res.json();
+        imageUrl = url;
+      }
+    }
+
+    const finalValues = { ...values, image: imageUrl };
+    const actionResult = await createUserAccountAction(toFormData(finalValues));
 
     setResult(actionResult);
 
@@ -59,6 +81,7 @@ export function CreateUserForm() {
         password: "",
         role: "technician",
       });
+      setImageFile(null);
     }
   }
 
@@ -84,6 +107,19 @@ export function CreateUserForm() {
         placeholder="مثال: أحمد علي"
         {...form.register("displayName")}
       />
+
+      <div className="space-y-2">
+        <label className="block text-sm font-semibold text-[var(--foreground)]" htmlFor="image">
+          الصورة الشخصية (اختياري)
+        </label>
+        <input
+          accept="image/*"
+          className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-teal-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-teal-700 hover:file:bg-teal-100"
+          id="image"
+          onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+          type="file"
+        />
+      </div>
 
       <TextField
         autoComplete="email"

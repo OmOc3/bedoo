@@ -90,7 +90,7 @@ function RecentReportItem({ locale, report }: { locale: string; report: DraftRep
         {
           backgroundColor: theme.backgroundElement,
           borderColor: theme.border,
-          flexDirection: isRtl ? 'row-reverse' : 'row',
+          flexDirection: 'row',
         },
       ]}>
       <View style={[styles.reportIcon, { backgroundColor: theme.backgroundSelected }]}>
@@ -174,7 +174,7 @@ export default function HomeScreen() {
               {
                 backgroundColor: theme.backgroundElement,
                 borderColor: pendingTotal > 0 ? theme.warningStrong : theme.successStrong,
-                flexDirection: isRtl ? 'row-reverse' : 'row',
+                flexDirection: 'row',
               },
             ]}>
             <View style={[styles.syncIcon, { backgroundColor: pendingTotal > 0 ? theme.warningSoft : theme.primarySoft }]}>
@@ -195,7 +195,7 @@ export default function HomeScreen() {
             ) : null}
           </View>
 
-          <View style={[styles.statsGrid, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+          <View style={[styles.statsGrid, { flexDirection: 'row' }]}>
             <StatCard icon="file-text" label={t.pendingReports} onPress={() => router.push('/(tabs)/drafts')} value={String(pendingTotal)} />
             <StatCard icon="clipboard-check" label={t.savedDrafts} onPress={() => router.push('/(tabs)/drafts')} value={String(draftCount)} />
             <StatCard icon="dashboard" label={t.todayReports} onPress={() => router.push('/(tabs)/history')} value={String(recentReports.length)} wide />
@@ -207,7 +207,7 @@ export default function HomeScreen() {
             </PrimaryButton>
           ) : null}
 
-          <View style={[styles.sectionHeader, { flexDirection: isRtl ? 'row' : 'row-reverse' }]}>
+          <View style={[styles.sectionHeader, { flexDirection: 'row-reverse' }]}>
             <Pressable accessibilityRole="button" onPress={() => router.push('/(tabs)/history')}>
               <ThemedText type="smallBold" style={{ color: theme.primary }}>
                 {t.viewAll}
@@ -320,7 +320,6 @@ const styles = StyleSheet.create({
   statValue: {
     fontFamily: Fonts.sansHeavy,
     fontSize: Typography.fontSize.display,
-    fontWeight: Typography.fontWeight.heavy,
     lineHeight: Typography.fontSize.display * Typography.lineHeight.tight,
   },
   syncAction: {

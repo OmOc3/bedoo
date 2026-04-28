@@ -248,7 +248,6 @@ const styles = StyleSheet.create({
   loginTitle: {
     fontFamily: Fonts.sans,
     fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.regular,
     textAlign: 'center',
   },
   safeArea: {

@@ -58,6 +58,7 @@ export interface MobileUserResponse {
   isActive: boolean;
   role: AppUser["role"];
   uid: string;
+  image?: string;
 }
 
 export function timestampToIso(value: unknown): string | undefined {
@@ -132,6 +133,7 @@ export function mobileUserResponse(user: AppUser): MobileUserResponse {
     displayName: user.displayName,
     role: user.role,
     isActive: user.isActive,
+    ...(user.image ? { image: user.image } : {}),
     ...(timestampToIso(user.createdAt) ? { createdAt: timestampToIso(user.createdAt) } : {}),
   };
 }

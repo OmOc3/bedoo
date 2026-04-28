@@ -13,6 +13,7 @@ export const createUserSchema = z.object({
   email: z.string().trim().email(),
   password: accessCodeSchema,
   role: z.enum(userRoles),
+  image: z.string().url().optional().or(z.literal("")),
 });
 
 export const updateUserRoleSchema = z.object({
@@ -27,7 +28,13 @@ export const updateUserAccessCodeSchema = z.object({
   password: accessCodeSchema,
 });
 
+export const updateUserProfileSchema = z.object({
+  displayName: z.string().trim().min(1),
+  image: z.string().url().optional().or(z.literal("")),
+});
+
 export type CreateUserValues = z.infer<typeof createUserSchema>;
 export type UpdateUserRoleValues = z.infer<typeof updateUserRoleSchema>;
 export type UpdateUserActiveValues = z.infer<typeof updateUserActiveSchema>;
 export type UpdateUserAccessCodeValues = z.infer<typeof updateUserAccessCodeSchema>;
+export type UpdateUserProfileValues = z.infer<typeof updateUserProfileSchema>;

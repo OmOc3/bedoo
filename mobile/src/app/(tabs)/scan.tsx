@@ -210,7 +210,7 @@ export default function ScanScreen() {
           {scanHistory.length > 0 ? (
             <View style={styles.historyBlock}>
               <ThemedText type="smallBold">{t.historyTitle}</ThemedText>
-              <View style={[styles.historyList, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+              <View style={[styles.historyList]}>
                 {scanHistory.map((historyStationId) => (
                   <Pressable
                     accessibilityRole="button"
@@ -271,7 +271,7 @@ export default function ScanScreen() {
             </ThemedText>
           ) : null}
 
-          <View style={[styles.actions, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
+          <View style={[styles.actions]}>
             <SecondaryButton onPress={() => setIsPreviewVisible(false)}>{strings.actions.cancel}</SecondaryButton>
             <PrimaryButton icon="file-text" onPress={() => openReport(previewStationId ?? '')}>
               {strings.actions.openReport}

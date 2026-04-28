@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 
 import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
-import { MobileTopBar, ScreenShell, SecondaryButton, useToast } from '@/components/ecopest-ui';
+import { InputField, MobileTopBar, PrimaryButton, ScreenShell, useToast } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Brand, Fonts, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useKeepAwakeMode } from '@/contexts/keep-awake-context';
@@ -12,9 +13,12 @@ import { useLanguage } from '@/contexts/language-context';
 import { useTextScale } from '@/contexts/text-scale-context';
 import { type ThemeMode, useThemeMode } from '@/contexts/theme-context';
 import { useTheme } from '@/hooks/use-theme';
-import { signOut, useCurrentUser } from '@/lib/auth';
+import { loadMobileUserProfile, signOut, useCurrentUser } from '@/lib/auth';
 import { errorHaptic, successHaptic } from '@/lib/haptics';
 import { type Language } from '@/lib/i18n';
+import { pickAndUploadImage } from '@/lib/upload-image';
+import { getApiBaseUrl } from '@/lib/sync/api-client';
+import { readAuthCookieHeader } from '@/lib/auth-client';
 
 const modes: ThemeMode[] = ['system', 'light', 'dark'];
 const languageOptions: Language[] = ['ar', 'en'];
@@ -28,40 +32,43 @@ const modeLabelKeys: Record<ThemeMode, 'themeSystem' | 'themeLight' | 'themeDark
   dark: 'themeDark',
 };
 
-function SettingsCard({ children, title }: { children: ReactNode; title: string }) {
+function SettingsSection({ children, title }: { children: ReactNode; title: string }) {
   const theme = useTheme();
 
   return (
     <View style={styles.section}>
-      <ThemedText type="title" style={styles.sectionTitle}>
+      <ThemedText type="smallBold" themeColor="textSecondary" style={styles.sectionTitle}>
         {title}
       </ThemedText>
-      <View style={[styles.settingsCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>{children}</View>
+      <View style={[styles.settingsCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+        {children}
+      </View>
     </View>
   );
 }
 
-function SettingsRow({
+function SettingsItem({
   children,
   icon,
   subtitle,
   title,
+  onPress,
 }: {
   children?: ReactNode;
   icon: EcoPestIconName;
   subtitle?: string;
   title: string;
+  onPress?: () => void;
 }) {
   const theme = useTheme();
-  const { isRtl } = useLanguage();
 
-  return (
-    <View style={[styles.settingsRow, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
-      <View style={[styles.rowIcon, { backgroundColor: theme.background }]}>
-        <EcoPestIcon color={theme.textSecondary} name={icon} size={25} />
+  const content = (
+    <View style={[styles.settingsItem, { flexDirection: 'row' }]}>
+      <View style={[styles.itemIcon, { backgroundColor: theme.surfaceCardDark }]}>
+        <EcoPestIcon color={theme.text} name={icon} size={22} />
       </View>
-      <View style={styles.rowCopy}>
-        <ThemedText type="smallBold" style={styles.rowTitle}>
+      <View style={styles.itemCopy}>
+        <ThemedText type="default" style={styles.itemTitle}>
           {title}
         </ThemedText>
         {subtitle ? (
@@ -73,18 +80,33 @@ function SettingsRow({
       {children}
     </View>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+        {content}
+      </Pressable>
+    );
+  }
+
+  return content;
 }
 
 export default function SettingsScreen() {
   const { mode, resolvedTheme, setMode } = useThemeMode();
   const { keepAwakeEnabled, setKeepAwakeEnabled } = useKeepAwakeMode();
   const { largeTextEnabled, setLargeTextEnabled } = useTextScale();
-  const { isRtl, language, needsRestart, roleLabels, setLanguage, strings } = useLanguage();
+  const { language, needsRestart, roleLabels, setLanguage, strings } = useLanguage();
   const currentUser = useCurrentUser();
   const theme = useTheme();
   const t = strings.settings;
   const legal = strings.legal;
   const { showToast } = useToast();
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [displayName, setDisplayName] = useState(currentUser?.profile.displayName ?? '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   async function logout(): Promise<void> {
     try {
@@ -98,67 +120,158 @@ export default function SettingsScreen() {
     }
   }
 
+  async function handleUpdateProfile() {
+    if (!currentUser?.profile.uid) return;
+    setIsSaving(true);
+    try {
+      const baseUrl = await getApiBaseUrl();
+      const cookie = await readAuthCookieHeader();
+      const res = await fetch(`${baseUrl}/api/mobile/users/${currentUser.profile.uid}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Cookie: cookie,
+        },
+        body: JSON.stringify({ displayName }),
+      });
+      if (res.ok) {
+        showToast("تم تحديث البيانات بنجاح", 'success');
+        await successHaptic();
+        setIsEditing(false);
+        // Refresh profile in context
+        // In AuthProvider it uses loadMobileUserProfile
+      } else {
+        throw new Error('Update failed');
+      }
+    } catch {
+      showToast("تعذر التحديث", 'error');
+      await errorHaptic();
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handlePickImage() {
+    if (!currentUser?.profile.uid) return;
+    setUploadingImage(true);
+    try {
+      const url = await pickAndUploadImage(currentUser.profile.uid);
+      if (url) {
+        // Also update the user's image in the DB
+        const baseUrl = await getApiBaseUrl();
+        const cookie = await readAuthCookieHeader();
+        await fetch(`${baseUrl}/api/mobile/users/${currentUser.profile.uid}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Cookie: cookie,
+          },
+          body: JSON.stringify({ image: url }),
+        });
+        showToast("تم تحديث الصورة بنجاح", 'success');
+        await successHaptic();
+      }
+    } catch {
+      showToast("تعذر رفع الصورة", 'error');
+      await errorHaptic();
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
   const profile = currentUser?.profile;
 
   return (
     <ScreenShell>
       <SafeAreaView style={styles.safeArea}>
+        <MobileTopBar
+          leftIcon="menu"
+          leftLabel={strings.actions.menu}
+          onLeftPress={() => router.push('/(tabs)')}
+          title={t.title}
+        />
         <ScrollView contentContainerStyle={styles.scrollContent} contentInsetAdjustmentBehavior="automatic" showsVerticalScrollIndicator={false}>
-          <MobileTopBar
-            leftIcon="menu"
-            leftLabel={strings.actions.menu}
-            onLeftPress={() => router.push('/(tabs)')}
-            rightIcon="user"
-            rightLabel={strings.actions.account}
-            title={t.title}
-          />
+          
+          <View style={[styles.profileHeader]}>
+             <Pressable onPress={() => void handlePickImage()} style={styles.avatarWrapper}>
+                <View style={[styles.avatar, { backgroundColor: theme.primaryLight }]}>
+                  {profile?.image ? (
+                     <Image source={{ uri: profile.image }} style={styles.avatarImage} />
+                  ) : (
+                     <EcoPestIcon color={theme.onPrimary} name="user" size={40} />
+                  )}
+                </View>
+                <View style={[styles.editBadge, { backgroundColor: theme.primary, borderColor: theme.background }]}>
+                  {uploadingImage ? (
+                    <ActivityIndicator color={theme.onPrimary} size="small" />
+                  ) : (
+                    <EcoPestIcon color={theme.onPrimary} name="camera" size={14} />
+                  )}
+                </View>
+             </Pressable>
 
-          <View
-            style={[
-              styles.profileCard,
-              Shadow.sm,
-              {
-                backgroundColor: theme.backgroundElement,
-                borderColor: theme.border,
-                flexDirection: isRtl ? 'row-reverse' : 'row',
-              },
-            ]}>
-            <View style={[styles.avatar, { backgroundColor: theme.surfaceCardDark }]}>
-              <EcoPestIcon color={theme.onPrimary} name="user" size={30} />
-            </View>
-            <View style={styles.profileCopy}>
-              <ThemedText type="title">{profile?.displayName ?? t.defaultUserName}</ThemedText>
-              <ThemedText themeColor="textSecondary">{profile ? roleLabels[profile.role] : t.defaultUserRole}</ThemedText>
-            </View>
+             {isEditing ? (
+               <View style={styles.editForm}>
+                  <InputField label="الاسم" value={displayName} onChangeText={setDisplayName} />
+                  <View style={[styles.editActions, { flexDirection: 'row' }]}>
+                    <PrimaryButton loading={isSaving} onPress={() => void handleUpdateProfile()} icon="check">حفظ</PrimaryButton>
+                    <PrimaryButton variant="ghost" onPress={() => setIsEditing(false)}>إلغاء</PrimaryButton>
+                  </View>
+               </View>
+             ) : (
+               <View style={styles.profileCopy}>
+                 <ThemedText type="subtitle" style={{ textAlign: 'center' }}>{profile?.displayName ?? t.defaultUserName}</ThemedText>
+                 <ThemedText themeColor="textSecondary" style={{ textAlign: 'center' }}>{profile ? roleLabels[profile.role] : t.defaultUserRole}</ThemedText>
+                 <Pressable onPress={() => setIsEditing(true)} style={[styles.editProfileBtn, { backgroundColor: theme.surfaceCardDark }]}>
+                    <ThemedText type="smallBold" themeColor="primary">تعديل الملف الشخصي</ThemedText>
+                 </Pressable>
+               </View>
+             )}
           </View>
 
-          <SettingsCard title={t.appSettingsTitle}>
-            <SettingsRow icon="globe" title={t.languageTitle}>
-              <View style={[styles.segmented, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
-                {languageOptions.map((item) => (
-                  <SecondaryButton key={item} selected={language === item} onPress={() => void setLanguage(item)}>
-                    {t[languageLabelKeys[item]]}
-                  </SecondaryButton>
-                ))}
-              </View>
-            </SettingsRow>
+          <SettingsSection title={t.appSettingsTitle}>
+            <SettingsItem icon="globe" title={t.languageTitle}>
+               <View style={[styles.segmented, { flexDirection: 'row' }]}>
+                  {languageOptions.map((item) => (
+                    <Pressable
+                       key={item}
+                       onPress={() => void setLanguage(item)}
+                       style={[
+                         styles.segmentBtn,
+                         language === item && { backgroundColor: theme.primary },
+                       ]}>
+                       <ThemedText type="smallBold" style={{ color: language === item ? theme.onPrimary : theme.text }}>
+                         {t[languageLabelKeys[item]]}
+                       </ThemedText>
+                    </Pressable>
+                  ))}
+               </View>
+            </SettingsItem>
             {needsRestart ? (
-              <ThemedText type="small" themeColor="textSecondary" style={styles.restartHint}>
+              <ThemedText type="small" themeColor="warning" style={styles.restartHint}>
                 {t.languageRestartHint}
               </ThemedText>
             ) : null}
-            <View style={[styles.rowDivider, { backgroundColor: theme.border }]} />
-            <SettingsRow icon="moon" subtitle={`${t.themeCurrent}: ${resolvedTheme === 'dark' ? t.themeDark : t.themeLight}`} title={t.themeTitle}>
-              <View style={[styles.segmented, { flexDirection: isRtl ? 'row-reverse' : 'row' }]}>
-                {modes.map((item) => (
-                  <SecondaryButton key={item} selected={mode === item} onPress={() => setMode(item)}>
-                    {t[modeLabelKeys[item]]}
-                  </SecondaryButton>
-                ))}
-              </View>
-            </SettingsRow>
-            <View style={[styles.rowDivider, { backgroundColor: theme.border }]} />
-            <SettingsRow icon="type" title={t.largeTextTitle}>
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <SettingsItem icon="moon" title={t.themeTitle} subtitle={`${t.themeCurrent}: ${resolvedTheme === 'dark' ? t.themeDark : t.themeLight}`}>
+               <View style={[styles.segmented, { flexDirection: 'row' }]}>
+                  {modes.map((item) => (
+                    <Pressable
+                       key={item}
+                       onPress={() => setMode(item)}
+                       style={[
+                         styles.segmentBtn,
+                         mode === item && { backgroundColor: theme.primary },
+                       ]}>
+                       <ThemedText type="smallBold" style={{ color: mode === item ? theme.onPrimary : theme.text }}>
+                         {t[modeLabelKeys[item]]}
+                       </ThemedText>
+                    </Pressable>
+                  ))}
+               </View>
+            </SettingsItem>
+            <View style={[styles.divider, { backgroundColor: theme.border }]} />
+            <SettingsItem icon="type" title={t.largeTextTitle}>
               <Switch
                 accessibilityHint={t.largeTextBody}
                 accessibilityLabel={t.largeTextTitle}
@@ -169,11 +282,11 @@ export default function SettingsScreen() {
                 trackColor={{ false: theme.border, true: theme.primaryLight }}
                 value={largeTextEnabled}
               />
-            </SettingsRow>
-          </SettingsCard>
+            </SettingsItem>
+          </SettingsSection>
 
-          <SettingsCard title={t.dataSyncTitle}>
-            <SettingsRow icon="sun" subtitle={t.keepAwakeBody} title={t.keepAwakeTitle}>
+          <SettingsSection title={t.dataSyncTitle}>
+            <SettingsItem icon="sun" title={t.keepAwakeTitle} subtitle={t.keepAwakeBody}>
               <Switch
                 accessibilityHint={t.keepAwakeBody}
                 accessibilityLabel={t.keepAwakeTitle}
@@ -184,41 +297,27 @@ export default function SettingsScreen() {
                 trackColor={{ false: theme.border, true: theme.primaryLight }}
                 value={keepAwakeEnabled}
               />
-            </SettingsRow>
-          </SettingsCard>
+            </SettingsItem>
+          </SettingsSection>
 
-          <View style={styles.section}>
-            <ThemedText type="title" style={styles.sectionTitle}>
-              {t.accountSecurityTitle}
-            </ThemedText>
-            <View
-              style={[
-                styles.securityCard,
-                {
-                  backgroundColor: theme.backgroundElement,
-                  borderColor: theme.border,
-                  flexDirection: isRtl ? 'row-reverse' : 'row',
-                },
-              ]}>
-              <EcoPestIcon color={theme.textSecondary} name="shield" size={28} />
-              <ThemedText themeColor="textSecondary" style={styles.securityText}>
-                {t.securityBody}
-              </ThemedText>
-            </View>
+          <SettingsSection title={t.accountSecurityTitle}>
+            <SettingsItem icon="shield" title="معلومات الأمان" subtitle={t.securityBody} />
+          </SettingsSection>
+
+          <View style={styles.footerActions}>
+             <Pressable
+               accessibilityRole="button"
+               onPress={() => void logout()}
+               style={({ pressed }) => [
+                 styles.logoutButton,
+                 { backgroundColor: theme.dangerSoft, opacity: pressed ? 0.76 : 1 },
+               ]}>
+               <EcoPestIcon color={theme.danger} name="logout" size={24} />
+               <ThemedText type="smallBold" style={{ color: theme.danger }}>
+                 {t.logoutCta}
+               </ThemedText>
+             </Pressable>
           </View>
-
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void logout()}
-            style={({ pressed }) => [
-              styles.logoutButton,
-              { borderColor: theme.danger, flexDirection: isRtl ? 'row-reverse' : 'row', opacity: pressed ? 0.76 : 1 },
-            ]}>
-            <EcoPestIcon color={theme.danger} name="logout" size={26} />
-            <ThemedText type="title" style={[styles.logoutText, { color: theme.danger }]}>
-              {t.logoutCta}
-            </ThemedText>
-          </Pressable>
 
           <View style={styles.legalRow}>
             <Pressable accessibilityRole="link" onPress={() => router.push('/legal/terms')}>
@@ -238,102 +337,134 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  avatar: {
-    alignItems: 'center',
-    borderRadius: Radius.full,
-    height: 74,
-    justifyContent: 'center',
-    width: 74,
-  },
-  legalRow: {
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  logoutButton: {
-    alignItems: 'center',
-    borderRadius: Radius.lg,
-    borderWidth: 2,
-    gap: Spacing.md,
-    justifyContent: 'center',
-    minHeight: 78,
-  },
-  logoutText: {
-    fontSize: Typography.fontSize.lg,
-  },
-  profileCard: {
-    alignItems: 'center',
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    gap: Spacing.lg,
-    minHeight: 132,
-    padding: Spacing.lg,
-  },
-  profileCopy: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  restartHint: {
-    paddingHorizontal: Spacing.md,
-  },
-  rowCopy: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  rowDivider: {
-    height: 1,
-    marginHorizontal: -Spacing.lg,
-  },
-  rowIcon: {
-    alignItems: 'center',
-    borderRadius: Radius.full,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
-  },
-  rowTitle: {
-    fontSize: Typography.fontSize.base,
-  },
   safeArea: {
     flex: 1,
     width: '100%',
   },
   scrollContent: {
-    gap: Spacing.lg,
+    gap: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: BottomTabInset + Spacing.xl,
   },
-  section: {
+  profileHeader: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
     gap: Spacing.md,
+  },
+  avatarWrapper: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: Radius.full,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileCopy: {
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  editProfileBtn: {
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.full,
+  },
+  editForm: {
+    width: '100%',
+    gap: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  editActions: {
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  section: {
+    gap: Spacing.sm,
   },
   sectionTitle: {
-    fontFamily: Fonts.sansMedium,
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  securityCard: {
-    alignItems: 'flex-start',
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    gap: Spacing.md,
-    padding: Spacing.lg,
-  },
-  securityText: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  segmented: {
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    justifyContent: 'flex-start',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: Spacing.sm,
   },
   settingsCard: {
-    borderRadius: Radius.lg,
+    borderRadius: Radius.xl,
     borderWidth: 1,
-    gap: Spacing.md,
-    padding: Spacing.lg,
+    overflow: 'hidden',
   },
-  settingsRow: {
+  settingsItem: {
     alignItems: 'center',
+    padding: Spacing.md,
     gap: Spacing.md,
-    minHeight: TouchTarget,
+  },
+  itemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: Radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  itemTitle: {
+    fontSize: Typography.fontSize.base,
+  },
+  divider: {
+    height: 1,
+    marginLeft: 70,
+  },
+  segmented: {
+    backgroundColor: 'transparent',
+    gap: Spacing.xs,
+  },
+  segmentBtn: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.md,
+  },
+  restartHint: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  footerActions: {
+    paddingTop: Spacing.md,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+    borderRadius: Radius.xl,
+    gap: Spacing.sm,
+  },
+  legalRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: Spacing.md,
+    paddingTop: Spacing.lg,
   },
 });
