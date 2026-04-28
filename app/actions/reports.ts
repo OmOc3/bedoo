@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server-session";
+import { uploadReportImageToCloudinary } from "@/lib/cloudinary/report-images";
 import { getStationById, submitReportRecord, updateReportReviewRecord } from "@/lib/db/repositories";
 import { reviewReportSchema, submitReportSchema } from "@/lib/validation/reports";
 import { writeAuditLog } from "@/lib/audit";
@@ -35,10 +36,9 @@ function stringArray(formData: FormData, key: string): string[] {
   return formData.getAll(key).filter((value): value is string => typeof value === "string");
 }
 
-function hasImageFile(formData: FormData, key: string): boolean {
+function getImageFile(formData: FormData, key: string): File | undefined {
   const value = formData.get(key);
-
-  return value instanceof File && value.size > 0;
+  return value instanceof File && value.size > 0 ? value : undefined;
 }
 
 export async function submitStationReportAction(
@@ -50,6 +50,9 @@ export async function submitStationReportAction(
     stationId,
     status: stringArray(formData, "status"),
     notes: optionalString(formData, "notes"),
+    beforePhoto: getImageFile(formData, "beforePhoto"),
+    afterPhoto: getImageFile(formData, "afterPhoto"),
+    stationPhoto: getImageFile(formData, "stationPhoto"),
   });
 
   if (!parsed.success) {
@@ -69,20 +72,42 @@ export async function submitStationReportAction(
     return { error: "هذه المحطة غير نشطة" };
   }
 
-  if (hasImageFile(formData, "beforePhoto") || hasImageFile(formData, "afterPhoto")) {
-    return { error: "رفع الصور غير متاح في هذه المرحلة بعد إزالة التخزين الخارجي." };
-  }
-
   try {
+    const clientReportId = crypto.randomUUID();
+    const [beforePhotoUrl, afterPhotoUrl, stationPhotoUrl] = await Promise.all([
+      parsed.data.beforePhoto
+        ? uploadReportImageToCloudinary(parsed.data.beforePhoto, parsed.data.stationId, `${clientReportId}-before`)
+        : Promise.resolve(undefined),
+      parsed.data.afterPhoto
+        ? uploadReportImageToCloudinary(parsed.data.afterPhoto, parsed.data.stationId, `${clientReportId}-after`)
+        : Promise.resolve(undefined),
+      parsed.data.stationPhoto
+        ? uploadReportImageToCloudinary(parsed.data.stationPhoto, parsed.data.stationId, `${clientReportId}-station`)
+        : Promise.resolve(undefined),
+    ]);
+
     const result = await submitReportRecord({
       actorUid: session.uid,
       actorRole: session.role,
       reportId: crypto.randomUUID(),
+      clientReportId,
       stationId: parsed.data.stationId,
       technicianName: session.user.displayName,
       status: parsed.data.status,
       notes: parsed.data.notes,
+      photoPaths: {
+        before: beforePhotoUrl,
+        after: afterPhotoUrl,
+        station: stationPhotoUrl,
+      },
     });
+
+    revalidatePath("/dashboard/manager");
+    revalidatePath("/dashboard/manager/reports");
+    revalidatePath("/dashboard/manager/tasks");
+    revalidatePath("/dashboard/supervisor");
+    revalidatePath("/dashboard/supervisor/reports");
+    revalidatePath("/dashboard/supervisor/tasks");
 
     return {
       success: true,

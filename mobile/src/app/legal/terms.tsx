@@ -9,7 +9,7 @@ import { useLanguage } from '@/contexts/language-context';
 import { getLocaleStrings, getTextDirection, type Language } from '@/lib/i18n';
 
 export default function TermsScreen() {
-  const { isRtl, language } = useLanguage();
+  const { language } = useLanguage();
   const [legalLanguage, setLegalLanguage] = useState<Language>(language);
   const legalStrings = getLocaleStrings(legalLanguage).i18n;
   const content = legalStrings.legal.termsContent;

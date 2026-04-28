@@ -7,6 +7,9 @@ export const submitReportSchema = z.object({
   stationId: z.string().trim().min(1),
   status: z.array(statusOptionSchema).min(1),
   notes: z.string().trim().max(500).optional(),
+  beforePhoto: z.instanceof(File).optional(),
+  afterPhoto: z.instanceof(File).optional(),
+  stationPhoto: z.instanceof(File).optional(),
 });
 
 export const reviewReportSchema = z.object({

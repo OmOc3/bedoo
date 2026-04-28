@@ -42,9 +42,14 @@ function formatTimestamp(timestamp?: AppTimestamp): string {
 
 function reviewStatusBadge(status: Report["reviewStatus"]) {
   const classes = {
-    pending: "bg-amber-100 text-amber-700",
-    reviewed: "bg-green-100 text-green-700",
-    rejected: "bg-red-100 text-red-700",
+    pending: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    reviewed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+    rejected: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+  }[status];
+  const dotClasses = {
+    pending: "bg-amber-400",
+    reviewed: "bg-emerald-400",
+    rejected: "bg-rose-400",
   }[status];
   const label = {
     pending: "بانتظار المراجعة",
@@ -52,7 +57,12 @@ function reviewStatusBadge(status: Report["reviewStatus"]) {
     rejected: "مرفوض",
   }[status];
 
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${classes}`}>{label}</span>;
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${classes}`}>
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${dotClasses}`} />
+      {label}
+    </span>
+  );
 }
 
 function parseDate(value: string | undefined, endOfDay = false): Date | null {
@@ -153,12 +163,12 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
       : null;
 
   return (
-    <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
+    <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
       <section className="mx-auto max-w-7xl space-y-6">
         <PageHeader
           action={
             <Link
-              className="inline-flex items-center justify-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-600"
+              className="inline-flex items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--primary-hover)]"
               href={buildExportHref(filters)}
             >
               تصدير CSV
@@ -173,7 +183,7 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
         <ReportsFilterForm defaultValues={filters} />
 
         {reports.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
             <EmptyState
               description="غيّر الفلاتر أو انتظر وصول تقارير جديدة من الفنيين."
               title="لا توجد تقارير مطابقة"
@@ -192,46 +202,46 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
                 />
               ))}
             </div>
-          <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white md:block">
+          <div className="hidden overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] md:block">
             <table className="w-full min-w-[980px]">
-              <thead className="border-b border-slate-200 bg-slate-50">
+              <thead className="border-b border-[var(--border)] bg-[var(--surface-subtle)]">
                 <tr>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
                     وقت الإرسال
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
                     المحطة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
                     الفني
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
                     الحالة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
                     المراجعة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
                     عرض
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border-subtle)]">
                 {reports.map((report) => (
-                  <tr className="align-top transition-colors hover:bg-slate-50" key={report.reportId}>
-                    <td className="px-4 py-3 text-sm text-slate-700">{formatTimestamp(report.submittedAt)}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900">{report.stationLabel}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{report.technicianName}</td>
+                  <tr className="align-top transition-colors hover:bg-[var(--surface-subtle)]" key={report.reportId}>
+                    <td className="px-4 py-3 text-sm text-[var(--foreground)]">{formatTimestamp(report.submittedAt)}</td>
+                    <td className="px-4 py-3 text-sm font-medium text-[var(--foreground)]">{report.stationLabel}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--foreground)]">{report.technicianName}</td>
                     <td className="px-4 py-3">
                       <StatusPills status={report.status} />
                     </td>
                     <td className="px-4 py-3">{reviewStatusBadge(report.reviewStatus)}</td>
                     <td className="px-4 py-3">
                       <details>
-                        <summary className="cursor-pointer text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline">
+                        <summary className="cursor-pointer text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:underline">
                           عرض
                         </summary>
-                        <div className="mt-2 max-w-xs rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">
+                        <div className="mt-2 max-w-xs rounded-lg bg-[var(--surface-subtle)] p-3 text-sm leading-6 text-[var(--muted)]">
                           {report.notes ?? "لا توجد ملاحظات."}
                           <ReportPhotoLinks photoCount={photoCount(report)} reportId={report.reportId} />
                         </div>
@@ -248,7 +258,7 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
         {hasNextPage && nextCursor ? (
           <div className="flex justify-end">
             <Link
-              className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+              className="inline-flex items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
               href={buildNextHref(filters, nextCursor)}
             >
               الصفحة التالية

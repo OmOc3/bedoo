@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { and, count, desc, eq, gte, inArray, like, lt, lte, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
+  attendanceSessions,
   auditLogs,
   loginRateLimit,
   mobileWebSessions,
@@ -12,10 +13,20 @@ import {
   stations,
   user,
 } from "@/lib/db/schema";
-import { appUserFromAuthUser, auditLogFromRow, reportFromRow, stationFromRow } from "@/lib/db/mappers";
+import { appUserFromAuthUser, auditLogFromRow, reportFromRow, requiredTimestamp, stationFromRow } from "@/lib/db/mappers";
 import { AppError } from "@/lib/errors";
-import type { AppUser, AuditLog, Coordinates, Report, ReportPhotoPaths, Station, StatusOption, UserRole } from "@/types";
-import type { SharedReviewStatus } from "@/lib/shared/constants";
+import type {
+  AppUser,
+  AttendanceSession,
+  AuditLog,
+  Coordinates,
+  Report,
+  ReportPhotoPaths,
+  Station,
+  StatusOption,
+  UserRole,
+} from "@/types";
+import type { SharedReviewStatus } from "@ecopest/shared/constants";
 
 export interface CreateStationRecord {
   coordinates?: Coordinates;
@@ -97,6 +108,23 @@ export interface MobileWebSessionRecord {
 export interface StationTechnicianVisit {
   reportId: string;
   submittedAt: Date;
+  technicianName: string;
+  technicianUid: string;
+}
+
+export interface PendingReviewNotificationSnapshot {
+  latestReport?: {
+    reportId: string;
+    stationLabel: string;
+    submittedAt: Date;
+    technicianName: string;
+  };
+  pendingCount: number;
+}
+
+export interface ClockAttendanceInput {
+  actorRole: UserRole;
+  notes?: string;
   technicianName: string;
   technicianUid: string;
 }
@@ -350,6 +378,28 @@ export async function listReports(input: ReportPageInput): Promise<Report[]> {
   return rows.map((row) => reportFromRow(row, statuses.get(row.reportId) ?? []));
 }
 
+export async function getPendingReviewNotificationSnapshot(): Promise<PendingReviewNotificationSnapshot> {
+  const [pendingCountRow, latestReport] = await Promise.all([
+    db.select({ value: count() }).from(reports).where(eq(reports.reviewStatus, "pending")),
+    db
+      .select({
+        reportId: reports.reportId,
+        stationLabel: reports.stationLabel,
+        submittedAt: reports.submittedAt,
+        technicianName: reports.technicianName,
+      })
+      .from(reports)
+      .where(eq(reports.reviewStatus, "pending"))
+      .orderBy(desc(reports.submittedAt), desc(reports.reportId))
+      .limit(1),
+  ]);
+
+  return {
+    pendingCount: pendingCountRow[0]?.value ?? 0,
+    latestReport: latestReport[0],
+  };
+}
+
 export async function getReportById(reportId: string): Promise<Report | null> {
   const row = await db.query.reports.findFirst({
     where: eq(reports.reportId, reportId),
@@ -369,6 +419,98 @@ export async function listReportsForTechnician(technicianUid: string, limit: num
     filters: { technicianUid },
     limit,
   });
+}
+
+function attendanceFromRow(row: typeof attendanceSessions.$inferSelect): AttendanceSession {
+  return {
+    attendanceId: row.attendanceId,
+    technicianUid: row.technicianUid,
+    technicianName: row.technicianName,
+    clockInAt: row.clockInAt ? requiredTimestamp(row.clockInAt) : requiredTimestamp(new Date()),
+    clockOutAt: row.clockOutAt ? requiredTimestamp(row.clockOutAt) : undefined,
+    notes: row.notes ?? undefined,
+  };
+}
+
+export async function getOpenAttendanceSession(technicianUid: string): Promise<AttendanceSession | null> {
+  const row = await db.query.attendanceSessions.findFirst({
+    where: and(eq(attendanceSessions.technicianUid, technicianUid), sql`${attendanceSessions.clockOutAt} is null`),
+    orderBy: [desc(attendanceSessions.clockInAt)],
+  });
+
+  return row ? attendanceFromRow(row) : null;
+}
+
+export async function clockInAttendanceSession(input: ClockAttendanceInput): Promise<AttendanceSession> {
+  const openSession = await getOpenAttendanceSession(input.technicianUid);
+
+  if (openSession) {
+    throw new AppError("يوجد حضور مفتوح بالفعل، يجب تسجيل الانصراف أولًا.", "ATTENDANCE_ALREADY_OPEN", 409);
+  }
+
+  const record = {
+    attendanceId: crypto.randomUUID(),
+    technicianUid: input.technicianUid,
+    technicianName: input.technicianName,
+    clockInAt: now(),
+    clockOutAt: null,
+    notes: input.notes ?? null,
+    createdAt: now(),
+  };
+
+  await db.insert(attendanceSessions).values(record);
+  await writeAuditLogRecord({
+    actorUid: input.technicianUid,
+    actorRole: input.actorRole,
+    action: "attendance.clock_in",
+    entityType: "attendance",
+    entityId: record.attendanceId,
+  });
+
+  return attendanceFromRow(record);
+}
+
+export async function clockOutAttendanceSession(input: ClockAttendanceInput): Promise<AttendanceSession> {
+  const openSession = await getOpenAttendanceSession(input.technicianUid);
+
+  if (!openSession) {
+    throw new AppError("لا يوجد حضور مفتوح لتسجيل الانصراف.", "ATTENDANCE_NOT_FOUND", 404);
+  }
+
+  const clockOutAt = now();
+  await db
+    .update(attendanceSessions)
+    .set({
+      clockOutAt,
+      notes: input.notes ?? openSession.notes ?? null,
+    })
+    .where(eq(attendanceSessions.attendanceId, openSession.attendanceId));
+
+  await writeAuditLogRecord({
+    actorUid: input.technicianUid,
+    actorRole: input.actorRole,
+    action: "attendance.clock_out",
+    entityType: "attendance",
+    entityId: openSession.attendanceId,
+  });
+
+  return {
+    ...openSession,
+    clockOutAt: requiredTimestamp(clockOutAt),
+    notes: input.notes ?? openSession.notes,
+  };
+}
+
+export async function listAttendanceSessions(technicianUid: string, limit = 30): Promise<AttendanceSession[]> {
+  const safeLimit = Math.min(Math.max(limit, 1), 120);
+  const rows = await db
+    .select()
+    .from(attendanceSessions)
+    .where(eq(attendanceSessions.technicianUid, technicianUid))
+    .orderBy(desc(attendanceSessions.clockInAt))
+    .limit(safeLimit);
+
+  return rows.map(attendanceFromRow);
 }
 
 export async function submitReportRecord(input: SubmitReportInput): Promise<SubmitReportResult> {

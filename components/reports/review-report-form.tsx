@@ -46,24 +46,24 @@ export function ReviewReportForm({ instanceId = "table", reportId, reviewNotes, 
   }
 
   return (
-    <form className="mt-3 grid gap-3 rounded-lg bg-slate-50 p-3" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
+    <form className="mt-3 grid gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-3" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
       {result?.error ? (
-        <p className="text-sm font-medium text-red-600" role="alert">
+        <p className="text-sm font-medium text-[var(--danger)]" role="alert">
           {result.error}
         </p>
       ) : null}
       {result?.success ? (
-        <p className="text-sm font-medium text-green-700" role="status">
+        <p className="text-sm font-medium text-[var(--success)]" role="status">
           تم حفظ المراجعة.
         </p>
       ) : null}
 
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor={`reviewStatus-${fieldIdPrefix}`}>
+        <label className="block text-sm font-medium text-[var(--foreground)]" htmlFor={`reviewStatus-${fieldIdPrefix}`}>
           حالة المراجعة
         </label>
         <select
-          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] transition-colors hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id={`reviewStatus-${fieldIdPrefix}`}
           {...form.register("reviewStatus")}
         >
@@ -74,11 +74,11 @@ export function ReviewReportForm({ instanceId = "table", reportId, reviewNotes, 
       </div>
 
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor={`reviewNotes-${fieldIdPrefix}`}>
+        <label className="block text-sm font-medium text-[var(--foreground)]" htmlFor={`reviewNotes-${fieldIdPrefix}`}>
           ملاحظات المراجعة
         </label>
         <textarea
-          className="min-h-20 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-20 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] transition-colors hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id={`reviewNotes-${fieldIdPrefix}`}
           maxLength={500}
           {...form.register("reviewNotes")}

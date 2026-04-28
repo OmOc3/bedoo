@@ -27,7 +27,7 @@ function initialsFromName(value: string, fallback: string): string {
 
 function UserCard({ user }: { user: MobileAppUser }) {
   const theme = useTheme();
-  const { language, roleLabels, isRtl, strings } = useLanguage();
+  const { language, roleLabels, strings } = useLanguage();
   const t = strings.team;
   const joinedAt = user.createdAt
     ? new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-US', { dateStyle: 'medium' }).format(new Date(user.createdAt))

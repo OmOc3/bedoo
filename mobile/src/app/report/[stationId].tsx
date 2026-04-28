@@ -51,7 +51,6 @@ function persistCapturedPhoto(sourceUri: string, fileName: string): string {
 
 function StatusOptionRow({ label, onPress, selected }: { label: string; onPress: () => void; selected: boolean }) {
   const theme = useTheme();
-  const { isRtl } = useLanguage();
 
   return (
     <Pressable
@@ -91,7 +90,7 @@ function PhotoCapturePanel({
   stationId: string;
 }) {
   const theme = useTheme();
-  const { isRtl, strings } = useLanguage();
+  const { strings } = useLanguage();
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef<CameraView | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -205,7 +204,7 @@ export default function StationReportScreen() {
   const [inspectionPhotoUri, setInspectionPhotoUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const { isRtl, statusOptionLabels, strings } = useLanguage();
+  const { statusOptionLabels, strings } = useLanguage();
   const { error: stationError, loading: stationLoading, station } = useStation(stationId, strings.errors.loadStation);
   const theme = useTheme();
   const { showToast } = useToast();

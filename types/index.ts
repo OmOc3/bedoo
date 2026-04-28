@@ -1,4 +1,4 @@
-import type { SharedReviewStatus, SharedStatusOption, SharedUserRole } from "@/lib/shared/constants";
+import type { SharedReviewStatus, SharedStatusOption, SharedUserRole } from "@ecopest/shared/constants";
 
 export type UserRole = SharedUserRole;
 
@@ -79,6 +79,15 @@ export interface AuditLog {
   entityId: string;
   createdAt: AppTimestamp;
   metadata?: Record<string, unknown>;
+}
+
+export interface AttendanceSession {
+  attendanceId: string;
+  technicianUid: string;
+  technicianName: string;
+  clockInAt: AppTimestamp;
+  clockOutAt?: AppTimestamp;
+  notes?: string;
 }
 
 export interface ApiErrorResponse {

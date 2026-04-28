@@ -333,7 +333,6 @@ function SectionPill({
   onPress: () => void;
 }) {
   const theme = useTheme();
-  const { isRtl } = useLanguage();
 
   return (
     <Pressable
@@ -377,8 +376,6 @@ function FilterPill({ active, label, onPress }: { active: boolean; label: string
 }
 
 function SectionHeader({ action, subtitle, title }: { action?: React.ReactNode; subtitle?: string; title: string }) {
-  const { isRtl } = useLanguage();
-
   return (
     <View style={[styles.sectionHeaderRow, { flexDirection: 'row' }]}>
       <View style={styles.sectionHeaderCopy}>
@@ -396,7 +393,7 @@ function SectionHeader({ action, subtitle, title }: { action?: React.ReactNode; 
 
 export default function AdminScreen() {
   const currentUser = useCurrentUser();
-  const { isRtl, language, roleLabels, statusOptionLabels, strings } = useLanguage();
+  const { language, roleLabels, statusOptionLabels, strings } = useLanguage();
   const theme = useTheme();
   const { showToast } = useToast();
   const t = adminCopy[language];
@@ -1491,8 +1488,6 @@ function TaskGroup({
 }
 
 function StationTaskGroup({ stations, title }: { stations: Station[]; title: string }) {
-  const { isRtl } = useLanguage();
-
   if (stations.length === 0) {
     return null;
   }

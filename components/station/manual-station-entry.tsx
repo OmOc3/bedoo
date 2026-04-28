@@ -28,18 +28,18 @@ export function ManualStationEntry() {
   return (
     <form className="space-y-3" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
       <div className="space-y-2">
-        <label className="block text-base font-bold text-slate-900" htmlFor="stationId">
+        <label className="block text-base font-bold text-[var(--foreground)]" htmlFor="stationId">
           إدخال يدوي
         </label>
         <input
           autoComplete="off"
-          className="min-h-[44px] w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-base text-slate-900 placeholder-slate-400 transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-[44px] w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-base text-[var(--foreground)] placeholder:text-[var(--muted)] transition-colors hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id="stationId"
           placeholder="رقم المحطة"
           {...form.register("stationId")}
         />
         {form.formState.errors.stationId?.message ? (
-          <p className="text-sm font-medium text-red-600">{form.formState.errors.stationId.message}</p>
+          <p className="text-sm font-medium text-[var(--danger)]">{form.formState.errors.stationId.message}</p>
         ) : null}
       </div>
       <Button className="w-full py-3 text-base" type="submit">

@@ -18,17 +18,21 @@ function isEmptyCoordinate(value: unknown): boolean {
   );
 }
 
+const stationLabelSchema = z.string().trim().min(1).max(120);
+const stationLocationSchema = z.string().trim().min(1).max(200);
+const stationZoneSchema = z.string().trim().max(80).optional();
+
 export const stationCoordinatesSchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
 });
 
 export const createStationSchema = z.object({
-  label: z.string().trim().min(1),
-  location: z.string().trim().min(1),
+  label: stationLabelSchema,
+  location: stationLocationSchema,
   description: z.string().trim().max(800).optional(),
   photoUrls: z.array(z.string().url()).max(8).optional(),
-  zone: z.string().trim().optional(),
+  zone: stationZoneSchema,
   requiresImmediateSupervision: z.boolean().optional(),
   coordinates: z.preprocess(
     (value) => (isEmptyCoordinate(value) ? undefined : value),
@@ -39,10 +43,10 @@ export const createStationSchema = z.object({
 export const updateStationSchema = createStationSchema.partial();
 
 export const stationFormSchema = z.object({
-  label: z.string().trim().min(1),
-  location: z.string().trim().min(1),
+  label: stationLabelSchema,
+  location: stationLocationSchema,
   description: z.string().trim().max(800).optional(),
-  zone: z.string().trim().optional(),
+  zone: stationZoneSchema,
   requiresImmediateSupervision: z.boolean().optional(),
   lat: z.string().trim().optional(),
   lng: z.string().trim().optional(),

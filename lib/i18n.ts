@@ -4,7 +4,7 @@ import {
   roleLabelsEnglish as sharedRoleLabelsEnglish,
   statusOptionLabels as sharedStatusOptionLabels,
   statusOptionLabelsEnglish as sharedStatusOptionLabelsEnglish,
-} from "@/lib/shared/constants";
+} from "@ecopest/shared/constants";
 
 export const statusOptionLabels = sharedStatusOptionLabels;
 export const statusOptionLabelsEnglish = sharedStatusOptionLabelsEnglish;

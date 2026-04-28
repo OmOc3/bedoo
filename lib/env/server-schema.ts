@@ -25,16 +25,16 @@ const envSchema = z
     VERCEL_URL: z.string().optional(),
   })
   .superRefine((env, context) => {
-    if (env.NODE_ENV !== "production" || env.NEXT_PHASE === "phase-production-build") {
-      return;
-    }
-
-    if (!env.BETTER_AUTH_SECRET && !env.AUTH_SESSION_SECRET) {
+    if (!env.BETTER_AUTH_SECRET && !env.AUTH_SESSION_SECRET && env.NEXT_PHASE !== "phase-production-build") {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "BETTER_AUTH_SECRET is required in production.",
+        message: "BETTER_AUTH_SECRET or AUTH_SESSION_SECRET is required.",
         path: ["BETTER_AUTH_SECRET"],
       });
+    }
+
+    if (env.NODE_ENV !== "production" || env.NEXT_PHASE === "phase-production-build") {
+      return;
     }
 
     if (!env.BETTER_AUTH_URL) {

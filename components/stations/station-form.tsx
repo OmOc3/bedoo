@@ -2,9 +2,10 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { createStationAction, deleteStationImageAction, updateStationAction, type DeleteStationImageResult, type StationActionResult } from "@/app/actions/stations";
+import { StationMap } from "@/components/maps/station-map";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { stationFormSchema, type StationFormValues } from "@/lib/validation/stations";
@@ -58,6 +59,21 @@ function getFieldError(
   return actionResult?.fieldErrors?.[fieldName]?.[0];
 }
 
+function parseCoordinateValues(lat?: string, lng?: string): Coordinates | undefined {
+  const latNumber = Number(lat);
+  const lngNumber = Number(lng);
+
+  if (!lat || !lng || !Number.isFinite(latNumber) || !Number.isFinite(lngNumber)) {
+    return undefined;
+  }
+
+  return { lat: latNumber, lng: lngNumber };
+}
+
+function formatCoordinateInput(value: number): string {
+  return value.toFixed(6);
+}
+
 export function StationForm({ mode, station }: StationFormProps) {
   const [actionResult, setActionResult] = useState<StationActionResult | null>(null);
   const [existingPhotoUrls, setExistingPhotoUrls] = useState<string[]>(station?.photoUrls ?? []);
@@ -108,17 +124,28 @@ export function StationForm({ mode, station }: StationFormProps) {
   }
 
   const descriptionError = form.formState.errors.description?.message ?? getFieldError(actionResult, "description");
+  const watchedLat = form.watch("lat");
+  const watchedLng = form.watch("lng");
+  const selectedCoordinates = useMemo(
+    () => parseCoordinateValues(watchedLat, watchedLng),
+    [watchedLat, watchedLng],
+  );
+
+  function handleMapSelect(coordinates: Coordinates): void {
+    form.setValue("lat", formatCoordinateInput(coordinates.lat), { shouldDirty: true, shouldValidate: true });
+    form.setValue("lng", formatCoordinateInput(coordinates.lng), { shouldDirty: true, shouldValidate: true });
+  }
 
   return (
     <form className="space-y-4" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
       {actionResult?.error ? (
-        <p className="rounded-lg bg-red-100 px-4 py-3 text-sm font-medium text-red-700" role="alert">
+        <p className="rounded-lg border border-[var(--danger-muted)] bg-[var(--danger-soft)] px-4 py-3 text-sm font-medium text-[var(--danger)]" role="alert">
           {actionResult.error}
         </p>
       ) : null}
 
       {mode === "create" ? (
-        <p className="rounded-lg bg-teal-50 px-4 py-3 text-sm font-medium text-teal-800">
+        <p className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-medium text-teal-800 dark:border-teal-900/40 dark:bg-teal-900/30 dark:text-teal-300">
           سيتم توليد رقم المحطة تلقائيا بعد الحفظ، وسيظهر في QR ولوحة الفني.
         </p>
       ) : null}
@@ -157,7 +184,7 @@ export function StationForm({ mode, station }: StationFormProps) {
         <textarea
           aria-describedby={descriptionError ? "description-error" : undefined}
           aria-invalid={Boolean(descriptionError)}
-          className="min-h-28 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] shadow-control transition placeholder:text-slate-400 focus:border-[var(--focus)]"
+          className="min-h-28 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] shadow-control transition-colors placeholder:text-[var(--muted)] hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id="description"
           placeholder="مثال: بجوار مدخل المخزن، تحتاج متابعة أسبوعية."
           {...form.register("description")}
@@ -192,15 +219,23 @@ export function StationForm({ mode, station }: StationFormProps) {
         />
       </div>
 
-      <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="space-y-2">
+        <div>
+          <p className="text-sm font-semibold text-[var(--foreground)]">تحديد الموقع على الخريطة</p>
+              <p className="mt-1 text-xs leading-5 text-[var(--muted)]">اضغط على موقع المحطة لتعبئة الإحداثيات تلقائيا.</p>
+        </div>
+        <StationMap onSelect={handleMapSelect} selected={selectedCoordinates} />
+      </div>
+
+      <label className="flex items-start gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3">
         <input
-          className="mt-1 h-4 w-4 rounded border-slate-300 text-teal-700 focus:ring-teal-500"
+          className="mt-1 h-4 w-4 rounded border-[var(--border)] text-[var(--primary)] focus:ring-[var(--focus)]"
           type="checkbox"
           {...form.register("requiresImmediateSupervision")}
         />
-        <span className="text-sm leading-6 text-slate-800">
+        <span className="text-sm leading-6 text-[var(--foreground)]">
           <span className="block font-semibold">إشراف فوري مطلوب</span>
-          <span className="text-slate-600">عند التفعيل، تُصنف المحطة بأنها تحتاج إشرافًا فوريًا من الفريق.</span>
+          <span className="text-[var(--muted)]">عند التفعيل، تُصنف المحطة بأنها تحتاج إشرافًا فوريًا من الفريق.</span>
         </span>
       </label>
 
@@ -212,7 +247,7 @@ export function StationForm({ mode, station }: StationFormProps) {
               <div className="group relative" key={photoUrl}>
                 <Image
                   alt={`صورة المحطة ${station?.label ?? ""}`}
-                  className="h-28 w-full rounded-lg border border-slate-200 object-cover"
+                  className="h-28 w-full rounded-lg border border-[var(--border)] object-cover"
                   height={112}
                   src={photoUrl}
                   unoptimized
@@ -220,15 +255,15 @@ export function StationForm({ mode, station }: StationFormProps) {
                 />
                 <button
                   aria-label="حذف صورة المحطة"
-                  className="absolute start-2 top-2 rounded-full bg-red-600 p-1.5 text-white opacity-0 shadow-sm transition-opacity hover:bg-red-700 focus:opacity-100 group-hover:opacity-100 disabled:opacity-50"
+                  className="absolute start-2 top-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-[var(--danger)] p-2 text-white shadow-control transition-opacity hover:opacity-90 focus:opacity-100 disabled:opacity-50 md:opacity-0 md:group-hover:opacity-100"
                   disabled={deletingPhotoUrl === photoUrl}
                   onClick={() => handleDeletePhoto(photoUrl)}
                   type="button"
                 >
                   {deletingPhotoUrl === photoUrl ? (
-                    <span aria-hidden="true" className="block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span aria-hidden="true" className="block h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   ) : (
-                    <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                       <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
@@ -245,13 +280,13 @@ export function StationForm({ mode, station }: StationFormProps) {
         </label>
         <input
           accept="image/jpeg,image/png,image/webp"
-          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] shadow-control file:me-4 file:rounded-lg file:border-0 file:bg-teal-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-teal-700"
+          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] shadow-control file:me-4 file:rounded-lg file:border-0 file:bg-teal-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-teal-700 dark:file:bg-teal-900/30 dark:file:text-teal-300"
           id="photos"
           multiple
           name="photos"
           type="file"
         />
-        <p className="text-xs leading-5 text-slate-500">يمكن رفع صور JPG أو PNG أو WebP.</p>
+        <p className="text-xs leading-5 text-[var(--muted)]">يمكن رفع صور JPG أو PNG أو WebP.</p>
       </div>
 
       <div className="flex flex-col gap-3 pt-2 sm:flex-row">

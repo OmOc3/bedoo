@@ -43,9 +43,14 @@ function formatTimestamp(timestamp?: AppTimestamp): string {
 
 function reviewStatusBadge(status: Report["reviewStatus"]) {
   const classes = {
-    pending: "bg-amber-100 text-amber-700",
-    reviewed: "bg-green-100 text-green-700",
-    rejected: "bg-red-100 text-red-700",
+    pending: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    reviewed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+    rejected: "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+  }[status];
+  const dotClasses = {
+    pending: "bg-amber-400",
+    reviewed: "bg-emerald-400",
+    rejected: "bg-rose-400",
   }[status];
   const label = {
     pending: "بانتظار المراجعة",
@@ -54,7 +59,8 @@ function reviewStatusBadge(status: Report["reviewStatus"]) {
   }[status];
 
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${classes}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${classes}`}>
+      <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${dotClasses}`} />
       {label}
     </span>
   );
@@ -160,19 +166,19 @@ export default async function ManagerReportsPage({ searchParams }: ManagerReport
       : null;
 
   return (
-    <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
+    <main className="min-h-dvh bg-[var(--background)] px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
       <section className="mx-auto max-w-7xl space-y-6">
         <PageHeader
           action={
             <div className="flex flex-wrap gap-2">
               <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-control transition-colors hover:bg-teal-600"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
                 href={buildExportHref(filters)}
               >
                 تصدير CSV
               </Link>
               <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-control transition-colors hover:bg-slate-50"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
                 href="/dashboard/manager"
               >
                 لوحة المدير
@@ -188,7 +194,7 @@ export default async function ManagerReportsPage({ searchParams }: ManagerReport
         <ReportsFilterForm basePath="/dashboard/manager/reports" defaultValues={filters} />
 
         {reports.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
             <EmptyState description="لا توجد تقارير مطابقة للفلاتر الحالية." title="لا توجد تقارير" />
           </div>
         ) : (
@@ -212,48 +218,48 @@ export default async function ManagerReportsPage({ searchParams }: ManagerReport
                 />
               ))}
             </div>
-          <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-control md:block">
+          <div className="hidden overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card md:block">
             <div className="overflow-x-auto">
             <table className="w-full min-w-[1080px]">
-              <thead className="border-b border-slate-200 bg-slate-50">
+              <thead className="border-b border-[var(--border-subtle)] bg-[var(--surface-subtle)]">
                 <tr>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                     وقت الإرسال
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                     المحطة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                     الفني
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                     الحالة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                     المراجعة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                     الإجراء
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border-subtle)]">
                 {reports.map((report) => (
-                  <tr className="align-top transition-colors hover:bg-slate-50" key={report.reportId}>
-                    <td className="px-4 py-3 text-sm text-slate-700">{formatTimestamp(report.submittedAt)}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900">{report.stationLabel}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{report.technicianName}</td>
+                  <tr className="align-top transition-colors even:bg-[var(--surface-subtle)] hover:bg-[var(--primary-soft)]" key={report.reportId}>
+                    <td className="px-4 py-3 text-sm text-[var(--muted)]">{formatTimestamp(report.submittedAt)}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-[var(--foreground)]">{report.stationLabel}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--muted)]">{report.technicianName}</td>
                     <td className="px-4 py-3">
                       <StatusPills status={report.status} />
                     </td>
                     <td className="px-4 py-3">{reviewStatusBadge(report.reviewStatus)}</td>
                     <td className="px-4 py-3">
                       <details>
-                        <summary className="cursor-pointer text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline">
+                        <summary className="cursor-pointer text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:underline">
                           عرض وتحديث
                         </summary>
-                        <div className="mt-2 max-w-md rounded-lg bg-slate-50 p-3 text-sm leading-6 text-slate-600">
-                          <p className="font-medium text-slate-900">ملاحظات الفني</p>
+                        <div className="mt-2 max-w-md rounded-lg bg-[var(--surface-subtle)] p-3 text-sm leading-6 text-[var(--muted)]">
+                          <p className="font-medium text-[var(--foreground)]">ملاحظات الفني</p>
                           <p className="mt-1">{report.notes ?? "لا توجد ملاحظات."}</p>
                           <ReportPhotoLinks photoCount={photoCount(report)} reportId={report.reportId} />
                           <ReviewReportForm
@@ -276,7 +282,7 @@ export default async function ManagerReportsPage({ searchParams }: ManagerReport
         {hasNextPage && nextCursor ? (
           <div className="flex justify-end">
             <Link
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-control transition-colors hover:bg-slate-50"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
               href={buildNextHref(filters, nextCursor)}
             >
               الصفحة التالية

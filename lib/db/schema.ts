@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import type { Coordinates, ReportPhotoPaths, StatusOption, UserRole } from "@/types";
-import type { SharedReviewStatus } from "@/lib/shared/constants";
+import type { SharedReviewStatus } from "@ecopest/shared/constants";
 
 const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
 const booleanFlag = (name: string) => integer(name, { mode: "boolean" });
@@ -187,6 +187,26 @@ export const auditLogs = sqliteTable(
     index("audit_logs_action_idx").on(table.action),
     index("audit_logs_actor_uid_idx").on(table.actorUid),
     index("audit_logs_entity_idx").on(table.entityType, table.entityId),
+  ],
+);
+
+export const attendanceSessions = sqliteTable(
+  "attendance_sessions",
+  {
+    attendanceId: text("attendance_id").primaryKey(),
+    technicianUid: text("technician_uid")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    technicianName: text("technician_name").notNull(),
+    clockInAt: timestamp("clock_in_at").notNull(),
+    clockOutAt: timestamp("clock_out_at"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    index("attendance_sessions_technician_uid_idx").on(table.technicianUid),
+    index("attendance_sessions_clock_in_idx").on(table.clockInAt),
+    index("attendance_sessions_clock_out_idx").on(table.clockOutAt),
   ],
 );
 

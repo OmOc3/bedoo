@@ -43,58 +43,58 @@ export function ReportsFilterForm({ basePath = "/dashboard/supervisor/reports", 
 
   return (
     <form
-      className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-control md:grid-cols-5"
+      className="grid gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card md:grid-cols-5"
       dir="rtl"
       onSubmit={form.handleSubmit(onSubmit)}
     >
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor="stationId">
+        <label className="block text-sm font-medium text-[var(--foreground)]" htmlFor="stationId">
           رقم المحطة
         </label>
         <input
-          className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 transition focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] transition-colors placeholder:text-[var(--muted)] hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id="stationId"
           {...form.register("stationId")}
         />
       </div>
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor="technicianUid">
+        <label className="block text-sm font-medium text-[var(--foreground)]" htmlFor="technicianUid">
           رقم الفني
         </label>
         <input
-          className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 transition focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] transition-colors placeholder:text-[var(--muted)] hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id="technicianUid"
           {...form.register("technicianUid")}
         />
       </div>
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor="dateFrom">
+        <label className="block text-sm font-medium text-[var(--foreground)]" htmlFor="dateFrom">
           من تاريخ
         </label>
         <input
-          className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 transition focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] transition-colors hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id="dateFrom"
           type="date"
           {...form.register("dateFrom")}
         />
       </div>
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor="dateTo">
+        <label className="block text-sm font-medium text-[var(--foreground)]" htmlFor="dateTo">
           إلى تاريخ
         </label>
         <input
-          className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 transition focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] transition-colors hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id="dateTo"
           type="date"
           {...form.register("dateTo")}
         />
       </div>
       <div className="space-y-1">
-        <label className="block text-sm font-medium text-slate-700" htmlFor="reviewStatus">
+        <label className="block text-sm font-medium text-[var(--foreground)]" htmlFor="reviewStatus">
           المراجعة
         </label>
         <select
-          className="min-h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 transition focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] transition-colors hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id="reviewStatus"
           {...form.register("reviewStatus")}
         >
@@ -104,15 +104,15 @@ export function ReportsFilterForm({ basePath = "/dashboard/supervisor/reports", 
           <option value="rejected">مرفوض</option>
         </select>
       </div>
-      <div className="flex gap-2 md:col-span-5">
+      <div className="flex flex-col gap-2 sm:flex-row md:col-span-5">
         <Button className="sm:w-auto" type="submit">
           تطبيق الفلاتر
         </Button>
         <Link
-          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
           href={basePath}
         >
-          مسح
+          مسح الفلاتر
         </Link>
       </div>
     </form>
