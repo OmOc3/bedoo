@@ -19,6 +19,25 @@ export interface StatusSummary {
   status: StatusOption;
 }
 
+export type TrendGranularity = "day" | "month" | "week";
+
+export interface ReportTrendPoint {
+  key: string;
+  label: string;
+  pending: number;
+  rejected: number;
+  reviewed: number;
+  total: number;
+}
+
+export interface PeriodComparisonMetric {
+  changePercent: number | null;
+  current: number;
+  key: "activeTechnicians" | "pending" | "reports" | "reviewed";
+  label: string;
+  previous: number;
+}
+
 export function stationFromData(stationId: string, data: Partial<Station>): Station {
   return {
     stationId: data.stationId ?? stationId,
@@ -124,4 +143,181 @@ export function buildStatusCounts(reports: Report[]): StatusSummary[] {
   return Array.from(counts.entries())
     .map(([status, count]) => ({ count, status }))
     .sort((a, b) => b.count - a.count);
+}
+
+function startOfDay(date: Date): Date {
+  const next = new Date(date);
+
+  next.setHours(0, 0, 0, 0);
+
+  return next;
+}
+
+function startOfWeek(date: Date): Date {
+  const next = startOfDay(date);
+
+  next.setDate(next.getDate() - next.getDay());
+
+  return next;
+}
+
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function addStep(date: Date, granularity: TrendGranularity): Date {
+  const next = new Date(date);
+
+  if (granularity === "day") {
+    next.setDate(next.getDate() + 1);
+  } else if (granularity === "week") {
+    next.setDate(next.getDate() + 7);
+  } else {
+    next.setMonth(next.getMonth() + 1);
+  }
+
+  return next;
+}
+
+function trendGranularity(rangeFrom: Date, rangeTo: Date): TrendGranularity {
+  const days = Math.max(1, Math.floor((startOfDay(rangeTo).getTime() - startOfDay(rangeFrom).getTime()) / 86_400_000) + 1);
+
+  if (days <= 45) {
+    return "day";
+  }
+
+  return days <= 180 ? "week" : "month";
+}
+
+function bucketStart(date: Date, granularity: TrendGranularity): Date {
+  if (granularity === "day") {
+    return startOfDay(date);
+  }
+
+  if (granularity === "week") {
+    return startOfWeek(date);
+  }
+
+  return startOfMonth(date);
+}
+
+function bucketKey(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function trendLabel(date: Date, granularity: TrendGranularity): string {
+  if (granularity === "week") {
+    return `أسبوع ${new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "short" }).format(date)}`;
+  }
+
+  if (granularity === "month") {
+    return new Intl.DateTimeFormat("ar-EG", { month: "short", year: "numeric" }).format(date);
+  }
+
+  return new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "short" }).format(date);
+}
+
+function createTrendPoint(date: Date, granularity: TrendGranularity): ReportTrendPoint {
+  return {
+    key: bucketKey(date),
+    label: trendLabel(date, granularity),
+    pending: 0,
+    rejected: 0,
+    reviewed: 0,
+    total: 0,
+  };
+}
+
+function submittedAtDate(report: Report): Date {
+  return report.submittedAt.toDate();
+}
+
+export function buildReportTrend(reports: Report[], rangeFrom: Date, rangeTo: Date): ReportTrendPoint[] {
+  const granularity = trendGranularity(rangeFrom, rangeTo);
+  const buckets = new Map<string, ReportTrendPoint>();
+  let cursor = bucketStart(rangeFrom, granularity);
+  const finalBucket = bucketStart(rangeTo, granularity);
+
+  while (cursor.getTime() <= finalBucket.getTime()) {
+    const point = createTrendPoint(cursor, granularity);
+
+    buckets.set(point.key, point);
+    cursor = addStep(cursor, granularity);
+  }
+
+  reports.forEach((report) => {
+    const key = bucketKey(bucketStart(submittedAtDate(report), granularity));
+    const point = buckets.get(key);
+
+    if (!point) {
+      return;
+    }
+
+    point.total += 1;
+
+    if (report.reviewStatus === "pending") {
+      point.pending += 1;
+    } else if (report.reviewStatus === "reviewed") {
+      point.reviewed += 1;
+    } else {
+      point.rejected += 1;
+    }
+  });
+
+  return Array.from(buckets.values());
+}
+
+function percentageChange(current: number, previous: number): number | null {
+  if (previous === 0) {
+    return current === 0 ? 0 : null;
+  }
+
+  return Math.round(((current - previous) / previous) * 1000) / 10;
+}
+
+function activeTechnicianCount(reports: Report[]): number {
+  return new Set(reports.map((report) => report.technicianUid).filter(Boolean)).size;
+}
+
+function reviewedCount(reports: Report[]): number {
+  return reports.filter((report) => report.reviewStatus === "reviewed").length;
+}
+
+function pendingCount(reports: Report[]): number {
+  return reports.filter((report) => report.reviewStatus === "pending").length;
+}
+
+export function buildPeriodComparison(currentReports: Report[], previousReports: Report[]): PeriodComparisonMetric[] {
+  const values: PeriodComparisonMetric[] = [
+    {
+      current: currentReports.length,
+      key: "reports",
+      label: "إجمالي التقارير",
+      previous: previousReports.length,
+      changePercent: percentageChange(currentReports.length, previousReports.length),
+    },
+    {
+      current: pendingCount(currentReports),
+      key: "pending",
+      label: "بانتظار المراجعة",
+      previous: pendingCount(previousReports),
+      changePercent: percentageChange(pendingCount(currentReports), pendingCount(previousReports)),
+    },
+    {
+      current: reviewedCount(currentReports),
+      key: "reviewed",
+      label: "تمت مراجعتها",
+      previous: reviewedCount(previousReports),
+      changePercent: percentageChange(reviewedCount(currentReports), reviewedCount(previousReports)),
+    },
+    {
+      current: activeTechnicianCount(currentReports),
+      key: "activeTechnicians",
+      label: "فنيون نشطون",
+      previous: activeTechnicianCount(previousReports),
+      changePercent: percentageChange(activeTechnicianCount(currentReports), activeTechnicianCount(previousReports)),
+    },
+  ];
+
+  return values;
 }

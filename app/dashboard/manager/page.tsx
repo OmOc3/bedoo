@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import type { ReactElement, SVGProps } from "react";
 import { DashboardNav } from "@/components/layout/nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatusPills } from "@/components/reports/status-pills";
@@ -20,28 +21,102 @@ interface StatCardProps {
 }
 
 const statToneClasses: Record<StatCardProps["tone"], string> = {
-  amber: "bg-amber-50 text-amber-700",
-  blue: "bg-blue-50 text-blue-700",
-  green: "bg-green-50 text-green-700",
-  teal: "bg-teal-50 text-teal-700",
+  amber: "border-t-amber-500 text-amber-500",
+  blue: "border-t-blue-500 text-blue-500",
+  green: "border-t-emerald-500 text-emerald-500",
+  teal: "border-t-teal-500 text-teal-500",
+};
+
+function IconFrame({ children, className, ...props }: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      aria-hidden="true"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.8"
+      viewBox="0 0 24 24"
+      {...props}
+    >
+      {children}
+    </svg>
+  );
+}
+
+function StationIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconFrame {...props}>
+      <path d="M8 8.5a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z" />
+      <path d="M12 4V2" />
+      <path d="M12 22v-2" />
+      <path d="M4 13h4" />
+      <path d="M16 13h4" />
+    </IconFrame>
+  );
+}
+
+function ActiveIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconFrame {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8.5 12.5 2.25 2.25L15.5 9.5" />
+    </IconFrame>
+  );
+}
+
+function ReportIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconFrame {...props}>
+      <path d="M6 3h9l3 3v15H6z" />
+      <path d="M14 3v4h4" />
+      <path d="M9 12h6" />
+      <path d="M9 16h4" />
+    </IconFrame>
+  );
+}
+
+function PendingIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconFrame {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </IconFrame>
+  );
+}
+
+function TeamIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconFrame {...props}>
+      <path d="M16 19a4 4 0 0 0-8 0" />
+      <circle cx="12" cy="8" r="3" />
+      <path d="M21 19a3.5 3.5 0 0 0-4-3.45" />
+      <path d="M3 19a3.5 3.5 0 0 1 4-3.45" />
+    </IconFrame>
+  );
+}
+
+const statIcons: Record<StatCardProps["tone"], (props: SVGProps<SVGSVGElement>) => ReactElement> = {
+  amber: PendingIcon,
+  blue: ReportIcon,
+  green: ActiveIcon,
+  teal: StationIcon,
 };
 
 function StatCard({ href, label, tone, value }: StatCardProps) {
+  const Icon = href.includes("/users") ? TeamIcon : statIcons[tone];
+
   return (
     <Link
-      className="group flex min-h-28 items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-control transition-colors hover:bg-slate-50"
+      className={`group relative min-h-32 overflow-hidden rounded-2xl border border-[var(--border)] border-t-[3px] bg-[var(--surface)] p-5 shadow-card transition-all duration-150 hover:-translate-y-0.5 hover:shadow-card-md ${statToneClasses[tone]}`}
       href={href}
     >
-      <div>
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <p className="mt-1 text-3xl font-extrabold text-slate-950">{value}</p>
+      <Icon className="absolute right-5 top-5 h-6 w-6 opacity-60 transition-opacity group-hover:opacity-100" />
+      <div className="relative pt-8">
+        <p className="text-4xl font-bold tracking-tight text-[var(--foreground)]">{value}</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">{label}</p>
       </div>
-      <span
-        aria-hidden="true"
-        className={`grid h-12 w-12 place-items-center rounded-2xl ${statToneClasses[tone]} transition-transform group-hover:-translate-y-0.5`}
-      >
-        <span className="h-3 w-3 rounded-full bg-current" />
-      </span>
     </Link>
   );
 }
@@ -62,7 +137,7 @@ export default async function ManagerDashboardPage() {
   const [stats, latestReports] = await Promise.all([getManagerDashboardStats(), getLatestReports(5)]);
 
   return (
-    <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
+    <main className="min-h-dvh bg-[var(--background)] px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
       <section className="mx-auto max-w-7xl space-y-6">
         <PageHeader
           description="نظرة تشغيلية على المحطات والتقارير والفنيين."
@@ -85,37 +160,37 @@ export default async function ManagerDashboardPage() {
           <StatCard href="/dashboard/manager/tasks" label="مهام اليوم" tone="amber" value={stats.pendingReviewReports} />
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-control">
-          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-4">
-            <h2 className="text-lg font-bold text-slate-900">آخر التقارير</h2>
-            <Link className="text-sm font-medium text-teal-700 hover:text-teal-600" href="/dashboard/manager/reports">
+        <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
+          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--surface)] px-5 py-4">
+            <h2 className="border-r-2 border-[var(--primary)] pr-3 text-base font-semibold text-[var(--foreground)]">آخر التقارير</h2>
+            <Link className="text-sm font-semibold text-[var(--primary)] transition-colors hover:text-[var(--primary-hover)]" href="/dashboard/manager/reports">
               عرض الكل
             </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px]">
-              <thead className="bg-slate-50">
+              <thead className="bg-[var(--surface-subtle)]">
                 <tr>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                     الوقت
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                     المحطة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                     الفني
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
                     الحالة
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border-subtle)]">
                 {latestReports.map((report) => (
-                  <tr className="hover:bg-slate-50" key={report.reportId}>
-                    <td className="px-4 py-3 text-sm text-slate-700">{formatTimestamp(report.submittedAt)}</td>
-                    <td className="px-4 py-3 text-sm font-medium text-slate-900">{report.stationLabel}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{report.technicianName}</td>
+                  <tr className="transition-colors even:bg-[var(--surface-subtle)] hover:bg-[var(--primary-soft)]" key={report.reportId}>
+                    <td className="px-4 py-3 text-sm text-[var(--muted)]">{formatTimestamp(report.submittedAt)}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-[var(--foreground)]">{report.stationLabel}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--muted)]">{report.technicianName}</td>
                     <td className="px-4 py-3">
                       <StatusPills status={report.status} />
                     </td>

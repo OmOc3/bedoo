@@ -84,6 +84,13 @@ export async function submitStationReportAction(
       notes: parsed.data.notes,
     });
 
+    revalidatePath("/dashboard/manager");
+    revalidatePath("/dashboard/manager/reports");
+    revalidatePath("/dashboard/manager/tasks");
+    revalidatePath("/dashboard/supervisor");
+    revalidatePath("/dashboard/supervisor/reports");
+    revalidatePath("/dashboard/supervisor/tasks");
+
     return {
       success: true,
       reportId: result.reportId,

@@ -70,7 +70,7 @@ function reportMatchesFilter(report: VisibleReport, filter: ReportFilter): boole
 }
 
 function ReportListItem({ report }: { report: VisibleReport }) {
-  const { isRtl, language, strings } = useLanguage();
+  const { language, strings } = useLanguage();
   const { reviewStatus, syncStatus } = strings;
   const theme = useTheme();
   const locale = languageDateLocales[language];

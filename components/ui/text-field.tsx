@@ -11,24 +11,27 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
   ref,
 ) {
   return (
-    <div className="space-y-2">
-      <label className="block text-sm font-semibold text-[var(--foreground)]" htmlFor={id}>
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]" htmlFor={id}>
         {label}
       </label>
-      <input
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? `${id}-error` : undefined}
-        className={cn(
-          "min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] shadow-control transition placeholder:text-[oklch(0.64_0.014_165)] focus:border-[var(--focus)] disabled:bg-[var(--surface-subtle)]",
-          error ? "border-[var(--danger)] bg-[var(--danger-soft)]" : null,
-          className,
-        )}
-        id={id}
-        ref={ref}
-        {...props}
-      />
+      <div className="relative">
+        <input
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className={cn(
+            "min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] shadow-control transition-colors duration-150 placeholder:text-[var(--muted)] hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-0 disabled:cursor-not-allowed disabled:bg-[var(--surface-subtle)] disabled:opacity-60",
+            error ? "border-[var(--danger)] focus:border-[var(--danger)] focus:ring-[var(--danger)]" : null,
+            className,
+          )}
+          id={id}
+          ref={ref}
+          {...props}
+        />
+      </div>
       {error ? (
-        <p className="text-sm font-medium text-[var(--danger)]" id={`${id}-error`} role="alert">
+        <p className="mt-1.5 flex items-center gap-1 text-xs text-[var(--danger)]" id={`${id}-error`} role="alert">
+          <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--danger)]" />
           {error}
         </p>
       ) : null}

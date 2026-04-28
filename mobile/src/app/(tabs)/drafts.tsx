@@ -33,7 +33,7 @@ export default function DraftsScreen() {
   const [status, setStatus] = useState<StatusOption[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const { isRtl, statusOptionLabels, strings } = useLanguage();
+  const { statusOptionLabels, strings } = useLanguage();
   const theme = useTheme();
   const { showToast } = useToast();
   const t = strings.drafts;

@@ -8,13 +8,13 @@ interface EmptyStateProps {
 
 export function EmptyState({ action, description, title }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-        <span className="h-4 w-4 rounded-sm border border-slate-400" aria-hidden="true" />
+    <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--border)] p-12 text-center">
+      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[var(--muted)]">
+        <span className="h-5 w-5 rounded-md border border-[var(--border)]" aria-hidden="true" />
       </div>
-      <h3 className="mb-1 text-sm font-semibold text-slate-900">{title}</h3>
-      <p className="mb-4 max-w-md text-sm leading-6 text-slate-500">{description}</p>
-      {action}
+      <h3 className="text-base font-semibold text-[var(--foreground)]">{title}</h3>
+      <p className="mx-auto mt-1 max-w-sm text-center text-sm leading-6 text-[var(--muted)]">{description}</p>
+      {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );
 }

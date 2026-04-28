@@ -18,28 +18,23 @@ interface StatCardProps {
 }
 
 const statToneClasses: Record<StatCardProps["tone"], string> = {
-  amber: "bg-amber-50 text-amber-700",
-  blue: "bg-blue-50 text-blue-700",
-  green: "bg-green-50 text-green-700",
-  teal: "bg-teal-50 text-teal-700",
+  amber: "border-t-amber-500 text-amber-500",
+  blue: "border-t-blue-500 text-blue-500",
+  green: "border-t-emerald-500 text-emerald-500",
+  teal: "border-t-teal-500 text-teal-500",
 };
 
 function StatCard({ href, label, tone, value }: StatCardProps) {
   return (
     <Link
-      className="group flex min-h-28 items-center justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-control transition-colors hover:bg-slate-50"
+      className={`group relative min-h-32 overflow-hidden rounded-2xl border border-[var(--border)] border-t-[3px] bg-[var(--surface)] p-5 shadow-card transition-all duration-150 hover:-translate-y-0.5 hover:shadow-card-md ${statToneClasses[tone]}`}
       href={href}
     >
-      <div>
-        <p className="text-sm font-medium text-slate-500">{label}</p>
-        <p className="mt-1 text-3xl font-extrabold text-slate-950">{value}</p>
+      <div className="absolute right-5 top-5 h-6 w-6 rounded-full border-2 border-current opacity-60 transition-opacity group-hover:opacity-100" aria-hidden="true" />
+      <div className="relative pt-8">
+        <p className="text-4xl font-bold tracking-tight text-[var(--foreground)]">{value}</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">{label}</p>
       </div>
-      <span
-        aria-hidden="true"
-        className={`grid h-12 w-12 place-items-center rounded-2xl ${statToneClasses[tone]} transition-transform group-hover:-translate-y-0.5`}
-      >
-        <span className="h-3 w-3 rounded-full bg-current" />
-      </span>
     </Link>
   );
 }
@@ -49,19 +44,19 @@ export default async function SupervisorDashboardPage() {
   const stats = await getSupervisorDashboardStats();
 
   return (
-    <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
+    <main className="min-h-dvh bg-[var(--background)] px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
       <section className="mx-auto max-w-7xl">
         <PageHeader
           action={
             <div className="flex flex-wrap gap-2">
               <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-control transition-colors hover:bg-teal-600"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
                 href="/dashboard/supervisor/reports"
               >
                 عرض التقارير
               </Link>
               <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-control transition-colors hover:bg-slate-50"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
                 href="/dashboard/supervisor/tasks"
               >
                 مهام اليوم

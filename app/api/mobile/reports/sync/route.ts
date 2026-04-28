@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { mobileApiErrorResponse } from "@/lib/api/mobile";
 import { requireBearerRole } from "@/lib/auth/bearer-session";
 import { uploadReportImageToCloudinary } from "@/lib/cloudinary/report-images";
@@ -109,6 +110,13 @@ export async function POST(
       notes: parsed.data.notes,
       ...(stationPhotoUrl ? { photoPaths: { station: stationPhotoUrl } } : {}),
     });
+
+    revalidatePath("/dashboard/manager");
+    revalidatePath("/dashboard/manager/reports");
+    revalidatePath("/dashboard/manager/tasks");
+    revalidatePath("/dashboard/supervisor");
+    revalidatePath("/dashboard/supervisor/reports");
+    revalidatePath("/dashboard/supervisor/tasks");
 
     return NextResponse.json({
       duplicate: result.duplicate,

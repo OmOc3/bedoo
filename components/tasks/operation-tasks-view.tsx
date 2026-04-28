@@ -24,9 +24,9 @@ function formatTimestamp(timestamp?: AppTimestamp): string {
 
 function TaskMetric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-control">
-      <p className="text-sm font-bold text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-extrabold text-slate-900">{value}</p>
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
+      <p className="text-sm font-bold text-[var(--muted)]">{label}</p>
+      <p className="mt-2 text-3xl font-extrabold text-[var(--foreground)]">{value}</p>
     </div>
   );
 }
@@ -44,25 +44,25 @@ export function OperationTasksView({ baseReportsHref, canEditStations = false, t
       </div>
 
       {tasks.truncatedStationScan ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+        <div className="rounded-2xl border border-[var(--warning)] bg-[var(--warning-soft)] px-4 py-3 text-sm leading-6 text-[var(--warning)]">
           قائمة المحطات التي تحتاج متابعة مبنية على آخر 500 محطة لتفادي قراءة غير محدودة. استخدم صفحة المحطات للبحث
           التفصيلي عند الحاجة.
         </div>
       ) : null}
 
       {!hasTasks ? (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
           <EmptyState description="لا توجد مهام تشغيلية مفتوحة حاليًا." title="اليوم مستقر" />
         </div>
       ) : null}
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-control">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-lg font-bold text-slate-900">مراجعات عاجلة</h2>
-            <p className="mt-1 text-sm text-slate-500">أقدم التقارير المفتوحة تحتاج قرار مراجعة.</p>
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
+          <div className="border-b border-[var(--border-subtle)] px-5 py-4">
+            <h2 className="border-r-2 border-[var(--primary)] pr-3 text-base font-semibold text-[var(--foreground)]">مراجعات عاجلة</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">أقدم التقارير المفتوحة تحتاج قرار مراجعة.</p>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[var(--border-subtle)]">
             {tasks.pendingReports.length === 0 ? (
               <EmptyState description="لا توجد تقارير تنتظر المراجعة." title="لا توجد مراجعات" />
             ) : (
@@ -70,13 +70,13 @@ export function OperationTasksView({ baseReportsHref, canEditStations = false, t
                 <div className="space-y-3 px-5 py-4" key={report.reportId}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-bold text-slate-900">{report.stationLabel}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-sm font-bold text-[var(--foreground)]">{report.stationLabel}</p>
+                      <p className="text-xs text-[var(--muted)]">
                         {report.technicianName}، {formatTimestamp(report.submittedAt)}
                       </p>
                     </div>
                     <Link
-                      className="inline-flex rounded-lg bg-teal-700 px-3 py-2 text-sm font-bold text-white hover:bg-teal-600"
+                      className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-3 py-2 text-sm font-bold text-white shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98]"
                       href={`${baseReportsHref}?reviewStatus=pending`}
                     >
                       فتح التقارير
@@ -89,12 +89,12 @@ export function OperationTasksView({ baseReportsHref, canEditStations = false, t
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-control">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="text-lg font-bold text-slate-900">محطات تحتاج متابعة</h2>
-            <p className="mt-1 text-sm text-slate-500">محطات لم تزر مؤخرًا أو خرجت من الخدمة.</p>
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
+          <div className="border-b border-[var(--border-subtle)] px-5 py-4">
+            <h2 className="border-r-2 border-[var(--primary)] pr-3 text-base font-semibold text-[var(--foreground)]">محطات تحتاج متابعة</h2>
+            <p className="mt-1 text-sm text-[var(--muted)]">محطات لم تزر مؤخرًا أو خرجت من الخدمة.</p>
           </div>
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-[var(--border-subtle)]">
             {[...tasks.staleStations, ...tasks.inactiveStations].length === 0 ? (
               <EmptyState description="كل المحطات النشطة تمت متابعتها ضمن الفترة المحددة." title="المحطات مستقرة" />
             ) : (
@@ -104,8 +104,8 @@ export function OperationTasksView({ baseReportsHref, canEditStations = false, t
                 return (
                   <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4" key={station.stationId}>
                     <div>
-                      <p className="text-sm font-bold text-slate-900">{station.label}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-sm font-bold text-[var(--foreground)]">{station.label}</p>
+                      <p className="text-xs text-[var(--muted)]">
                         {station.location}، آخر زيارة: {formatTimestamp(station.lastVisitedAt)}
                       </p>
                     </div>
@@ -115,7 +115,7 @@ export function OperationTasksView({ baseReportsHref, canEditStations = false, t
                       </span>
                       {canEditStations ? (
                         <Link
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm font-bold text-[var(--foreground)] shadow-sm transition-colors hover:bg-[var(--surface-subtle)]"
                           href={`/dashboard/manager/stations/${station.stationId}`}
                         >
                           فتح

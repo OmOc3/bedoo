@@ -86,15 +86,15 @@ export function CreateUserForm() {
   }
 
   return (
-    <form className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-control sm:grid-cols-2" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
+    <form className="grid gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:grid-cols-2" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
       <div className="sm:col-span-2">
-        <h2 className="text-lg font-semibold text-slate-800">إنشاء مستخدم جديد</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-500">إنشاء مستخدم جديد في قاعدة البيانات.</p>
+        <h2 className="border-r-2 border-[var(--primary)] pr-3 text-base font-semibold text-[var(--foreground)]">إنشاء مستخدم جديد</h2>
+        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">إنشاء مستخدم جديد في قاعدة البيانات.</p>
       </div>
 
-      {result?.error ? <p className="rounded-lg bg-red-100 px-4 py-3 text-sm font-medium text-red-700 sm:col-span-2">{result.error}</p> : null}
+      {result?.error ? <p className="rounded-lg border border-[var(--danger-muted)] bg-[var(--danger-soft)] px-4 py-3 text-sm font-medium text-[var(--danger)] sm:col-span-2">{result.error}</p> : null}
       {result?.success ? (
-        <p className="rounded-lg bg-green-100 px-4 py-3 text-sm font-medium text-green-700 sm:col-span-2">
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-900/30 dark:text-emerald-300 sm:col-span-2">
           تم إنشاء المستخدم بنجاح.
         </p>
       ) : null}
@@ -114,7 +114,7 @@ export function CreateUserForm() {
         </label>
         <input
           accept="image/*"
-          className="block w-full text-sm text-slate-500 file:mr-4 file:rounded-full file:border-0 file:bg-teal-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-teal-700 hover:file:bg-teal-100"
+          className="block w-full text-sm text-[var(--muted)] file:mr-4 file:rounded-full file:border-0 file:bg-teal-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-teal-700 hover:file:bg-teal-100 dark:file:bg-teal-900/30 dark:file:text-teal-300"
           id="image"
           onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
           type="file"
@@ -155,7 +155,7 @@ export function CreateUserForm() {
           الدور
         </label>
         <select
-          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] shadow-control transition focus:border-[var(--focus)]"
+          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] shadow-control transition-colors hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id="role"
           {...form.register("role")}
         >

@@ -134,7 +134,7 @@ function callHandler(
 
 export function BrandHeader({ compact = false, subtitle }: { compact?: boolean; subtitle?: string }) {
   const { resolvedTheme } = useThemeMode();
-  const { isRtl, strings } = useLanguage();
+  const { strings } = useLanguage();
   const brandSubtitle = subtitle ?? strings.brandTagline;
 
   return (
@@ -248,7 +248,6 @@ export function PrimaryButton({
   ...props
 }: LoadingButtonProps) {
   const theme = useTheme();
-  const { isRtl } = useLanguage();
   const { pressIn, pressOut, scale } = usePressScale(0.96);
   const isDisabled = disabled || loading;
 
@@ -299,7 +298,6 @@ export function SecondaryButton({
   ...props
 }: LoadingButtonProps) {
   const theme = useTheme();
-  const { isRtl } = useLanguage();
   const { pressIn, pressOut, scale } = usePressScale(0.96);
   const isDisabled = disabled || loading;
 
@@ -412,8 +410,6 @@ export function MobileTopBar({
   rightLabel?: string;
   title: string;
 }) {
-  const { isRtl } = useLanguage();
-
   return (
     <View style={[styles.topBar, { flexDirection: 'row' }]}>
       {leftIcon ? (
@@ -531,7 +527,6 @@ export function SyncBanner({
   tone?: ChipTone;
 }) {
   const theme = useTheme();
-  const { isRtl } = useLanguage();
   const toneColor = chipToneColor(tone, theme);
 
   return (
@@ -562,7 +557,7 @@ export function SyncBanner({
 }
 
 export function StationSummary({ station }: { station: Station }) {
-  const { isRtl, strings } = useLanguage();
+  const { strings } = useLanguage();
 
   return (
     <Card>
@@ -630,7 +625,7 @@ export function ReportCard({
   status: StatusOption[];
   syncStatus?: ReportSyncStatus;
 }) {
-  const { isRtl, language, strings } = useLanguage();
+  const { language, strings } = useLanguage();
   const locale = languageDateLocales[language];
   const dateLabel = createdAt
     ? new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(createdAt))
@@ -795,7 +790,6 @@ export function useToast() {
 
 function ToastBanner({ toast, topOffset, translateY }: { toast: ToastMessage; topOffset: number; translateY: Animated.Value }) {
   const theme = useTheme();
-  const { isRtl } = useLanguage();
   const color =
     toast.variant === 'success'
       ? theme.successStrong
