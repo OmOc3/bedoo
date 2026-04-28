@@ -240,7 +240,7 @@ export async function updateUserAccessCodeAction(targetUid: string, formData: Fo
 }
 
 export async function updateUserProfileAction(targetUid: string, formData: FormData): Promise<UserActionResult> {
-  const session = await requireRole(["manager", "supervisor", "technician"]);
+  const session = await requireRole(["manager", "supervisor", "technician", "client"]);
 
   // Only manager/supervisor can update OTHER users
   if (targetUid !== session.uid && session.role !== "manager" && session.role !== "supervisor") {

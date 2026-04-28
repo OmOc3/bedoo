@@ -90,6 +90,22 @@ export interface AttendanceSession {
   notes?: string;
 }
 
+export type ClientOrderStatus = "pending" | "in_progress" | "completed" | "cancelled";
+
+export interface ClientOrder {
+  orderId: string;
+  clientUid: string;
+  clientName: string;
+  stationId: string;
+  stationLabel: string;
+  note?: string;
+  photoUrl?: string;
+  status: ClientOrderStatus;
+  createdAt: AppTimestamp;
+  reviewedAt?: AppTimestamp;
+  reviewedBy?: string;
+}
+
 export interface ApiErrorResponse {
   message: string;
   code: string;

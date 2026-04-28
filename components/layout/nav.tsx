@@ -8,10 +8,9 @@ import { BrandMark } from "@/components/layout/brand";
 import { ReportNotificationListener } from "@/components/notifications/report-notification-listener";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/utils";
-import type { UserRole } from "@/types";
 
 interface DashboardNavProps {
-  role: Exclude<UserRole, "technician">;
+  role: "manager" | "supervisor";
 }
 
 interface NavItem {
@@ -26,6 +25,7 @@ const managerItems: NavItem[] = [
   { href: "/dashboard/manager/stations", icon: "stations", label: "المحطات" },
   { href: "/dashboard/manager/stations/map", icon: "map", label: "خريطة المحطات" },
   { href: "/dashboard/manager/reports", icon: "reports", label: "التقارير" },
+  { href: "/dashboard/manager/client-orders", icon: "team", label: "طلبات العملاء" },
   { href: "/dashboard/manager/analytics", icon: "analytics", label: "التحليلات" },
   { href: "/dashboard/manager/users", icon: "team", label: "الفريق" },
   { href: "/dashboard/manager/audit", icon: "audit", label: "السجل" },
@@ -36,6 +36,7 @@ const supervisorItems: NavItem[] = [
   { href: "/dashboard/supervisor", icon: "dashboard", label: "لوحة المشرف" },
   { href: "/dashboard/supervisor/tasks", icon: "tasks", label: "مهام اليوم" },
   { href: "/dashboard/supervisor/reports", icon: "reports", label: "التقارير" },
+  { href: "/dashboard/supervisor/client-orders", icon: "team", label: "طلبات العملاء" },
 ];
 
 type IconName = "analytics" | "audit" | "dashboard" | "map" | "reports" | "stations" | "supervisor" | "tasks" | "team";

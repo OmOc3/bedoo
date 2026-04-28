@@ -10,7 +10,10 @@ function isLoginSuccessResponse(value: unknown): value is LoginSuccessResponse {
     isRecord(value) &&
     typeof value.redirectTo === "string" &&
     isRecord(value.user) &&
-    (value.user.role === "technician" || value.user.role === "supervisor" || value.user.role === "manager")
+    (value.user.role === "client" ||
+      value.user.role === "technician" ||
+      value.user.role === "supervisor" ||
+      value.user.role === "manager")
   );
 }
 

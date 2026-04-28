@@ -14,7 +14,7 @@ import type { ApiErrorResponse, AppUser, LoginSuccessResponse, UserRole } from "
 
 export const runtime = "nodejs";
 
-const validRoles = new Set<UserRole>(["technician", "supervisor", "manager"]);
+const validRoles = new Set<UserRole>(["client", "technician", "supervisor", "manager"]);
 
 interface AuthClassification {
   blocked: boolean;

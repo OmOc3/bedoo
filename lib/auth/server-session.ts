@@ -19,7 +19,7 @@ export interface CurrentSession {
   user: AppUser;
 }
 
-const validRoles = new Set<UserRole>(["technician", "supervisor", "manager"]);
+const validRoles = new Set<UserRole>(["client", "technician", "supervisor", "manager"]);
 
 function normalizeRole(value: unknown): UserRole | null {
   return typeof value === "string" && validRoles.has(value as UserRole) ? (value as UserRole) : null;

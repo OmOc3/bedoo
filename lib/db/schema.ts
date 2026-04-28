@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
-import type { Coordinates, ReportPhotoPaths, StatusOption, UserRole } from "@/types";
+import type { ClientOrderStatus, Coordinates, ReportPhotoPaths, StatusOption, UserRole } from "@/types";
 import type { SharedReviewStatus } from "@ecopest/shared/constants";
 
 const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
@@ -207,6 +207,33 @@ export const attendanceSessions = sqliteTable(
     index("attendance_sessions_technician_uid_idx").on(table.technicianUid),
     index("attendance_sessions_clock_in_idx").on(table.clockInAt),
     index("attendance_sessions_clock_out_idx").on(table.clockOutAt),
+  ],
+);
+
+export const clientOrders = sqliteTable(
+  "client_orders",
+  {
+    orderId: text("order_id").primaryKey(),
+    clientUid: text("client_uid")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    clientName: text("client_name").notNull(),
+    stationId: text("station_id")
+      .notNull()
+      .references(() => stations.stationId, { onDelete: "restrict" }),
+    stationLabel: text("station_label").notNull(),
+    note: text("note"),
+    photoUrl: text("photo_url"),
+    status: text("status").$type<ClientOrderStatus>().notNull().default("pending"),
+    createdAt: timestamp("created_at").notNull(),
+    reviewedAt: timestamp("reviewed_at"),
+    reviewedBy: text("reviewed_by"),
+  },
+  (table) => [
+    index("client_orders_client_uid_idx").on(table.clientUid),
+    index("client_orders_station_id_idx").on(table.stationId),
+    index("client_orders_status_idx").on(table.status),
+    index("client_orders_created_at_idx").on(table.createdAt),
   ],
 );
 

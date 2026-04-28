@@ -53,6 +53,7 @@ function trustedOrigins(): string[] {
 }
 
 const appRoles = {
+  client: defaultRoles.user,
   technician: defaultRoles.user,
   supervisor: defaultRoles.user,
   manager: defaultRoles.admin,

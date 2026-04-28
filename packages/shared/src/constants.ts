@@ -1,4 +1,4 @@
-export const userRoles = ["technician", "supervisor", "manager"] as const;
+export const userRoles = ["client", "technician", "supervisor", "manager"] as const;
 export type SharedUserRole = (typeof userRoles)[number];
 
 export const reportStatusOptions = [
@@ -45,12 +45,14 @@ export const statusOptionEntries: readonly StatusOptionEntry[] = reportStatusOpt
 }));
 
 export const roleLabels: Record<SharedUserRole, string> = {
+  client: "عميل",
   technician: "فني",
   supervisor: "مشرف",
   manager: "مدير",
 };
 
 export const roleLabelsEnglish: Record<SharedUserRole, string> = {
+  client: "Client",
   technician: "Technician",
   supervisor: "Supervisor",
   manager: "Manager",

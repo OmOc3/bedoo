@@ -8,7 +8,7 @@ const alwaysPublicPrefixes = [
   "/unauthorized",
   "/account-disabled",
   "/scan",
-  "/client",
+  "/client/view",
   "/api/auth",
   "/api/mobile/web-session/consume",
 ];

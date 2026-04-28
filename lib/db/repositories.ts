@@ -6,6 +6,7 @@ import { db } from "@/lib/db/client";
 import {
   attendanceSessions,
   auditLogs,
+  clientOrders,
   loginRateLimit,
   mobileWebSessions,
   reportStatuses,
@@ -19,6 +20,8 @@ import type {
   AppUser,
   AttendanceSession,
   AuditLog,
+  ClientOrder,
+  ClientOrderStatus,
   Coordinates,
   Report,
   ReportPhotoPaths,
@@ -127,6 +130,15 @@ export interface ClockAttendanceInput {
   notes?: string;
   technicianName: string;
   technicianUid: string;
+}
+
+export interface CreateClientOrderInput {
+  actorRole: UserRole;
+  clientUid: string;
+  clientName: string;
+  note?: string;
+  photoUrl?: string;
+  stationId: string;
 }
 
 function now(): Date {
@@ -511,6 +523,121 @@ export async function listAttendanceSessions(technicianUid: string, limit = 30):
     .limit(safeLimit);
 
   return rows.map(attendanceFromRow);
+}
+
+function clientOrderFromRow(row: typeof clientOrders.$inferSelect): ClientOrder {
+  return {
+    orderId: row.orderId,
+    clientUid: row.clientUid,
+    clientName: row.clientName,
+    stationId: row.stationId,
+    stationLabel: row.stationLabel,
+    note: row.note ?? undefined,
+    photoUrl: row.photoUrl ?? undefined,
+    status: row.status,
+    createdAt: requiredTimestamp(row.createdAt),
+    reviewedAt: row.reviewedAt ? requiredTimestamp(row.reviewedAt) : undefined,
+    reviewedBy: row.reviewedBy ?? undefined,
+  };
+}
+
+export async function createClientOrder(input: CreateClientOrderInput): Promise<ClientOrder> {
+  const station = await getStationById(input.stationId);
+  if (!station) {
+    throw new AppError("المحطة غير موجودة.", "STATION_NOT_FOUND", 404);
+  }
+
+  const record = {
+    orderId: crypto.randomUUID(),
+    clientUid: input.clientUid,
+    clientName: input.clientName,
+    stationId: input.stationId,
+    stationLabel: station.label,
+    note: input.note ?? null,
+    photoUrl: input.photoUrl ?? null,
+    status: "pending" as ClientOrderStatus,
+    createdAt: now(),
+    reviewedAt: null,
+    reviewedBy: null,
+  };
+
+  await db.insert(clientOrders).values(record);
+  await writeAuditLogRecord({
+    actorUid: input.clientUid,
+    actorRole: input.actorRole,
+    action: "client_order.create",
+    entityType: "client_order",
+    entityId: record.orderId,
+    metadata: { stationId: input.stationId },
+  });
+
+  return clientOrderFromRow(record);
+}
+
+export async function listClientOrdersForClient(clientUid: string, limit = 100): Promise<ClientOrder[]> {
+  const safeLimit = Math.min(Math.max(limit, 1), 200);
+  const rows = await db
+    .select()
+    .from(clientOrders)
+    .where(eq(clientOrders.clientUid, clientUid))
+    .orderBy(desc(clientOrders.createdAt))
+    .limit(safeLimit);
+
+  return rows.map(clientOrderFromRow);
+}
+
+export async function listClientOrders(limit = 200): Promise<ClientOrder[]> {
+  const safeLimit = Math.min(Math.max(limit, 1), 500);
+  const rows = await db.select().from(clientOrders).orderBy(desc(clientOrders.createdAt)).limit(safeLimit);
+  return rows.map(clientOrderFromRow);
+}
+
+export async function updateClientOrderStatus(
+  orderId: string,
+  status: ClientOrderStatus,
+  reviewerUid: string,
+  actorRole: UserRole,
+): Promise<void> {
+  await db
+    .update(clientOrders)
+    .set({
+      status,
+      reviewedAt: now(),
+      reviewedBy: reviewerUid,
+    })
+    .where(eq(clientOrders.orderId, orderId));
+
+  await writeAuditLogRecord({
+    actorUid: reviewerUid,
+    actorRole,
+    action: "client_order.status_update",
+    entityType: "client_order",
+    entityId: orderId,
+    metadata: { status },
+  });
+}
+
+export async function listReportsForClientOrderedStations(clientUid: string, limit = 100): Promise<Report[]> {
+  const stationRows = await db
+    .select({ stationId: clientOrders.stationId })
+    .from(clientOrders)
+    .where(eq(clientOrders.clientUid, clientUid));
+  const stationIds = Array.from(new Set(stationRows.map((row) => row.stationId)));
+
+  if (stationIds.length === 0) {
+    return [];
+  }
+
+  const safeLimit = Math.min(Math.max(limit, 1), 300);
+  const rows = await db
+    .select()
+    .from(reports)
+    .where(inArray(reports.stationId, stationIds))
+    .orderBy(desc(reports.submittedAt), desc(reports.reportId))
+    .limit(safeLimit);
+
+  const statuses = await statusesByReportId(rows.map((row) => row.reportId));
+  return rows.map((row) => reportFromRow(row, statuses.get(row.reportId) ?? []));
 }
 
 export async function submitReportRecord(input: SubmitReportInput): Promise<SubmitReportResult> {

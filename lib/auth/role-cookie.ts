@@ -7,7 +7,7 @@ export interface SignedRolePayload {
   expiresAt: number;
 }
 
-const validRoles = new Set<UserRole>(["technician", "supervisor", "manager"]);
+const validRoles = new Set<UserRole>(["client", "technician", "supervisor", "manager"]);
 
 function bytesToHex(bytes: ArrayBuffer): string {
   return Array.from(new Uint8Array(bytes))
