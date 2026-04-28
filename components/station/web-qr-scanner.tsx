@@ -260,16 +260,16 @@ export function WebQrScanner() {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-semibold text-[var(--foreground)]">المسح بالكاميرا (ويب)</p>
-      <p className="text-xs leading-5 text-[var(--muted)]">اضغط تشغيل الكاميرا ثم وجّهها إلى QR الخاص بالمحطة.</p>
+      <p className="text-sm font-semibold text-slate-800">المسح بالكاميرا (ويب)</p>
+      <p className="text-xs leading-5 text-slate-500">اضغط تشغيل الكاميرا ثم وجّهها إلى QR الخاص بالمحطة.</p>
 
-      <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)]">
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
         <video className="h-56 w-full object-cover" muted playsInline ref={videoRef} />
       </div>
 
       <div className="flex flex-wrap gap-2">
         <button
-          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-teal-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-teal-600 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={isScanning}
           onClick={() => void startScanner()}
           type="button"
@@ -277,7 +277,7 @@ export function WebQrScanner() {
           {isScanning ? "جاري المسح..." : "تشغيل الكاميرا"}
         </button>
         <button
-          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={!isScanning}
           onClick={stopScanner}
           type="button"
@@ -286,17 +286,13 @@ export function WebQrScanner() {
         </button>
       </div>
 
-      {message ? (
-        <p className="text-xs text-[var(--muted)]" role="status">
-          {message}
-        </p>
-      ) : null}
+      {message ? <p className="text-xs text-slate-600">{message}</p> : null}
       {error ? (
-        <div className="flex flex-wrap items-center gap-2" role="alert">
-          <p className="text-xs font-medium text-[var(--danger)]">{error}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs font-medium text-red-700">{error}</p>
           {error.includes("أعد تحميل الصفحة") ? (
             <button
-              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--danger-soft)] px-3 py-2 text-xs font-semibold text-[var(--danger)] hover:opacity-90"
+              className="rounded bg-red-100 px-2 py-1 text-[10px] font-semibold text-red-700 hover:bg-red-200"
               onClick={() => window.location.reload()}
               type="button"
             >
@@ -307,8 +303,8 @@ export function WebQrScanner() {
       ) : null}
       {debugInfo ? (
         <details className="mt-2">
-          <summary className="cursor-pointer text-xs text-[var(--muted)]">معلومات تقنية (للدعم)</summary>
-          <p className="mt-1 break-all text-[10px] text-[var(--muted)]">{debugInfo}</p>
+          <summary className="cursor-pointer text-xs text-slate-400">معلومات تقنية (للدعم)</summary>
+          <p className="mt-1 break-all text-[10px] text-slate-400">{debugInfo}</p>
         </details>
       ) : null}
     </div>

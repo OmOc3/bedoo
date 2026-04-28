@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ROLE_COOKIE_NAME } from "@/lib/auth/constants";
 import { verifySignedRoleCookie } from "@/lib/auth/role-cookie";
-import { assertEnv } from "@/lib/env-check";
 
 const alwaysPublicPrefixes = [
   "/login",
@@ -25,7 +24,7 @@ function createContentSecurityPolicy(nonce: string): string {
     "object-src 'none'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "img-src 'self' data: blob: https://res.cloudinary.com https://tile.openstreetmap.org",
+    "img-src 'self' data: blob: https://res.cloudinary.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     scriptSrc,
@@ -68,13 +67,12 @@ function redirectToLogin(request: NextRequest): NextResponse {
   const url = request.nextUrl.clone();
 
   url.pathname = "/login";
+  url.searchParams.set("next", request.nextUrl.pathname);
 
   return NextResponse.redirect(url);
 }
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
-  assertEnv();
-
   try {
     const pathname = request.nextUrl.pathname;
 

@@ -4,12 +4,6 @@
     "baseUrl": ".",
     "strict": true,
     "paths": {
-      "@ecopest/shared": [
-        "../packages/shared/src/index.ts"
-      ],
-      "@ecopest/shared/*": [
-        "../packages/shared/src/*"
-      ],
       "@/*": [
         "./src/*"
       ],

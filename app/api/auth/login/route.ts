@@ -7,6 +7,7 @@ import { createSignedRoleCookie } from "@/lib/auth/role-cookie";
 import { setRoleCookie } from "@/lib/auth/session";
 import { getSessionMaxAgeMs } from "@/lib/auth/session-config";
 import { requiredTimestamp } from "@/lib/db/mappers";
+import { assertEnv } from "@/lib/env-check";
 import { i18n } from "@/lib/i18n";
 import { isRecord } from "@/lib/utils";
 import { loginFormSchema } from "@/lib/validation/auth";
@@ -121,6 +122,8 @@ function isDisabledAuthError(error: unknown): boolean {
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorResponse | LoginSuccessResponse>> {
   try {
+    assertEnv();
+
     const body = (await request.json()) as unknown;
     const parsed = loginFormSchema.safeParse(body);
 

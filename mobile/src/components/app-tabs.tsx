@@ -1,12 +1,11 @@
-import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 
 import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
-import { Fonts, Radius, Spacing, Typography } from '@/constants/theme';
+import { Fonts, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
-import { useThemeMode, type ResolvedTheme } from '@/contexts/theme-context';
+import { useThemeMode } from '@/contexts/theme-context';
 import { useCurrentUser } from '@/lib/auth';
 import { isMobileAdminRole } from '@/lib/auth-routes';
 
@@ -21,103 +20,21 @@ const tabIcons: Record<string, EcoPestIconName> = {
   team: 'user',
 };
 
-function canUseNativeLiquidGlass() {
-  if (Platform.OS !== 'ios') {
-    return false;
-  }
-
-  try {
-    return isGlassEffectAPIAvailable() && isLiquidGlassAvailable();
-  } catch {
-    return false;
-  }
-}
-
-interface LiquidTabBarBackgroundProps {
-  fallbackColor: string;
-  highlightColor: string;
-  isLiquidGlass: boolean;
-  resolvedTheme: ResolvedTheme;
-  tintColor: string;
-}
-
-function LiquidTabBarBackground({
-  fallbackColor,
-  highlightColor,
-  isLiquidGlass,
-  resolvedTheme,
-  tintColor,
-}: LiquidTabBarBackgroundProps) {
-  return (
-    <View pointerEvents="none" style={styles.tabBarBackgroundClip}>
-      {isLiquidGlass ? (
-        <GlassView
-          colorScheme={resolvedTheme}
-          glassEffectStyle={{ animate: true, animationDuration: 0.2, style: 'regular' }}
-          isInteractive
-          style={StyleSheet.absoluteFill}
-          tintColor={tintColor}
-        />
-      ) : (
-        <View style={[styles.tabBarFallbackSurface, { backgroundColor: fallbackColor }]} />
-      )}
-      <View
-        style={[
-          styles.tabBarGloss,
-          {
-            backgroundColor: highlightColor,
-            opacity: resolvedTheme === 'dark' ? 0.1 : 0.34,
-          },
-        ]}
-      />
-    </View>
-  );
-}
-
 export default function AppTabs() {
-  const { resolvedTheme, theme } = useThemeMode();
+  const { theme } = useThemeMode();
   const { strings } = useLanguage();
   const currentUser = useCurrentUser();
   const tabs = strings.tabs;
   const isAdminUser = currentUser ? isMobileAdminRole(currentUser.profile.role) : false;
-  const isLiquidGlass = canUseNativeLiquidGlass();
 
   return (
     <Tabs
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: theme.primary,
-        tabBarBackground: () => (
-          <LiquidTabBarBackground
-            fallbackColor={theme.backgroundElement}
-            highlightColor={theme.onPrimary}
-            isLiquidGlass={isLiquidGlass}
-            resolvedTheme={resolvedTheme}
-            tintColor={theme.backgroundElement}
-          />
-        ),
-        tabBarHideOnKeyboard: true,
         tabBarIcon: ({ color, focused }) => (
-          <View
-            style={[
-              styles.iconShell,
-              focused
-                ? [
-                    styles.iconShellFocused,
-                    {
-                      backgroundColor: theme.backgroundSelected,
-                      borderColor: theme.primaryLight,
-                    },
-                  ]
-                : null,
-            ]}>
-            {focused ? <View style={[styles.iconSheen, { backgroundColor: theme.onPrimary }]} /> : null}
-            <EcoPestIcon
-              color={color}
-              name={tabIcons[route.name] ?? 'home'}
-              size={22}
-              strokeWidth={focused ? 2.5 : 2.2}
-            />
+          <View style={[styles.iconShell, focused ? { backgroundColor: theme.backgroundSelected } : null]}>
+            <EcoPestIcon color={color} name={tabIcons[route.name] ?? 'home'} size={22} />
           </View>
         ),
         tabBarInactiveTintColor: theme.textSecondary,
@@ -125,15 +42,12 @@ export default function AppTabs() {
         tabBarLabelStyle: {
           fontFamily: Fonts.sansBold,
           fontSize: Typography.fontSize.xs,
-          lineHeight: 14,
-          marginTop: 2,
         },
         tabBarStyle: [
           styles.tabBar,
           {
-            backgroundColor: isLiquidGlass ? 'transparent' : theme.backgroundElement,
-            borderColor: theme.border,
-            shadowColor: theme.text,
+            backgroundColor: theme.backgroundElement,
+            borderTopColor: theme.border,
           },
         ],
       })}>
@@ -150,65 +64,20 @@ export default function AppTabs() {
 }
 
 const styles = StyleSheet.create({
-  iconSheen: {
-    borderRadius: Radius.full,
-    height: 12,
-    left: Spacing.two,
-    opacity: 0.34,
-    position: 'absolute',
-    right: Spacing.two,
-    top: 3,
-  },
   iconShell: {
     alignItems: 'center',
-    borderColor: 'transparent',
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    height: 32,
+    borderRadius: 999,
+    height: 30,
     justifyContent: 'center',
-    overflow: 'hidden',
-    width: 46,
-  },
-  iconShellFocused: {
-    transform: [{ translateY: -1 }],
+    width: 42,
   },
   tabBar: {
-    borderRadius: Radius.full,
-    borderTopWidth: 0,
-    borderWidth: 1,
-    bottom: Platform.select({ android: 12, ios: 14, default: 12 }),
-    elevation: 18,
-    height: Platform.select({ android: 70, ios: 78, default: 70 }),
-    left: Spacing.three,
-    minHeight: Platform.select({ android: 70, ios: 78, default: 70 }),
-    overflow: 'hidden',
-    paddingBottom: Platform.select({ android: 8, ios: 14, default: 8 }),
-    paddingHorizontal: Spacing.one,
+    borderTopWidth: 1,
+    minHeight: Platform.select({ android: 70, ios: 82, default: 70 }),
+    paddingBottom: Platform.select({ android: 10, ios: 20, default: 10 }),
     paddingTop: 8,
-    position: 'absolute',
-    right: Spacing.three,
-    shadowOffset: { height: 14, width: 0 },
-    shadowOpacity: 0.16,
-    shadowRadius: 26,
-  },
-  tabBarBackgroundClip: {
-    ...StyleSheet.absoluteFillObject,
-    borderRadius: Radius.full,
-    overflow: 'hidden',
-  },
-  tabBarFallbackSurface: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  tabBarGloss: {
-    borderRadius: Radius.full,
-    height: '45%',
-    left: Spacing.two,
-    position: 'absolute',
-    right: Spacing.two,
-    top: Spacing.one,
   },
   tabItem: {
-    borderRadius: Radius.full,
     paddingVertical: 2,
   },
 });

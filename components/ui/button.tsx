@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "danger" | "ghost" | "primary" | "secondary";
+type ButtonVariant = "primary" | "secondary" | "danger";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
@@ -11,11 +11,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-[var(--primary)] text-white shadow-sm hover:bg-[var(--primary-hover)] hover:shadow focus-visible:ring-[var(--primary)]",
+    "bg-[var(--primary)] text-white shadow-control hover:bg-[var(--primary-strong)] active:translate-y-px disabled:bg-[oklch(0.72_0.025_155)]",
   secondary:
-    "border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-sm hover:border-[color-mix(in_srgb,var(--border)_60%,var(--foreground)_40%)] hover:bg-[var(--surface-subtle)] hover:shadow",
-  danger: "bg-[var(--danger)] text-white shadow-sm hover:opacity-90 hover:shadow focus-visible:ring-[var(--danger)]",
-  ghost: "text-[var(--muted)] hover:bg-[var(--surface-subtle)] hover:text-[var(--foreground)] focus-visible:ring-[var(--primary)]",
+    "border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] shadow-control hover:bg-[var(--surface-subtle)] active:translate-y-px disabled:text-[var(--muted)]",
+  danger:
+    "bg-[var(--danger)] text-white shadow-control hover:bg-[oklch(0.46_0.15_28)] active:translate-y-px disabled:bg-[oklch(0.72_0.04_28)]",
 };
 
 export function Button({
@@ -30,7 +30,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+        "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed",
         variantClasses[variant],
         className,
       )}

@@ -1,8 +1,13 @@
-import type { SharedReviewStatus, SharedStatusOption, SharedUserRole } from '@ecopest/shared/constants';
+// Synced from web types — do not edit manually
+export type UserRole = "technician" | "supervisor" | "manager";
 
-export type UserRole = SharedUserRole;
-export type StatusOption = SharedStatusOption;
-export type ReviewStatus = SharedReviewStatus;
+export type StatusOption =
+  | "station_ok"
+  | "station_replaced"
+  | "bait_changed"
+  | "bait_ok"
+  | "station_excluded"
+  | "station_substituted";
 
 export interface AppTimestamp {
   seconds: number;
@@ -47,7 +52,7 @@ export interface MobileReviewReport {
   photoCount?: number;
   reportId: string;
   reviewNotes?: string;
-  reviewStatus: ReviewStatus;
+  reviewStatus: "pending" | "reviewed" | "rejected";
   stationId: string;
   stationLabel: string;
   status: StatusOption[];
@@ -87,7 +92,7 @@ export interface Report {
   notes?: string;
   photoPaths?: ReportPhotoPaths;
   submittedAt?: string;
-  reviewStatus: ReviewStatus;
+  reviewStatus: "pending" | "reviewed" | "rejected";
   editedAt?: string;
   editedBy?: string;
   reviewedAt?: string;

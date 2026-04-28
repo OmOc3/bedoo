@@ -11,13 +11,7 @@ import * as schema from "@/lib/db/schema";
 import { getSessionMaxAgeSeconds } from "@/lib/auth/session-config";
 
 function getAuthSecret(): string {
-  const secret = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SESSION_SECRET;
-
-  if (!secret || secret.length < 32) {
-    throw new Error("BETTER_AUTH_SECRET or AUTH_SESSION_SECRET must be at least 32 characters.");
-  }
-
-  return secret;
+  return process.env.BETTER_AUTH_SECRET || process.env.AUTH_SESSION_SECRET || "development-only-better-auth-secret-32";
 }
 
 function getBaseUrl(): string | undefined {

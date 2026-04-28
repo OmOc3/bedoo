@@ -32,12 +32,12 @@ export default async function ManagerUsersPage() {
   const users = await listAppUsers();
 
   return (
-    <main className="min-h-dvh bg-[var(--background)] px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
+    <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
       <section className="mx-auto max-w-7xl space-y-6">
         <PageHeader
           action={
             <Link
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-control transition-colors hover:bg-slate-50"
               href="/dashboard/manager"
             >
               لوحة المدير
@@ -52,7 +52,7 @@ export default async function ManagerUsersPage() {
         <CreateUserForm />
 
         {users.length === 0 ? (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
             <EmptyState description="ابدأ بإنشاء أول مستخدم من النموذج أعلاه." title="لا يوجد مستخدمون" />
           </div>
         ) : (
@@ -66,36 +66,36 @@ export default async function ManagerUsersPage() {
               }
 
               return (
-                <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card" key={user.uid}>
+                <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-control" key={user.uid}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
                       {user.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img alt={user.displayName} className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-[var(--border)]" src={user.image} />
+                        <img alt={user.displayName} className="h-14 w-14 shrink-0 rounded-full object-cover ring-1 ring-slate-200" src={user.image} />
                       ) : (
-                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-[var(--surface-subtle)] text-lg font-bold text-[var(--muted)] ring-1 ring-[var(--border)]">
+                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-100 text-lg font-bold text-slate-500 ring-1 ring-slate-200">
                           {getInitials(user.displayName)}
                         </div>
                       )}
                       <div className="min-w-0">
-                        <h2 className="truncate text-lg font-bold text-[var(--foreground)]">{user.displayName}</h2>
-                        <p className="truncate text-sm text-[var(--muted)]">{user.email}</p>
+                        <h2 className="truncate text-lg font-bold text-slate-950">{user.displayName}</h2>
+                        <p className="truncate text-sm text-slate-500">{user.email}</p>
                       </div>
                     </div>
                     <span
                       className={
                         user.isActive
-                          ? "inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                            : "inline-flex items-center rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-semibold text-[var(--muted)] dark:bg-[var(--surface-elevated)]"
+                          ? "inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700"
+                          : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600"
                       }
                     >
                       {user.isActive ? "نشط" : "غير نشط"}
                     </span>
                   </div>
 
-                  <div className="mt-5 flex items-center justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-subtle)] px-4 py-3">
-                    <span className="text-sm text-[var(--muted)]">الدور</span>
-                    <span className="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
+                  <div className="mt-5 flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+                    <span className="text-sm text-slate-500">الدور</span>
+                    <span className="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
                       {roleLabels[user.role]}
                     </span>
                   </div>
@@ -105,7 +105,7 @@ export default async function ManagerUsersPage() {
                     <UserRoleForm disabled={isCurrentUser} targetUid={user.uid} value={user.role} />
                     <form action={toggleActive}>
                       <button
-                        className="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] disabled:cursor-not-allowed disabled:text-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
+                        className="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-300"
                         disabled={isCurrentUser}
                         type="submit"
                       >
@@ -114,7 +114,7 @@ export default async function ManagerUsersPage() {
                     </form>
                     <UserAccessCodeForm targetUid={user.uid} />
                     {isCurrentUser ? (
-                      <p className="text-xs leading-5 text-[var(--muted)]">لا يمكنك تعطيل حسابك أو تغيير دورك الحالي.</p>
+                      <p className="text-xs leading-5 text-slate-500">لا يمكنك تعطيل حسابك أو تغيير دورك الحالي.</p>
                     ) : null}
                   </div>
                 </article>

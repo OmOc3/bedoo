@@ -1,4 +1,4 @@
-import type { SharedReviewStatus, SharedStatusOption, SharedUserRole } from "@ecopest/shared/constants";
+import type { SharedReviewStatus, SharedStatusOption, SharedUserRole } from "@/lib/shared/constants";
 
 export type UserRole = SharedUserRole;
 

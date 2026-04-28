@@ -76,8 +76,8 @@ export function UserAccessCodeForm({ targetUid }: UserAccessCodeFormProps) {
           تحديث الكود
         </Button>
       </div>
-      {result?.error ? <p className="text-xs font-medium text-[var(--danger)]">{result.error}</p> : null}
-      {result?.success ? <p className="text-xs font-medium text-[var(--success)]">تم تحديث كود الدخول.</p> : null}
+      {result?.error ? <p className="text-xs font-medium text-red-600">{result.error}</p> : null}
+      {result?.success ? <p className="text-xs font-medium text-green-700">تم تحديث كود الدخول.</p> : null}
     </form>
   );
 }

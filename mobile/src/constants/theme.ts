@@ -159,7 +159,7 @@ export const Shadow = {
   },
 } as const;
 
-export const BottomTabInset = Platform.select({ ios: 104, android: 92, default: 0 }) ?? 0;
+export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
 
 export const Brand = {
@@ -176,4 +176,4 @@ export const Brand = {
   slug: 'ecopest',
 } as const;
 
-export const WebBaseUrl = process.env.EXPO_PUBLIC_ECOPEST_WEB_BASE_URL || 'http://localhost:3000';
+export const WebBaseUrl = 'https://ecopest-production.vercel.app/';

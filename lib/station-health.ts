@@ -24,7 +24,7 @@ export function getStationHealth(station: Pick<Station, "isActive" | "lastVisite
   if (!station.isActive) {
     return {
       label: "غير نشطة",
-      toneClassName: "bg-[var(--surface-subtle)] text-[var(--muted)] dark:bg-[var(--surface-elevated)]",
+      toneClassName: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
       value: "inactive",
     };
   }
@@ -34,14 +34,14 @@ export function getStationHealth(station: Pick<Station, "isActive" | "lastVisite
   if (visitAgeDays === null || visitAgeDays > staleVisitDays) {
     return {
       label: visitAgeDays === null ? "تحتاج زيارة" : `لم تزر منذ ${visitAgeDays} يوم`,
-      toneClassName: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+      toneClassName: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-200",
       value: "attention",
     };
   }
 
   return {
     label: "سليمة",
-    toneClassName: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+    toneClassName: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-200",
     value: "healthy",
   };
 }

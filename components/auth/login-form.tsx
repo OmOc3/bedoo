@@ -111,7 +111,7 @@ export function LoginForm() {
       />
       {formError ? (
         <div
-          className="rounded-lg border border-[var(--danger-muted)] bg-[var(--danger-soft)] px-4 py-3 text-sm font-semibold text-[var(--danger)]"
+          className="rounded-lg border border-[oklch(0.78_0.09_28)] bg-[var(--danger-soft)] px-4 py-3 text-sm font-bold text-[var(--danger)]"
           role="alert"
         >
           {formError}

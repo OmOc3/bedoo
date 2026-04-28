@@ -37,7 +37,7 @@ export default async function EditStationPage({ params }: EditStationPageProps) 
   };
 
   return (
-    <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
+    <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
       <section className="mx-auto max-w-3xl">
         <PageHeader
           backHref={`/dashboard/manager/stations/${station.stationId}`}
@@ -45,7 +45,7 @@ export default async function EditStationPage({ params }: EditStationPageProps) 
           title="تعديل محطة"
         />
         <DashboardNav role="manager" />
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-control sm:p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-control sm:p-6">
           <StationForm mode="edit" station={station} />
         </div>
       </section>

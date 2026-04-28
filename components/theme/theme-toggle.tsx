@@ -28,7 +28,7 @@ export function ThemeToggle({ className }: { className?: string }) {
   return (
     <button
       className={cn(
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:border-[color-mix(in_srgb,var(--border)_60%,var(--foreground)_40%)] hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800",
         className,
       )}
       onClick={() => {
@@ -39,7 +39,7 @@ export function ThemeToggle({ className }: { className?: string }) {
     >
       <span
         aria-hidden="true"
-        className={cn("h-2.5 w-2.5 rounded-full", theme === "dark" ? "bg-amber-400" : "bg-[var(--foreground)]")}
+        className={cn("h-2.5 w-2.5 rounded-full", theme === "dark" ? "bg-amber-400" : "bg-slate-900")}
       />
       {theme === "dark" ? i18n.theme.light : i18n.theme.dark}
     </button>

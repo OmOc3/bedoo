@@ -78,7 +78,7 @@ function StatCard({
 
 function RecentReportItem({ locale, report }: { locale: string; report: DraftReport }) {
   const theme = useTheme();
-  const { strings } = useLanguage();
+  const { isRtl, strings } = useLanguage();
   const title = report.stationLabel ?? `${strings.report.stationLabel} #${report.stationId}`;
   const statusTone = report.syncStatus === 'submitted' ? 'success' : report.syncStatus === 'failed' ? 'danger' : 'warning';
   const statusLabel = report.syncStatus ? strings.syncStatus[report.syncStatus] : strings.syncStatus.queued;
@@ -114,7 +114,7 @@ export default function HomeScreen() {
   const { syncAllDrafts } = useSyncActions();
   const currentUser = useCurrentUser();
   const theme = useTheme();
-  const { language, strings } = useLanguage();
+  const { isRtl, language, strings } = useLanguage();
   const t = strings.home;
   const locale = languageDateLocales[language];
   const [draftCount, setDraftCount] = useState(0);

@@ -38,24 +38,16 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
   const stations = query ? await listStations() : visibleStations;
 
   return (
-    <main className="min-h-dvh bg-[var(--background)] px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
+    <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
       <section className="mx-auto max-w-7xl space-y-6">
         <PageHeader
           action={
-            <div className="flex flex-wrap gap-2">
-              <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
-                href="/dashboard/manager/stations/map"
-              >
-                خريطة المحطات
-              </Link>
-              <Link
-                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
-                href="/dashboard/manager/stations/new"
-              >
-                إضافة محطة
-              </Link>
-            </div>
+            <Link
+              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-control transition-colors hover:bg-teal-600"
+              href="/dashboard/manager/stations/new"
+            >
+              إضافة محطة
+            </Link>
           }
           description="إدارة محطات الطعوم، حالة التشغيل، وعدد الزيارات المسجلة."
           title="المحطات"
@@ -64,24 +56,24 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
 
         <form
           action="/dashboard/manager/stations"
-          className="flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:flex-row"
+          className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-control sm:flex-row"
         >
           <input
-            className="min-h-11 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] transition-colors placeholder:text-[var(--muted)] hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            className="min-h-11 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-transparent focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
             defaultValue={query}
             name="q"
             placeholder="ابحث باسم المحطة أو الموقع أو الرقم..."
             type="search"
           />
           <button
-            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-teal-600"
             type="submit"
           >
             بحث
           </button>
           {query ? (
             <Link
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
               href="/dashboard/manager/stations"
             >
               مسح
@@ -90,11 +82,11 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
         </form>
 
         {stations.length === 0 ? (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
             <EmptyState
               action={
                 <Link
-                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98]"
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-teal-600"
                   href="/dashboard/manager/stations/new"
                 >
                   إضافة أول محطة
@@ -105,7 +97,7 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
             />
           </div>
         ) : visibleStations.length === 0 ? (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
             <EmptyState description="جرّب البحث باسم محطة أو موقع مختلف." title="لا توجد نتائج مطابقة" />
           </div>
         ) : (
@@ -115,14 +107,14 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                 const health = getStationHealth(station);
 
                 return (
-                  <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card" key={station.stationId}>
+                  <article className="rounded-xl border border-slate-200 bg-white p-4 shadow-control" key={station.stationId}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-[var(--muted)]" dir="ltr">
+                        <p className="text-xs font-semibold text-slate-500" dir="ltr">
                           #{station.stationId}
                         </p>
-                        <h2 className="mt-1 truncate text-base font-bold text-[var(--foreground)]">{station.label}</h2>
-                        <p className="mt-1 text-sm text-[var(--muted)]">{station.location}</p>
+                        <h2 className="mt-1 truncate text-base font-bold text-slate-950">{station.label}</h2>
+                        <p className="mt-1 text-sm text-slate-600">{station.location}</p>
                       </div>
                       <span className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${health.toneClassName}`}>
                         {health.label}
@@ -131,18 +123,18 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
 
                     <dl className="mt-4 grid gap-3 text-sm">
                       <div>
-                        <dt className="font-medium text-[var(--muted)]">المنطقة</dt>
-                        <dd className="mt-1 text-[var(--foreground)]">{station.zone ?? "غير محدد"}</dd>
+                        <dt className="font-medium text-slate-500">المنطقة</dt>
+                        <dd className="mt-1 text-slate-800">{station.zone ?? "غير محدد"}</dd>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <dt className="font-medium text-[var(--muted)]">الحالة</dt>
+                          <dt className="font-medium text-slate-500">الحالة</dt>
                           <dd className="mt-1">
                             <span
                               className={
                                 station.isActive
-                                  ? "inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                                  : "inline-flex items-center rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-semibold text-[var(--muted)] dark:bg-[var(--surface-elevated)]"
+                                  ? "inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700"
+                                  : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
                               }
                             >
                               {station.isActive ? "نشطة" : "غير نشطة"}
@@ -150,13 +142,13 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                           </dd>
                         </div>
                         <div>
-                          <dt className="font-medium text-[var(--muted)]">إشراف فوري</dt>
+                          <dt className="font-medium text-slate-500">إشراف فوري</dt>
                           <dd className="mt-1">
                             <span
                               className={
                                 station.requiresImmediateSupervision
-                                  ? "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                                  : "inline-flex items-center rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-semibold text-[var(--muted)] dark:bg-[var(--surface-elevated)]"
+                                  ? "inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"
+                                  : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
                               }
                             >
                               {station.requiresImmediateSupervision ? "مطلوب" : "لا"}
@@ -165,27 +157,27 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                         </div>
                       </div>
                       <div>
-                        <dt className="font-medium text-[var(--muted)]">آخر زيارة</dt>
-                        <dd className="mt-1 text-[var(--foreground)]">{formatTimestamp(station.lastVisitedAt)}</dd>
+                        <dt className="font-medium text-slate-500">آخر زيارة</dt>
+                        <dd className="mt-1 text-slate-800">{formatTimestamp(station.lastVisitedAt)}</dd>
                       </div>
                     </dl>
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <Link
-                        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm"
+                        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
                         href={`/dashboard/manager/stations/${station.stationId}`}
                       >
                         عرض
                       </Link>
                       <Link
-                        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm"
+                        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
                         href={`/dashboard/manager/stations/${station.stationId}/edit`}
                       >
                         تعديل
                       </Link>
                       <form action={toggleStationStatusAction.bind(null, station.stationId, station.isActive)}>
                         <button
-                          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm"
+                          className="inline-flex min-h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
                           type="submit"
                         >
                           {station.isActive ? "تعطيل" : "تفعيل"}
@@ -196,64 +188,64 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                 );
               })}
             </div>
-          <div className="hidden overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card md:block">
+          <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-control md:block">
             <div className="overflow-x-auto">
             <table className="w-full min-w-[1000px]">
-              <thead className="border-b border-[var(--border-subtle)] bg-[var(--surface-subtle)]">
+              <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     رقم المحطة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     اسم المحطة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     الموقع
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     المنطقة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     الحالة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     إشراف فوري
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     الصحة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     آخر زيارة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     تمت الزيارة بواسطة
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     التقارير
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+                  <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">
                     الإجراءات
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
+              <tbody className="divide-y divide-slate-100">
                 {visibleStations.map((station) => {
                   const health = getStationHealth(station);
 
                   return (
-                      <tr className="transition-colors even:bg-[var(--surface-subtle)] hover:bg-[var(--primary-soft)]" key={station.stationId}>
-                        <td className="px-4 py-3 text-sm font-semibold text-[var(--foreground)]" dir="ltr">
+                      <tr className="transition-colors hover:bg-slate-50" key={station.stationId}>
+                        <td className="px-4 py-3 text-sm font-semibold text-slate-900" dir="ltr">
                           #{station.stationId}
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium text-[var(--foreground)]">{station.label}</td>
-                        <td className="px-4 py-3 text-sm text-[var(--muted)]">{station.location}</td>
-                        <td className="px-4 py-3 text-sm text-[var(--muted)]">{station.zone ?? "غير محدد"}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-slate-900">{station.label}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{station.location}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{station.zone ?? "غير محدد"}</td>
                         <td className="px-4 py-3">
                           <span
                             className={
                               station.isActive
-                                ? "inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300"
-                                : "inline-flex items-center rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-semibold text-[var(--muted)] dark:bg-[var(--surface-elevated)]"
+                                ? "inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700"
+                                : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
                             }
                           >
                             {station.isActive ? "نشطة" : "غير نشطة"}
@@ -263,8 +255,8 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                           <span
                             className={
                               station.requiresImmediateSupervision
-                                ? "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                                : "inline-flex items-center rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-semibold text-[var(--muted)] dark:bg-[var(--surface-elevated)]"
+                                ? "inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"
+                                : "inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600"
                             }
                           >
                             {station.requiresImmediateSupervision ? "مطلوب" : "لا"}
@@ -275,26 +267,26 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                             {health.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-[var(--muted)]">{formatTimestamp(station.lastVisitedAt)}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{formatTimestamp(station.lastVisitedAt)}</td>
                         <td className="px-4 py-3 text-sm font-medium text-teal-700">{station.lastVisitedBy ?? "-"}</td>
-                        <td className="px-4 py-3 text-sm text-[var(--muted)]">{station.totalReports}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700">{station.totalReports}</td>
                         <td className="px-4 py-3">
                           <div className="flex flex-wrap items-center gap-3">
                             <Link
-                              className="text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:underline"
+                              className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline"
                               href={`/dashboard/manager/stations/${station.stationId}`}
                             >
                               عرض
                             </Link>
                             <Link
-                              className="text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:underline"
+                              className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline"
                               href={`/dashboard/manager/stations/${station.stationId}/edit`}
                             >
                               تعديل
                             </Link>
                             <form action={toggleStationStatusAction.bind(null, station.stationId, station.isActive)}>
                               <button
-                                className="text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:underline"
+                                className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-900 hover:underline"
                                 type="submit"
                               >
                                 {station.isActive ? "تعطيل" : "تفعيل"}

@@ -15,21 +15,6 @@ function bytesToHex(bytes: ArrayBuffer): string {
     .join("");
 }
 
-function hexToBytes(value: string): ArrayBuffer | null {
-  if (value.length !== 64 || !/^[0-9a-f]+$/i.test(value)) {
-    return null;
-  }
-
-  const buffer = new ArrayBuffer(value.length / 2);
-  const bytes = new Uint8Array(buffer);
-
-  for (let index = 0; index < bytes.length; index += 1) {
-    bytes[index] = Number.parseInt(value.slice(index * 2, index * 2 + 2), 16);
-  }
-
-  return buffer;
-}
-
 async function signValue(value: string, secret: string): Promise<string> {
   try {
     const encoder = new TextEncoder();
@@ -45,29 +30,6 @@ async function signValue(value: string, secret: string): Promise<string> {
     return bytesToHex(signature);
   } catch (error: unknown) {
     throw new Error(error instanceof Error ? error.message : "Failed to sign role cookie.");
-  }
-}
-
-async function verifyValue(value: string, signatureHex: string, secret: string): Promise<boolean> {
-  try {
-    const signature = hexToBytes(signatureHex);
-
-    if (!signature) {
-      return false;
-    }
-
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"],
-    );
-
-    return crypto.subtle.verify("HMAC", key, signature, encoder.encode(value));
-  } catch (_error: unknown) {
-    return false;
   }
 }
 
@@ -103,8 +65,9 @@ export async function verifySignedRoleCookie(value: string | undefined): Promise
     }
 
     const body = `${encodedUid}.${role}.${expiresAtRaw}`;
+    const expectedSignature = await signValue(body, getAuthSecret());
 
-    if (!(await verifyValue(body, signature, getAuthSecret()))) {
+    if (signature !== expectedSignature) {
       return null;
     }
 

@@ -5,7 +5,7 @@ import { mobileReportResponse, mobileStationResponse } from "@/lib/api/mobile-se
 import { requireBearerRole } from "@/lib/auth/bearer-session";
 import { getOperationTasks } from "@/lib/operations-tasks";
 import { getLatestReports, getManagerDashboardStats, getSupervisorDashboardStats } from "@/lib/stats/dashboard-stats";
-import { getBoundedReportStatsInput } from "@/lib/stats/report-stats";
+import { ANALYTICS_DEFAULT_RANGE_DAYS, getBoundedReportStatsInput } from "@/lib/stats/report-stats";
 import type { MobileReportResponse, MobileStationResponse } from "@/lib/api/mobile-serializers";
 import type { StatusOption } from "@/types";
 
@@ -82,7 +82,7 @@ export async function GET(
       const analyticsInput = await getBoundedReportStatsInput();
 
       analytics = {
-        rangeDays: analyticsInput.rangeDays,
+        rangeDays: ANALYTICS_DEFAULT_RANGE_DAYS,
         reportsTruncated: analyticsInput.reportsTruncated,
         stationsTruncated: analyticsInput.stationsTruncated,
         zones: buildZoneStats(analyticsInput.stations, analyticsInput.reports).slice(0, 8),

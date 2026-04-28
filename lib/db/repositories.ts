@@ -15,7 +15,7 @@ import {
 import { appUserFromAuthUser, auditLogFromRow, reportFromRow, stationFromRow } from "@/lib/db/mappers";
 import { AppError } from "@/lib/errors";
 import type { AppUser, AuditLog, Coordinates, Report, ReportPhotoPaths, Station, StatusOption, UserRole } from "@/types";
-import type { SharedReviewStatus } from "@ecopest/shared/constants";
+import type { SharedReviewStatus } from "@/lib/shared/constants";
 
 export interface CreateStationRecord {
   coordinates?: Coordinates;
@@ -99,16 +99,6 @@ export interface StationTechnicianVisit {
   submittedAt: Date;
   technicianName: string;
   technicianUid: string;
-}
-
-export interface PendingReviewNotificationSnapshot {
-  latestReport?: {
-    reportId: string;
-    stationLabel: string;
-    submittedAt: Date;
-    technicianName: string;
-  };
-  pendingCount: number;
 }
 
 function now(): Date {
@@ -358,28 +348,6 @@ export async function listReports(input: ReportPageInput): Promise<Report[]> {
   const statuses = await statusesByReportId(rows.map((row) => row.reportId));
 
   return rows.map((row) => reportFromRow(row, statuses.get(row.reportId) ?? []));
-}
-
-export async function getPendingReviewNotificationSnapshot(): Promise<PendingReviewNotificationSnapshot> {
-  const [pendingCountRow, latestReport] = await Promise.all([
-    db.select({ value: count() }).from(reports).where(eq(reports.reviewStatus, "pending")),
-    db
-      .select({
-        reportId: reports.reportId,
-        stationLabel: reports.stationLabel,
-        submittedAt: reports.submittedAt,
-        technicianName: reports.technicianName,
-      })
-      .from(reports)
-      .where(eq(reports.reviewStatus, "pending"))
-      .orderBy(desc(reports.submittedAt), desc(reports.reportId))
-      .limit(1),
-  ]);
-
-  return {
-    pendingCount: pendingCountRow[0]?.value ?? 0,
-    latestReport: latestReport[0],
-  };
 }
 
 export async function getReportById(reportId: string): Promise<Report | null> {

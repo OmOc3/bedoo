@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { userRoles } from "../shared/constants";
 
-const displayNameSchema = z.string().trim().min(1).max(100);
-
 const accessCodeSchema = z
   .string()
   .trim()
@@ -11,7 +9,7 @@ const accessCodeSchema = z
   .regex(/^[A-Za-z0-9]+$/, "كود الدخول يجب أن يتكون من حروف وأرقام فقط.");
 
 export const createUserSchema = z.object({
-  displayName: displayNameSchema,
+  displayName: z.string().trim().min(1),
   email: z.string().trim().email(),
   password: accessCodeSchema,
   role: z.enum(userRoles),
@@ -31,7 +29,7 @@ export const updateUserAccessCodeSchema = z.object({
 });
 
 export const updateUserProfileSchema = z.object({
-  displayName: displayNameSchema,
+  displayName: z.string().trim().min(1),
   image: z.string().url().optional().or(z.literal("")),
 });
 

@@ -2,11 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nManager } from 'react-native';
 
 import {
-  roleLabels as syncRoleLabels,
-  roleLabelsEnglish as syncRoleLabelsEnglish,
   statusOptionLabels as syncStatusOptionLabels,
   statusOptionLabelsEnglish as syncStatusOptionLabelsEnglish,
-} from '@ecopest/shared/constants';
+} from '@/lib/sync/status-options';
 
 export const languages = ['ar', 'en'] as const;
 export type Language = (typeof languages)[number];
@@ -27,7 +25,11 @@ export const languageDateLocales: Record<Language, string> = {
 
 const arabicStrings = {
   statusOptionLabels: syncStatusOptionLabels,
-  roleLabels: syncRoleLabels,
+  roleLabels: {
+    technician: 'فني',
+    supervisor: 'مشرف',
+    manager: 'مدير',
+  },
   i18n: {
     appName: 'EcoPest',
     appNameArabic: 'إيكوبست',
@@ -436,7 +438,11 @@ export type LocaleStrings = DeepStringRecord<typeof arabicStrings>;
 
 const englishStrings: LocaleStrings = {
   statusOptionLabels: syncStatusOptionLabelsEnglish,
-  roleLabels: syncRoleLabelsEnglish,
+  roleLabels: {
+    technician: 'Technician',
+    supervisor: 'Supervisor',
+    manager: 'Manager',
+  },
   i18n: {
     appName: 'EcoPest',
     appNameArabic: 'إيكوبست',

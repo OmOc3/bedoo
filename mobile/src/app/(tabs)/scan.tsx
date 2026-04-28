@@ -45,7 +45,7 @@ export default function ScanScreen() {
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const [isTorchEnabled, setIsTorchEnabled] = useState(false);
   const theme = useTheme();
-  const { language, strings } = useLanguage();
+  const { isRtl, language, strings } = useLanguage();
   const t = strings.scan;
   const normalizedStationId = normalizeStationId(stationId);
   const preview = useStation(previewStationId ?? '', strings.errors.loadStation);

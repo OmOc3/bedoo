@@ -78,7 +78,7 @@ export default async function ManagerAuditPage({ searchParams }: AuditPageProps)
   });
 
   return (
-    <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
+    <main className="min-h-dvh bg-slate-50 px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
       <section className="mx-auto max-w-7xl space-y-6">
         <PageHeader
           backHref="/dashboard/manager"
@@ -87,72 +87,72 @@ export default async function ManagerAuditPage({ searchParams }: AuditPageProps)
         />
         <DashboardNav role="manager" />
 
-        <form className="grid gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-control md:grid-cols-5" dir="rtl">
+        <form className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-control md:grid-cols-5" dir="rtl">
           <input
-            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)]"
+            className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             defaultValue={params.action ?? ""}
             name="action"
             placeholder="الإجراء"
           />
           <input
-            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)]"
+            className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             defaultValue={params.entityType ?? ""}
             name="entityType"
             placeholder="نوع الكيان"
           />
           <input
-            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)]"
+            className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             defaultValue={params.actorUid ?? ""}
             name="actorUid"
             placeholder="UID المستخدم"
           />
           <input
-            className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)]"
+            className="min-h-11 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
             defaultValue={params.dateFrom ?? ""}
             name="dateFrom"
             type="date"
           />
           <div className="flex gap-2">
             <input
-              className="min-h-11 min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)]"
+              className="min-h-11 min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
               defaultValue={params.dateTo ?? ""}
               name="dateTo"
               type="date"
             />
-            <button className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--primary-hover)]" type="submit">
+            <button className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-600" type="submit">
               فلترة
             </button>
           </div>
         </form>
 
         {logs.length === 0 ? (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-control">
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-control">
             <EmptyState description="لا توجد عمليات مطابقة للفلاتر الحالية." title="لا توجد سجلات" />
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-control">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-control">
             <table className="w-full min-w-[980px]">
-              <thead className="border-b border-[var(--border)] bg-[var(--surface-subtle)]">
+              <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">الوقت</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">الإجراء</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">الفاعل</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">الكيان</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-[var(--muted)]">بيانات</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">الوقت</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">الإجراء</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">الفاعل</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">الكيان</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-slate-500">بيانات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
+              <tbody className="divide-y divide-slate-100">
                 {logs.map((log) => (
-                  <tr className="hover:bg-[var(--surface-subtle)]" key={log.logId}>
-                    <td className="px-4 py-3 text-sm text-[var(--foreground)]">{formatTimestamp(log.createdAt)}</td>
-                    <td className="px-4 py-3 text-sm font-bold text-[var(--foreground)]">{log.action}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--foreground)]" dir="ltr">
+                  <tr className="hover:bg-slate-50" key={log.logId}>
+                    <td className="px-4 py-3 text-sm text-slate-700">{formatTimestamp(log.createdAt)}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-slate-900">{log.action}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700" dir="ltr">
                       {log.actorUid}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--foreground)]">
+                    <td className="px-4 py-3 text-sm text-slate-700">
                       {log.entityType}: <span dir="ltr">{log.entityId}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--muted)]">{metadataSummary(log.metadata)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-500">{metadataSummary(log.metadata)}</td>
                   </tr>
                 ))}
               </tbody>
