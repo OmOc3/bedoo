@@ -47,7 +47,11 @@ function formatTimestamp(timestamp?: AppTimestamp): string {
     return "غير متاح";
   }
 
-  return new Intl.DateTimeFormat("ar-EG", { dateStyle: "medium" }).format(timestamp.toDate());
+  return new Intl.DateTimeFormat("ar-EG", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    hour12: true,
+  }).format(timestamp.toDate());
 }
 
 function normalizeRoleFilter(value: string | undefined): UserRole | "all" {
@@ -134,6 +138,9 @@ function UserTools({
       <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
         <h3 className="text-sm font-bold text-[var(--foreground)]">كود الدخول</h3>
         <UserAccessCodeForm targetUid={user.uid} />
+        <p className="mt-3 text-xs text-[var(--muted)]">
+          آخر تغيير: {user.passwordChangedAt ? formatTimestamp(user.passwordChangedAt) : "غير متاح"}
+        </p>
       </div>
     </div>
   );

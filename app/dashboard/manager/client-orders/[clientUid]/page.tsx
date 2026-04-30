@@ -4,14 +4,43 @@ import { notFound } from "next/navigation";
 import { updateClientOrderStatusAction } from "@/app/actions/client-orders";
 import { ClientProfileForm } from "@/components/client-orders/client-profile-form";
 import { ClientStationAccessForm } from "@/components/client-orders/client-station-access-form";
+import { OrderStatusTimeline } from "@/components/client-orders/order-status-timeline";
 import { DashboardShell } from "@/components/layout/dashboard-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatusPills } from "@/components/reports/status-pills";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireRole } from "@/lib/auth/server-session";
-import { getClientAccountDetail, listStations } from "@/lib/db/repositories";
+import { getClientAccountDetail, listStations, listAttendanceSessionsForAdmin } from "@/lib/db/repositories";
 import type { AppTimestamp, ClientOrderStatus, ClientOrderWithStation } from "@/types";
+
+// Serializable order for client components
+interface SerializableOrder {
+  orderId: string;
+  clientUid: string;
+  stationId: string;
+  stationLabel: string;
+  clientName: string;
+  status: ClientOrderStatus;
+  note?: string | null;
+  photoUrl?: string | null;
+  createdAt?: string | null;
+}
+
+// Convert ClientOrderWithStation to serializable format
+function toSerializableOrder(order: ClientOrderWithStation): SerializableOrder {
+  return {
+    orderId: order.orderId,
+    clientUid: order.clientUid,
+    stationId: order.stationId,
+    stationLabel: order.stationLabel,
+    clientName: order.clientName,
+    status: order.status,
+    note: order.note,
+    photoUrl: order.photoUrl,
+    createdAt: order.createdAt?.toDate().toISOString() ?? null,
+  };
+}
 
 interface ClientProfilePageProps {
   params: Promise<{
@@ -50,6 +79,27 @@ function getInitials(name: string): string {
     .join("");
 
   return initials || "ع";
+}
+
+// Serializable attendance info
+interface AttendanceInfo {
+  technicianName: string;
+  clockInAt?: string | null;
+  clockOutAt?: string | null;
+}
+
+// Find attendance session and convert to serializable data
+function findAttendanceForOrder(order: ClientOrderWithStation, attendanceLogs: Array<{ technicianName: string; clockInAt?: AppTimestamp | null; clockOutAt?: AppTimestamp | null; clockInLocation?: { stationId: string } | null }>): AttendanceInfo | null {
+  const stationAttendance = attendanceLogs.find(
+    (log) => log.clockInLocation?.stationId === order.stationId
+  );
+  if (!stationAttendance) return null;
+  
+  return {
+    technicianName: stationAttendance.technicianName,
+    clockInAt: stationAttendance.clockInAt?.toDate().toISOString() ?? null,
+    clockOutAt: stationAttendance.clockOutAt?.toDate().toISOString() ?? null,
+  };
 }
 
 function orderStatusBadge(status: ClientOrderStatus) {
@@ -110,7 +160,11 @@ function OrderStatusForm({ order }: { order: ClientOrderWithStation }) {
 export default async function ClientProfilePage({ params }: ClientProfilePageProps) {
   const { clientUid } = await params;
   await requireRole(["manager"]);
-  const [detail, stations] = await Promise.all([getClientAccountDetail(clientUid), listStations()]);
+  const [detail, stations, attendanceLogs] = await Promise.all([
+    getClientAccountDetail(clientUid),
+    listStations(),
+    listAttendanceSessionsForAdmin({}, 100)
+  ]);
 
   if (!detail) {
     notFound();
@@ -201,7 +255,7 @@ export default async function ClientProfilePage({ params }: ClientProfilePagePro
                   return (
                     <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card" key={order.orderId}>
                       <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             {orderStatusBadge(order.status)}
                             <span className="text-xs font-semibold text-[var(--muted)]" dir="ltr">
@@ -211,6 +265,17 @@ export default async function ClientProfilePage({ params }: ClientProfilePagePro
                           <h3 className="mt-2 text-lg font-bold text-[var(--foreground)]">{order.stationLabel}</h3>
                           <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{order.station?.location ?? "موقع المحطة غير متاح"}</p>
                         </div>
+                        <OrderStatusTimeline compact order={toSerializableOrder(order)} attendanceSession={findAttendanceForOrder(order, attendanceLogs)} />
+                      </div>
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-sm font-medium text-[var(--primary)] hover:underline">
+                          تتبع الحالة
+                        </summary>
+                        <div className="mt-3 rounded-lg bg-[var(--surface-subtle)] p-3">
+                          <OrderStatusTimeline order={toSerializableOrder(order)} attendanceSession={findAttendanceForOrder(order, attendanceLogs)} />
+                        </div>
+                      </details>
+                      <div className="mt-4 border-t border-[var(--border-subtle)] pt-4">
                         <OrderStatusForm order={order} />
                       </div>
 

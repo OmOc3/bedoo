@@ -219,6 +219,10 @@ export async function updateUserAccessCodeAction(targetUid: string, formData: Fo
       },
       headers: await headers(),
     });
+
+    await db.update(usersTable).set({
+      passwordChangedAt: new Date(),
+    }).where(eq(usersTable.id, targetUid));
   } catch (_error: unknown) {
     return { error: "تعذر تحديث كود الدخول. تحقق من البيانات وحاول مرة أخرى." };
   }

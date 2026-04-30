@@ -20,6 +20,7 @@ export const user = sqliteTable(
     banned: booleanFlag("banned").notNull().default(false),
     banReason: text("ban_reason"),
     banExpires: timestamp("ban_expires"),
+    passwordChangedAt: timestamp("password_changed_at"),
   },
   (table) => [uniqueIndex("user_email_unique").on(table.email), index("user_role_idx").on(table.role)],
 );

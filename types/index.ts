@@ -31,6 +31,7 @@ export interface AppUser {
   createdAt: AppTimestamp;
   isActive: boolean;
   image?: string | null;
+  passwordChangedAt?: AppTimestamp;
 }
 
 export interface Station {

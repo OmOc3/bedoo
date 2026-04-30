@@ -4,6 +4,7 @@ import type { ReactElement, SVGProps } from "react";
 import { DashboardShell } from "@/components/layout/dashboard-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatusPills } from "@/components/reports/status-pills";
+import { ThemeIconToggle } from "@/components/theme/theme-icon-toggle";
 import { requireRole } from "@/lib/auth/server-session";
 import { i18n } from "@/lib/i18n";
 import { getLatestReports, getManagerDashboardStats } from "@/lib/stats/dashboard-stats";
@@ -140,12 +141,15 @@ export default async function ManagerDashboardPage() {
     <DashboardShell role="manager">
         <PageHeader
           action={
-            <Link
-              className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
-              href="/dashboard/manager/client-orders"
-            >
-              إدارة العملاء
-            </Link>
+            <>
+              <ThemeIconToggle />
+              <Link
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
+                href="/dashboard/manager/client-orders"
+              >
+                إدارة العملاء
+              </Link>
+            </>
           }
           description="نظرة تشغيلية على المحطات والتقارير والفنيين."
           title={i18n.dashboard.managerTitle}

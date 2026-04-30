@@ -51,6 +51,7 @@ export function appUserFromAuthUser(row: AuthUserRow): AppUser {
     createdAt: requiredTimestamp(row.createdAt),
     isActive: row.banned !== true,
     image: row.image ?? undefined,
+    passwordChangedAt: toAppTimestamp(row.passwordChangedAt),
   };
 }
 

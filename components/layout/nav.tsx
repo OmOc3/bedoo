@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement, typ
 import { LogoutButton } from "@/components/auth/logout-button";
 import { BrandMark } from "@/components/layout/brand";
 import { ReportNotificationListener } from "@/components/notifications/report-notification-listener";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { ThemeIconToggle } from "@/components/theme/theme-icon-toggle";
 import { cn } from "@/lib/utils";
 
 interface DashboardNavProps {
@@ -419,9 +419,7 @@ export function DashboardNav({ role }: DashboardNavProps) {
               })}
             </nav>
 
-            <div className="relative space-y-3 border-t border-[var(--sidebar-border)] p-4">
-              <UserAvatar isSidebarOpen role={role} />
-              <ThemeToggle className="!w-full !border-[var(--sidebar-border)] !bg-[var(--sidebar-surface)] !text-[var(--sidebar-text)] hover:!bg-[var(--sidebar-border)] hover:!text-[var(--sidebar-text)]" />
+            <div className="relative mt-auto border-t border-[var(--sidebar-border)] p-4">
               <LogoutButton
                 buttonClassName="!w-full !border-[var(--sidebar-border)] !bg-[var(--sidebar-surface)] !text-[var(--sidebar-text)] hover:!bg-[var(--sidebar-border)] hover:!text-[var(--sidebar-text)]"
                 className="text-[var(--sidebar-text)]"
@@ -444,8 +442,8 @@ export function DashboardNav({ role }: DashboardNavProps) {
       >
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgb(255_255_255_/_0.05),transparent_42%)]" />
         <div className={cn("relative border-b border-[var(--sidebar-border)] py-5", isSidebarOpen ? "px-5" : "px-3")}>
-          <div className="flex items-center gap-3">
-            <Link href="/" className={cn("flex min-w-0 items-center gap-2.5", isSidebarOpen ? "flex-1" : "justify-center")}>
+          <div className="flex items-center justify-between gap-3">
+                <Link href="/" className={cn("flex min-w-0 items-center gap-2.5", isSidebarOpen ? "flex-1" : "justify-center")}>
               <BrandMark className={cn("shrink-0 transition-all duration-300", isSidebarOpen ? "h-9 w-9" : "h-11 w-11")} />
               <div
                 className={cn(
@@ -499,20 +497,16 @@ export function DashboardNav({ role }: DashboardNavProps) {
           })}
         </nav>
 
-        <div className="relative space-y-3 border-t border-[var(--sidebar-border)] p-4">
-          <UserAvatar isSidebarOpen={isSidebarOpen} role={role} />
-          <div
-            className={cn(
-              "space-y-3 overflow-hidden transition-[opacity,max-height] duration-300",
-              isSidebarOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0",
-            )}
-          >
-            <ThemeToggle className="!w-full !border-[var(--sidebar-border)] !bg-[var(--sidebar-surface)] !text-[var(--sidebar-text)] hover:!bg-[var(--sidebar-border)] hover:!text-[var(--sidebar-text)]" />
-            <LogoutButton
-              buttonClassName="!w-full !border-[var(--sidebar-border)] !bg-[var(--sidebar-surface)] !text-[var(--sidebar-text)] hover:!bg-[var(--sidebar-border)] hover:!text-[var(--sidebar-text)]"
-              className="text-[var(--sidebar-text)]"
-            />
-          </div>
+        <div
+          className={cn(
+            "relative mt-auto border-t border-[var(--sidebar-border)] p-4 overflow-hidden transition-[opacity,max-height] duration-300",
+            isSidebarOpen ? "max-h-24 opacity-100" : "max-h-0 opacity-0"
+          )}
+        >
+          <LogoutButton
+            buttonClassName="!w-full !border-[var(--sidebar-border)] !bg-[var(--sidebar-surface)] !text-[var(--sidebar-text)] hover:!bg-[var(--sidebar-border)] hover:!text-[var(--sidebar-text)]"
+            className="text-[var(--sidebar-text)]"
+          />
         </div>
       </aside>
 

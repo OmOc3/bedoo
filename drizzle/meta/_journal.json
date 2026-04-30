@@ -57,6 +57,13 @@
       "when": 1777410164713,
       "tag": "0007_stiff_morlun",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1777514154192,
+      "tag": "0008_polite_roughhouse",
+      "breakpoints": true
     }
   ]
 }

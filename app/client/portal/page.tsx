@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { CreateClientOrderForm } from "@/components/client-orders/create-client-order-form";
+import { OrderStatusTimeline } from "@/components/client-orders/order-status-timeline";
 import { BrandLockup } from "@/components/layout/brand";
+import { ThemeIconToggle } from "@/components/theme/theme-icon-toggle";
 import { StatusPills } from "@/components/reports/status-pills";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -12,7 +14,7 @@ import {
   listReportsForClientOrderedStations,
   listAttendanceSessionsForClient,
 } from "@/lib/db/repositories";
-import type { AppTimestamp, ClientOrderStatus } from "@/types";
+import type { AppTimestamp, ClientOrder, ClientOrderStatus } from "@/types";
 
 export const metadata: Metadata = {
   title: "بوابة العميل",
@@ -54,6 +56,55 @@ function orderStatusTone(status: ClientOrderStatus): "active" | "inactive" | "pe
   }
 
   return "active";
+}
+
+// Serializable attendance info
+interface AttendanceInfo {
+  technicianName: string;
+  clockInAt?: string | null;
+  clockOutAt?: string | null;
+}
+
+// Serializable order for client components
+interface SerializableOrder {
+  orderId: string;
+  clientUid: string;
+  stationId: string;
+  stationLabel: string;
+  clientName: string;
+  status: ClientOrderStatus;
+  note?: string | null;
+  photoUrl?: string | null;
+  createdAt?: string | null; // ISO string
+}
+
+// Convert ClientOrder to serializable format
+function toSerializableOrder(order: ClientOrder): SerializableOrder {
+  return {
+    orderId: order.orderId,
+    clientUid: order.clientUid,
+    stationId: order.stationId,
+    stationLabel: order.stationLabel,
+    clientName: order.clientName,
+    status: order.status,
+    note: order.note,
+    photoUrl: order.photoUrl,
+    createdAt: order.createdAt?.toDate().toISOString() ?? null,
+  };
+}
+
+// Find attendance session and convert to serializable data
+function findAttendanceForOrder(order: ClientOrder, attendanceLogs: Array<{ technicianName: string; clockInAt?: AppTimestamp | null; clockOutAt?: AppTimestamp | null; clockInLocation?: { stationId: string } | null }>): AttendanceInfo | null {
+  const stationAttendance = attendanceLogs.find(
+    (log) => log.clockInLocation?.stationId === order.stationId
+  );
+  if (!stationAttendance) return null;
+  
+  return {
+    technicianName: stationAttendance.technicianName,
+    clockInAt: stationAttendance.clockInAt?.toDate().toISOString() ?? null,
+    clockOutAt: stationAttendance.clockOutAt?.toDate().toISOString() ?? null,
+  };
 }
 
 interface SummaryCardProps {
@@ -98,11 +149,14 @@ export default async function ClientPortalPage() {
                 </p>
               </div>
             </div>
-            <LogoutButton
-              buttonClassName="!w-full sm:!w-auto"
-              className="w-full sm:w-auto"
-              redirectTo="/client/login"
-            />
+            <div className="flex items-center gap-2">
+              <ThemeIconToggle />
+              <LogoutButton
+                buttonClassName="!w-full sm:!w-auto"
+                className="w-full sm:w-auto"
+                redirectTo="/client/login"
+              />
+            </div>
           </div>
         </header>
 
@@ -133,56 +187,71 @@ export default async function ClientPortalPage() {
                 <EmptyState description="ابدأ بإرسال طلب فحص جديد من النموذج الجانبي." title="لا توجد طلبات حتى الآن" />
               ) : (
                 <>
-                  <div className="mt-5 grid gap-3 lg:hidden">
-                    {orders.map((order) => (
-                      <article className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4" key={order.orderId}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h3 className="truncate text-sm font-bold text-[var(--foreground)]">{order.stationLabel}</h3>
-                            <p className="mt-1 text-xs text-[var(--muted)]">{formatTimestamp(order.createdAt)}</p>
+                  <div className="mt-5 grid gap-4 lg:hidden">
+                    {orders.map((order) => {
+                      const attendance = findAttendanceForOrder(order, attendanceLogs);
+                      const serializableOrder = toSerializableOrder(order);
+                      return (
+                        <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card" key={order.orderId}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="truncate text-base font-bold text-[var(--foreground)]">{order.stationLabel}</h3>
+                              <p className="mt-1 text-xs text-[var(--muted)]">{formatTimestamp(order.createdAt)}</p>
+                            </div>
+                            <OrderStatusTimeline compact order={serializableOrder} attendanceSession={attendance} />
                           </div>
-                          <StatusBadge tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StatusBadge>
-                        </div>
-                        {order.photoUrl ? (
-                          <a className="mt-3 inline-flex text-sm font-semibold text-[var(--primary)] hover:underline" href={order.photoUrl} rel="noreferrer" target="_blank">
-                            فتح الصورة
-                          </a>
-                        ) : null}
-                      </article>
-                    ))}
+                          <details className="mt-4">
+                            <summary className="cursor-pointer text-sm font-medium text-[var(--primary)] hover:underline">
+                              تفاصيل الحالة
+                            </summary>
+                            <div className="mt-3 rounded-lg bg-[var(--surface-subtle)] p-3">
+                              <OrderStatusTimeline order={serializableOrder} attendanceSession={attendance} />
+                            </div>
+                          </details>
+                          {order.photoUrl ? (
+                            <a className="mt-3 inline-flex text-sm font-semibold text-[var(--primary)] hover:underline" href={order.photoUrl} rel="noreferrer" target="_blank">
+                              فتح الصورة المرفقة
+                            </a>
+                          ) : null}
+                        </article>
+                      );
+                    })}
                   </div>
 
-                  <div className="soft-scrollbar mt-5 hidden overflow-x-auto rounded-xl border border-[var(--border)] lg:block">
-                    <table className="w-full min-w-[620px]">
-                      <thead className="bg-[var(--surface-subtle)]">
-                        <tr>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">المحطة</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">الحالة</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">التاريخ</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">الصورة</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border-subtle)]">
-                        {orders.map((order) => (
-                          <tr className="transition-colors hover:bg-[var(--surface-subtle)]" key={order.orderId}>
-                            <td className="px-4 py-3 text-sm font-semibold text-[var(--foreground)]">{order.stationLabel}</td>
-                            <td className="px-4 py-3 text-sm text-[var(--foreground)]">
-                              <StatusBadge tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StatusBadge>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-[var(--muted)]">{formatTimestamp(order.createdAt)}</td>
-                            <td className="px-4 py-3 text-sm text-[var(--muted)]">
+                  <div className="hidden space-y-4 lg:block">
+                    {orders.map((order) => {
+                      const attendance = findAttendanceForOrder(order, attendanceLogs);
+                      const serializableOrder = toSerializableOrder(order);
+                      return (
+                        <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card" key={order.orderId}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3">
+                                <h3 className="text-lg font-bold text-[var(--foreground)]">{order.stationLabel}</h3>
+                                <StatusBadge tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StatusBadge>
+                              </div>
+                              <p className="mt-1 text-sm text-[var(--muted)]">تاريخ الطلب: {formatTimestamp(order.createdAt)}</p>
+                            </div>
+                            <OrderStatusTimeline compact order={serializableOrder} attendanceSession={attendance} />
+                          </div>
+                          <div className="mt-4 grid gap-4 border-t border-[var(--border-subtle)] pt-4 lg:grid-cols-[1fr_auto]">
+                            <OrderStatusTimeline className="max-w-md" order={serializableOrder} attendanceSession={attendance} />
+                            <div className="flex items-start gap-4">
                               {order.photoUrl ? (
-                                <a className="font-semibold text-[var(--primary)] hover:underline" href={order.photoUrl} rel="noreferrer" target="_blank">
-                                  فتح الصورة
+                                <a className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary)] hover:underline" href={order.photoUrl} rel="noreferrer" target="_blank">
+                                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                  </svg>
+                                  تحميل الصورة
                                 </a>
-                              ) : (
-                                "لا يوجد"
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                              ) : null}
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 </>
               )}

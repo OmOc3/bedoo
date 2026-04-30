@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { ReportMobileCard } from "@/components/reports/report-mobile-card";
 import { ReportPhotoLinks } from "@/components/reports/report-photo-links";
 import { ReportsFilterForm, type ReportsFilterValues } from "@/components/reports/reports-filter-form";
+import { ReviewReportForm } from "@/components/reports/review-report-form";
 import { StatusPills } from "@/components/reports/status-pills";
 import { requireRole } from "@/lib/auth/server-session";
 import { listReports } from "@/lib/db/repositories";
@@ -166,42 +167,50 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
 
   return (
     <DashboardShell role="supervisor">
-        <PageHeader
-          action={
-            <Link
-              className="inline-flex items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)]"
-              href={buildExportHref(filters)}
-            >
-              تصدير CSV
-            </Link>
-          }
-          backHref="/dashboard/supervisor"
-          description="استعرض تقارير الفنيين حسب المحطة أو التاريخ أو حالة المراجعة."
-          title="تقارير المشرف"
-        />
+      <PageHeader
+        action={
+          <Link
+            className="inline-flex items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)]"
+            href={buildExportHref(filters)}
+          >
+            تصدير CSV
+          </Link>
+        }
+        backHref="/dashboard/supervisor"
+        description="استعرض تقارير الفنيين حسب المحطة أو التاريخ أو حالة المراجعة."
+        title="تقارير المشرف"
+      />
 
-        <ReportsFilterForm defaultValues={filters} />
+      <ReportsFilterForm basePath="/dashboard/supervisor/reports" defaultValues={filters} />
 
-        {reports.length === 0 ? (
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-            <EmptyState
-              description="غيّر الفلاتر أو انتظر وصول تقارير جديدة من الفنيين."
-              title="لا توجد تقارير مطابقة"
-            />
+      {reports.length === 0 ? (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+          <EmptyState
+            description="غيّر الفلاتر أو انتظر وصول تقارير جديدة من الفنيين."
+            title="لا توجد تقارير مطابقة"
+          />
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="grid gap-3 lg:hidden">
+            {reports.map((report) => (
+              <ReportMobileCard
+                action={
+                  <ReviewReportForm
+                    instanceId="mobile"
+                    reportId={report.reportId}
+                    reviewNotes={report.reviewNotes}
+                    reviewStatus={report.reviewStatus}
+                  />
+                }
+                key={report.reportId}
+                photoCount={photoCount(report)}
+                report={report}
+                reviewBadge={reviewStatusBadge(report.reviewStatus)}
+                timestamp={formatTimestamp(report.submittedAt)}
+              />
+            ))}
           </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="grid gap-3 lg:hidden">
-              {reports.map((report) => (
-                <ReportMobileCard
-                  key={report.reportId}
-                  photoCount={photoCount(report)}
-                  report={report}
-                  reviewBadge={reviewStatusBadge(report.reviewStatus)}
-                  timestamp={formatTimestamp(report.submittedAt)}
-                />
-              ))}
-            </div>
           <div className="hidden overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] lg:block">
             <table className="w-full min-w-[980px]">
               <thead className="border-b border-[var(--border)] bg-[var(--surface-subtle)]">
@@ -222,7 +231,7 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
                     المراجعة
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                    عرض
+                    الإجراء
                   </th>
                 </tr>
               </thead>
@@ -239,11 +248,17 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
                     <td className="px-4 py-3">
                       <details>
                         <summary className="cursor-pointer text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:underline">
-                          عرض
+                          عرض وتحديث
                         </summary>
-                        <div className="mt-2 max-w-xs rounded-lg bg-[var(--surface-subtle)] p-3 text-sm leading-6 text-[var(--muted)]">
-                          {report.notes ?? "لا توجد ملاحظات."}
+                        <div className="mt-2 max-w-md rounded-lg bg-[var(--surface-subtle)] p-3 text-sm leading-6 text-[var(--muted)]">
+                          <p className="font-medium text-[var(--foreground)]">ملاحظات الفني</p>
+                          <p className="mt-1">{report.notes ?? "لا توجد ملاحظات."}</p>
                           <ReportPhotoLinks photoCount={photoCount(report)} reportId={report.reportId} />
+                          <ReviewReportForm
+                            reportId={report.reportId}
+                            reviewNotes={report.reviewNotes}
+                            reviewStatus={report.reviewStatus}
+                          />
                         </div>
                       </details>
                     </td>
@@ -252,10 +267,10 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
               </tbody>
             </table>
           </div>
-          </div>
-        )}
+        </div>
+      )}
 
-        {hasNextPage && nextCursor ? (
+      {hasNextPage && nextCursor ? (
           <div className="flex justify-end">
             <Link
               className="inline-flex items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
