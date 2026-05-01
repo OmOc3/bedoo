@@ -8,6 +8,7 @@ const alwaysPublicPrefixes = [
   "/login",
   "/client/login",
   "/client/signup",
+  "/maintenance",
   "/unauthorized",
   "/account-disabled",
   "/scan",

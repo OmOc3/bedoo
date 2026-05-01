@@ -3,7 +3,8 @@ import Link from "next/link";
 import { DashboardShell } from "@/components/layout/dashboard-page";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
-import { toggleStationStatusAction } from "@/app/actions/stations";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { deleteStationAction, toggleStationStatusAction } from "@/app/actions/stations";
 import { requireRole } from "@/lib/auth/server-session";
 import { listStations } from "@/lib/db/repositories";
 import { getStationHealth } from "@/lib/station-health";
@@ -195,6 +196,14 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                           {station.isActive ? "تعطيل" : "تفعيل"}
                         </button>
                       </form>
+                      <form action={deleteStationAction.bind(null, station.stationId)}>
+                        <ConfirmSubmitButton
+                          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
+                          confirmMessage={`تأكيد حذف المحطة #${station.stationId} (${station.label})؟`}
+                        >
+                          حذف
+                        </ConfirmSubmitButton>
+                      </form>
                     </div>
                   </article>
                 );
@@ -303,6 +312,14 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                               >
                                 {station.isActive ? "تعطيل" : "تفعيل"}
                               </button>
+                            </form>
+                            <form action={deleteStationAction.bind(null, station.stationId)}>
+                              <ConfirmSubmitButton
+                                className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700 hover:underline"
+                                confirmMessage={`تأكيد حذف المحطة #${station.stationId} (${station.label})؟`}
+                              >
+                                حذف
+                              </ConfirmSubmitButton>
                             </form>
                           </div>
                         </td>

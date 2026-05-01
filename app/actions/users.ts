@@ -2,9 +2,10 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/better-auth";
 import { requireRole } from "@/lib/auth/server-session";
-import { getAppUser, getUserByEmail } from "@/lib/db/repositories";
+import { deleteClientIfSafe, getAppUser, getUserByEmail } from "@/lib/db/repositories";
 import { db } from "@/lib/db/client";
 import { user as usersTable } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -316,4 +317,24 @@ export async function updateUserProfileAction(targetUid: string, formData: FormD
   revalidatePath("/(tabs)/settings");
 
   return { success: true };
+}
+
+export async function deleteClientAccountAction(targetUid: string): Promise<void> {
+  const session = await requireRole(["manager"]);
+
+  try {
+    await deleteClientIfSafe({
+      actorUid: session.uid,
+      actorRole: session.role,
+      clientUid: targetUid,
+    });
+  } catch (error: unknown) {
+    redirect(`/dashboard/manager/users?error=${encodeURIComponent(error instanceof Error ? error.message : "تعذر حذف العميل.")}`);
+  }
+
+  revalidatePath("/dashboard/manager/users");
+  revalidatePath("/dashboard/manager/client-orders");
+  revalidatePath("/dashboard/manager");
+
+  redirect("/dashboard/manager/users?success=1");
 }

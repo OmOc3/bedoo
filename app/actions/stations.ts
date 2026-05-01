@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/server-session";
 import { deleteStationImageFromCloudinary, uploadStationImageToCloudinary } from "@/lib/cloudinary/station-images";
 import {
   createStationRecord,
+  deleteStationIfSafe,
   generateNextStationId,
   getStationById,
   toggleStationStatusRecord,
@@ -292,4 +293,18 @@ export async function deleteStationImageAction(
   revalidatePath(`/dashboard/manager/stations/${stationId}`);
 
   return { success: true };
+}
+
+export async function deleteStationAction(stationId: string): Promise<void> {
+  const session = await requireRole(["manager"]);
+
+  try {
+    await deleteStationIfSafe({ actorUid: session.uid, actorRole: session.role, stationId });
+  } catch (error: unknown) {
+    redirect(`/dashboard/manager/stations?error=${encodeURIComponent(error instanceof Error ? error.message : "تعذر حذف المحطة.")}`);
+  }
+
+  revalidatePath("/dashboard/manager/stations");
+  revalidatePath("/dashboard/manager");
+  redirect("/dashboard/manager/stations?success=1");
 }

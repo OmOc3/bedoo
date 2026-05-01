@@ -12,6 +12,7 @@ import {
 } from "@/lib/geo";
 import {
   attendanceSessions,
+  appSettings,
   auditLogs,
   clientOrders,
   clientProfiles,
@@ -154,6 +155,152 @@ export interface PendingReviewNotificationSnapshot {
     technicianName: string;
   };
   pendingCount: number;
+}
+
+const appSettingsSingletonId = "global";
+
+export interface AppSettingsRecord {
+  clientDailyStationOrderLimit: number;
+  maintenanceEnabled: boolean;
+  updatedAt?: AppTimestamp;
+  updatedBy?: string;
+}
+
+function appSettingsFromRow(row: typeof appSettings.$inferSelect): AppSettingsRecord {
+  return {
+    clientDailyStationOrderLimit: row.clientDailyStationOrderLimit,
+    maintenanceEnabled: row.maintenanceEnabled,
+    updatedAt: row.updatedAt ? requiredTimestamp(row.updatedAt) : undefined,
+    updatedBy: row.updatedBy ?? undefined,
+  };
+}
+
+async function ensureAppSettingsTableExists(): Promise<void> {
+  // Dev-safety: some environments may not have run migrations yet.
+  // Creating the table here avoids a hard crash during auth/session bootstrap.
+  await db.$client.execute({
+    sql: `
+      create table if not exists app_settings (
+        id text primary key not null,
+        maintenance_enabled integer not null default 0,
+        client_daily_station_order_limit integer not null default 0,
+        updated_at integer,
+        updated_by text
+      )
+    `,
+    args: [],
+  });
+}
+
+export async function getAppSettings(): Promise<AppSettingsRecord> {
+  let row: typeof appSettings.$inferSelect | undefined;
+
+  try {
+    [row] = await db
+      .select()
+      .from(appSettings)
+      .where(eq(appSettings.id, appSettingsSingletonId))
+      .limit(1);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "";
+
+    if (message.toLowerCase().includes("app_settings")) {
+      try {
+        await ensureAppSettingsTableExists();
+        [row] = await db
+          .select()
+          .from(appSettings)
+          .where(eq(appSettings.id, appSettingsSingletonId))
+          .limit(1);
+      } catch {
+        // If we still cannot create/read the table (read-only DB, locked DB, or migration not applied),
+        // fall back to safe defaults to avoid crashing auth-protected pages.
+        return { maintenanceEnabled: false, clientDailyStationOrderLimit: 0 };
+      }
+    } else {
+      // Unknown DB error: fail safe in runtime to keep the app usable.
+      return { maintenanceEnabled: false, clientDailyStationOrderLimit: 0 };
+    }
+  }
+
+  if (row) {
+    return appSettingsFromRow(row);
+  }
+
+  try {
+    await ensureAppSettingsTableExists();
+    await db.insert(appSettings).values({
+      id: appSettingsSingletonId,
+      maintenanceEnabled: false,
+      clientDailyStationOrderLimit: 0,
+      updatedAt: now(),
+      updatedBy: null,
+    });
+
+    const [created] = await db
+      .select()
+      .from(appSettings)
+      .where(eq(appSettings.id, appSettingsSingletonId))
+      .limit(1);
+
+    return created ? appSettingsFromRow(created) : { maintenanceEnabled: false, clientDailyStationOrderLimit: 0 };
+  } catch {
+    return { maintenanceEnabled: false, clientDailyStationOrderLimit: 0 };
+  }
+}
+
+export async function updateAppSettings(input: {
+  actorUid: string;
+  actorRole: UserRole;
+  maintenanceEnabled: boolean;
+  clientDailyStationOrderLimit: number;
+}): Promise<AppSettingsRecord> {
+  if (input.actorRole !== "manager") {
+    throw new AppError("ليست لديك صلاحية لتحديث الإعدادات.", "SETTINGS_FORBIDDEN", 403);
+  }
+
+  const safeLimit = Number.isFinite(input.clientDailyStationOrderLimit)
+    ? Math.trunc(input.clientDailyStationOrderLimit)
+    : 0;
+
+  if (safeLimit < 0 || safeLimit > 1000) {
+    throw new AppError("حد المحطات اليومي غير صالح.", "SETTINGS_LIMIT_INVALID", 400);
+  }
+
+  const updatedAt = now();
+
+  await db
+    .insert(appSettings)
+    .values({
+      id: appSettingsSingletonId,
+      maintenanceEnabled: input.maintenanceEnabled,
+      clientDailyStationOrderLimit: safeLimit,
+      updatedAt,
+      updatedBy: input.actorUid,
+    })
+    .onConflictDoUpdate({
+      target: appSettings.id,
+      set: {
+        maintenanceEnabled: input.maintenanceEnabled,
+        clientDailyStationOrderLimit: safeLimit,
+        updatedAt,
+        updatedBy: input.actorUid,
+      },
+    });
+
+  await writeAuditLogRecord({
+    actorUid: input.actorUid,
+    actorRole: input.actorRole,
+    action: "settings.update",
+    entityType: "app_settings",
+    entityId: appSettingsSingletonId,
+    metadata: {
+      maintenanceEnabled: input.maintenanceEnabled,
+      clientDailyStationOrderLimit: safeLimit,
+    },
+  });
+
+  return getAppSettings();
 }
 
 export interface ClockAttendanceInput {
@@ -1358,6 +1505,31 @@ export async function upsertClientProfile(input: UpsertClientProfileInput): Prom
 }
 
 export async function createClientOrder(input: CreateClientOrderInput): Promise<ClientOrder> {
+  const settings = await getAppSettings();
+  const limit = settings.clientDailyStationOrderLimit;
+
+  if (limit > 0) {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+
+    const [row] = await db
+      .select({ value: count() })
+      .from(clientOrders)
+      .where(and(eq(clientOrders.clientUid, input.clientUid), gte(clientOrders.createdAt, startOfDay), lt(clientOrders.createdAt, endOfDay)));
+
+    const ordersToday = row?.value ?? 0;
+
+    if (ordersToday >= limit) {
+      throw new AppError(
+        `تم الوصول للحد اليومي للطلبات (${limit}). حاول غدًا أو تواصل مع الإدارة.`,
+        "CLIENT_DAILY_ORDER_LIMIT_REACHED",
+        429,
+      );
+    }
+  }
+
   const stationId = await generateNextStationId();
   const qrCodeValue = `client-station:${stationId}:${crypto.randomUUID()}`;
 
@@ -1407,6 +1579,100 @@ export async function createClientOrder(input: CreateClientOrderInput): Promise<
   });
 
   return clientOrderFromRow(record);
+}
+
+export async function deleteStationIfSafe(input: {
+  actorUid: string;
+  actorRole: UserRole;
+  stationId: string;
+}): Promise<void> {
+  if (input.actorRole !== "manager") {
+    throw new AppError("ليست لديك صلاحية لحذف المحطة.", "STATION_DELETE_FORBIDDEN", 403);
+  }
+
+  const station = await getStationById(input.stationId);
+
+  if (!station) {
+    throw new AppError("المحطة غير موجودة.", "STATION_NOT_FOUND", 404);
+  }
+
+  const [reportCountRow, orderCountRow, attendanceCountRow] = await Promise.all([
+    db.select({ value: count() }).from(reports).where(eq(reports.stationId, input.stationId)),
+    db.select({ value: count() }).from(clientOrders).where(eq(clientOrders.stationId, input.stationId)),
+    db
+      .select({ value: count() })
+      .from(attendanceSessions)
+      .where(or(eq(attendanceSessions.clockInStationId, input.stationId), eq(attendanceSessions.clockOutStationId, input.stationId))),
+  ]);
+
+  const reportCount = reportCountRow[0]?.value ?? 0;
+  const orderCount = orderCountRow[0]?.value ?? 0;
+  const attendanceCount = attendanceCountRow[0]?.value ?? 0;
+
+  if (reportCount > 0 || orderCount > 0 || attendanceCount > 0) {
+    throw new AppError(
+      "لا يمكن حذف محطة مرتبطة بتقارير/طلبات/سجلات حضور. يمكنك تعطيلها بدلًا من ذلك.",
+      "STATION_DELETE_BLOCKED",
+      409,
+    );
+  }
+
+  await db.delete(stations).where(eq(stations.stationId, input.stationId));
+
+  await writeAuditLogRecord({
+    actorUid: input.actorUid,
+    actorRole: input.actorRole,
+    action: "station.delete",
+    entityType: "station",
+    entityId: input.stationId,
+    metadata: { label: station.label, location: station.location },
+  });
+}
+
+export async function deleteClientIfSafe(input: {
+  actorUid: string;
+  actorRole: UserRole;
+  clientUid: string;
+}): Promise<void> {
+  if (input.actorRole !== "manager") {
+    throw new AppError("ليست لديك صلاحية لحذف العميل.", "CLIENT_DELETE_FORBIDDEN", 403);
+  }
+
+  const client = await getAppUser(input.clientUid);
+
+  if (!client || client.role !== "client") {
+    throw new AppError("العميل غير موجود.", "CLIENT_NOT_FOUND", 404);
+  }
+
+  const [attendanceCountRow] = await db
+    .select({ value: count() })
+    .from(attendanceSessions)
+    .where(or(eq(attendanceSessions.clockInClientUid, input.clientUid), eq(attendanceSessions.clockOutClientUid, input.clientUid)))
+    .limit(1);
+
+  const attendanceCount = attendanceCountRow?.value ?? 0;
+
+  if (attendanceCount > 0) {
+    throw new AppError(
+      "لا يمكن حذف عميل مرتبط بسجلات حضور. يمكنك تعطيل الحساب بدلًا من ذلك.",
+      "CLIENT_DELETE_BLOCKED",
+      409,
+    );
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.delete(clientOrders).where(eq(clientOrders.clientUid, input.clientUid));
+    await tx.delete(user).where(eq(user.id, input.clientUid));
+  });
+
+  await writeAuditLogRecord({
+    actorUid: input.actorUid,
+    actorRole: input.actorRole,
+    action: "client.delete",
+    entityType: "client",
+    entityId: input.clientUid,
+    metadata: { email: client.email },
+  });
 }
 
 export async function listClientOrdersForClient(clientUid: string, limit = 100): Promise<ClientOrder[]> {

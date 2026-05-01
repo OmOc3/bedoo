@@ -10,6 +10,8 @@ import { UserAccessCodeForm } from "@/components/users/user-access-code-form";
 import { UserProfileForm } from "@/components/users/user-profile-form";
 import { UserActivateToggle } from "@/components/users/user-activate-toggle";
 import { UserRoleForm } from "@/components/users/user-role-form";
+import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
+import { deleteClientAccountAction } from "@/app/actions/users";
 import { requireRole } from "@/lib/auth/server-session";
 import { roleLabels } from "@/lib/i18n";
 import { listAppUsers } from "@/lib/db/repositories";
@@ -132,6 +134,23 @@ function UserTools({ disabled, user }: { disabled: boolean; user: AppUser }) {
           آخر تغيير: {user.passwordChangedAt ? formatTimestamp(user.passwordChangedAt) : "غير متاح"}
         </p>
       </div>
+      {user.role === "client" ? (
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 lg:col-span-3">
+          <h3 className="text-sm font-bold text-[var(--foreground)]">حذف العميل</h3>
+          <p className="mt-2 text-xs leading-6 text-[var(--muted)]">
+            سيتم حذف حساب العميل نهائيًا. إذا كان لديه سجلات حضور مرتبطة فلن يسمح النظام بالحذف.
+          </p>
+          <form action={deleteClientAccountAction.bind(null, user.uid)}>
+            <ConfirmSubmitButton
+              className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-60"
+              disabled={disabled}
+              confirmMessage={`تأكيد حذف العميل: ${user.displayName} ؟`}
+            >
+              حذف العميل نهائيًا
+            </ConfirmSubmitButton>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }

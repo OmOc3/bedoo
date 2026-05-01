@@ -30,6 +30,7 @@ const managerItems: NavItem[] = [
   { href: "/dashboard/manager/analytics", icon: "analytics", label: "التحليلات" },
   { href: "/dashboard/manager/users", icon: "team", label: "الفريق" },
   { href: "/dashboard/manager/audit", icon: "audit", label: "السجل" },
+  { href: "/dashboard/manager/settings", icon: "settings", label: "الإعدادات" },
   { href: "/dashboard/supervisor", icon: "supervisor", label: "لوحة المشرف" },
 ];
 
@@ -42,7 +43,18 @@ const supervisorItems: NavItem[] = [
   { href: "/dashboard/supervisor/client-orders", icon: "team", label: "طلبات العملاء" },
 ];
 
-type IconName = "analytics" | "attendance" | "audit" | "dashboard" | "map" | "reports" | "stations" | "supervisor" | "tasks" | "team";
+type IconName =
+  | "analytics"
+  | "attendance"
+  | "audit"
+  | "dashboard"
+  | "map"
+  | "reports"
+  | "settings"
+  | "stations"
+  | "supervisor"
+  | "tasks"
+  | "team";
 
 
 function IconFrame({ children, className, ...props }: SVGProps<SVGSVGElement>) {
@@ -173,6 +185,14 @@ function SupervisorIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function SettingsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconFrame {...props}>
+      <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z" />
+      <path d="M19.4 15a1.8 1.8 0 0 0 .36 2l.05.06a2.2 2.2 0 0 1-1.55 3.74 2.2 2.2 0 0 1-1.56-.64l-.06-.05a1.8 1.8 0 0 0-2-.36 1.8 1.8 0 0 0-1.08 1.66V21a2.2 2.2 0 0 1-4.4 0v-.1a1.8 1.8 0 0 0-1.08-1.66 1.8 1.8 0 0 0-2 .36l-.06.05a2.2 2.2 0 0 1-3.11 0 2.2 2.2 0 0 1 0-3.1l.05-.06a1.8 1.8 0 0 0 .36-2 1.8 1.8 0 0 0-1.66-1.08H3a2.2 2.2 0 0 1 0-4.4h.1A1.8 1.8 0 0 0 4.76 7.9a1.8 1.8 0 0 0-.36-2l-.05-.06a2.2 2.2 0 0 1 0-3.1 2.2 2.2 0 0 1 3.11 0l.06.05a1.8 1.8 0 0 0 2 .36 1.8 1.8 0 0 0 1.08-1.66V3a2.2 2.2 0 0 1 4.4 0v.1a1.8 1.8 0 0 0 1.08 1.66 1.8 1.8 0 0 0 2-.36l.06-.05a2.2 2.2 0 0 1 3.11 0 2.2 2.2 0 0 1 0 3.1l-.05.06a1.8 1.8 0 0 0-.36 2 1.8 1.8 0 0 0 1.66 1.08H21a2.2 2.2 0 0 1 0 4.4h-.1A1.8 1.8 0 0 0 19.4 15z" />
+    </IconFrame>
+  );
+}
 
 function MobileMenuIcon({ isOpen }: { isOpen: boolean }) {
   return (
@@ -200,6 +220,7 @@ const icons: Record<IconName, (props: SVGProps<SVGSVGElement>) => ReactElement> 
   dashboard: DashboardIcon,
   map: MapIcon,
   reports: ReportsIcon,
+  settings: SettingsIcon,
   stations: StationsIcon,
   supervisor: SupervisorIcon,
   tasks: TasksIcon,

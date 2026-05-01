@@ -3,7 +3,7 @@ import "server-only";
 import type { NextRequest } from "next/server";
 import { auth, type BetterAuthSession } from "@/lib/auth/better-auth";
 import { requiredTimestamp } from "@/lib/db/mappers";
-import { getActiveAppUser } from "@/lib/db/repositories";
+import { getActiveAppUser, getAppSettings } from "@/lib/db/repositories";
 import { AppError } from "@/lib/errors";
 import type { AppUser, UserRole } from "@/types";
 
@@ -71,6 +71,11 @@ export async function requireBearerRole(request: NextRequest, roles: UserRole[])
 
   if (!roles.includes(user.role)) {
     throw new AppError("ليست لديك صلاحية لتنفيذ هذا الإجراء.", "AUTH_FORBIDDEN", 403);
+  }
+
+  const settings = await getAppSettings();
+  if (settings.maintenanceEnabled && (user.role === "client" || user.role === "technician")) {
+    throw new AppError("النظام تحت الصيانة حاليًا. حاول لاحقًا.", "MAINTENANCE_MODE", 503);
   }
 
   return {

@@ -14,6 +14,14 @@ import type { SharedReviewStatus } from "@ecopest/shared/constants";
 const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
 const booleanFlag = (name: string) => integer(name, { mode: "boolean" });
 
+export const appSettings = sqliteTable("app_settings", {
+  id: text("id").primaryKey(),
+  maintenanceEnabled: booleanFlag("maintenance_enabled").notNull().default(false),
+  clientDailyStationOrderLimit: integer("client_daily_station_order_limit").notNull().default(0),
+  updatedAt: timestamp("updated_at"),
+  updatedBy: text("updated_by"),
+});
+
 export const user = sqliteTable(
   "user",
   {

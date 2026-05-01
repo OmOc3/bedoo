@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth, type BetterAuthSession } from "@/lib/auth/better-auth";
 import { requiredTimestamp } from "@/lib/db/mappers";
-import { getActiveAppUser, getAppUser } from "@/lib/db/repositories";
+import { getActiveAppUser, getAppSettings, getAppUser } from "@/lib/db/repositories";
 import type { AppUser, UserRole } from "@/types";
 
 export interface SessionCheckResult {
@@ -84,6 +84,11 @@ export async function requireSession(): Promise<CurrentSession> {
 
   if (!result.isValid || !result.session) {
     redirect("/login");
+  }
+
+  const settings = await getAppSettings();
+  if (settings.maintenanceEnabled && (result.session.role === "client" || result.session.role === "technician")) {
+    redirect("/maintenance");
   }
 
   return result.session;
