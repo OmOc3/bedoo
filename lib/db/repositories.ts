@@ -1636,28 +1636,29 @@ export async function deleteStationIfSafe(input: {
     throw new AppError("المحطة غير موجودة.", "STATION_NOT_FOUND", 404);
   }
 
-  const [reportCountRow, orderCountRow, attendanceCountRow] = await Promise.all([
-    db.select({ value: count() }).from(reports).where(eq(reports.stationId, input.stationId)),
-    db.select({ value: count() }).from(clientOrders).where(eq(clientOrders.stationId, input.stationId)),
-    db
-      .select({ value: count() })
-      .from(attendanceSessions)
-      .where(or(eq(attendanceSessions.clockInStationId, input.stationId), eq(attendanceSessions.clockOutStationId, input.stationId))),
-  ]);
+  await db.transaction(async (tx) => {
+    // حذف سجلات الحضور المرتبطة بالمحطة
+    await tx
+      .delete(attendanceSessions)
+      .where(
+        or(
+          eq(attendanceSessions.clockInStationId, input.stationId),
+          eq(attendanceSessions.clockOutStationId, input.stationId),
+        ),
+      );
 
-  const reportCount = reportCountRow[0]?.value ?? 0;
-  const orderCount = orderCountRow[0]?.value ?? 0;
-  const attendanceCount = attendanceCountRow[0]?.value ?? 0;
+    // حذف طلبات العملاء المرتبطة بالمحطة
+    await tx.delete(clientOrders).where(eq(clientOrders.stationId, input.stationId));
 
-  if (reportCount > 0 || orderCount > 0 || attendanceCount > 0) {
-    throw new AppError(
-      "لا يمكن حذف محطة مرتبطة بتقارير/طلبات/سجلات حضور. يمكنك تعطيلها بدلًا من ذلك.",
-      "STATION_DELETE_BLOCKED",
-      409,
-    );
-  }
+    // حذف سجلات المحطة من التقارير اليومية
+    await tx.delete(dailyWorkReportStations).where(eq(dailyWorkReportStations.stationId, input.stationId));
 
-  await db.delete(stations).where(eq(stations.stationId, input.stationId));
+    // حذف تقارير المحطة (reportPhotos و reportStatuses تُحذف تلقائيًا cascade)
+    await tx.delete(reports).where(eq(reports.stationId, input.stationId));
+
+    // حذف المحطة (clientStationAccess تُحذف تلقائيًا cascade)
+    await tx.delete(stations).where(eq(stations.stationId, input.stationId));
+  });
 
   await writeAuditLogRecord({
     actorUid: input.actorUid,
@@ -1684,24 +1685,21 @@ export async function deleteClientIfSafe(input: {
     throw new AppError("العميل غير موجود.", "CLIENT_NOT_FOUND", 404);
   }
 
-  const [attendanceCountRow] = await db
-    .select({ value: count() })
-    .from(attendanceSessions)
-    .where(or(eq(attendanceSessions.clockInClientUid, input.clientUid), eq(attendanceSessions.clockOutClientUid, input.clientUid)))
-    .limit(1);
-
-  const attendanceCount = attendanceCountRow?.value ?? 0;
-
-  if (attendanceCount > 0) {
-    throw new AppError(
-      "لا يمكن حذف عميل مرتبط بسجلات حضور. يمكنك تعطيل الحساب بدلًا من ذلك.",
-      "CLIENT_DELETE_BLOCKED",
-      409,
-    );
-  }
-
   await db.transaction(async (tx) => {
+    // حذف سجلات الحضور المرتبطة بالعميل
+    await tx
+      .delete(attendanceSessions)
+      .where(
+        or(
+          eq(attendanceSessions.clockInClientUid, input.clientUid),
+          eq(attendanceSessions.clockOutClientUid, input.clientUid),
+        ),
+      );
+
+    // حذف طلبات العميل
     await tx.delete(clientOrders).where(eq(clientOrders.clientUid, input.clientUid));
+
+    // حذف المستخدم (clientProfiles و clientStationAccess تُحذف تلقائيًا cascade)
     await tx.delete(user).where(eq(user.id, input.clientUid));
   });
 
@@ -2323,4 +2321,3 @@ export async function consumeMobileWebSessionRecord(tokenHash: string): Promise<
     };
   });
 }
-

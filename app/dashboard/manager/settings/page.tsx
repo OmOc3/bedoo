@@ -100,7 +100,7 @@ export default async function ManagerSettingsPage({ searchParams }: ManagerSetti
 
             <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
               <label className="block text-sm font-semibold text-[var(--foreground)]" htmlFor="clientDailyStationOrderLimit">
-                الحد اليومي لطلبات المحطات لكل عميل
+                الحد اليومي لطلبات فحص المحطات لكل عميل
               </label>
               <p className="mt-1 text-xs leading-6 text-[var(--muted)]">
                 ضع <span className="font-semibold">0</span> لعدم تحديد حد.
