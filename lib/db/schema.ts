@@ -15,9 +15,10 @@ const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
 const booleanFlag = (name: string) => integer(name, { mode: "boolean" });
 
 export const appSettings = sqliteTable("app_settings", {
-  id: text("id").primaryKey(),
-  maintenanceEnabled: booleanFlag("maintenance_enabled").notNull().default(false),
-  clientDailyStationOrderLimit: integer("client_daily_station_order_limit").notNull().default(0),
+  settingId: text("setting_id").primaryKey(),
+  maintenanceEnabled: booleanFlag("maintenance_mode_enabled").notNull().default(false),
+  clientDailyStationOrderLimit: integer("client_daily_order_limit").notNull().default(5),
+  maintenanceMessage: text("maintenance_message"),
   updatedAt: timestamp("updated_at"),
   updatedBy: text("updated_by"),
 });

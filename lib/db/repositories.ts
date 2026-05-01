@@ -181,9 +181,10 @@ async function ensureAppSettingsTableExists(): Promise<void> {
   await db.$client.execute({
     sql: `
       create table if not exists app_settings (
-        id text primary key not null,
-        maintenance_enabled integer not null default 0,
-        client_daily_station_order_limit integer not null default 0,
+        setting_id text primary key not null,
+        maintenance_mode_enabled integer not null default 0,
+        maintenance_message text,
+        client_daily_order_limit integer not null default 5,
         updated_at integer,
         updated_by text
       )
@@ -199,7 +200,7 @@ export async function getAppSettings(): Promise<AppSettingsRecord> {
     [row] = await db
       .select()
       .from(appSettings)
-      .where(eq(appSettings.id, appSettingsSingletonId))
+      .where(eq(appSettings.settingId, appSettingsSingletonId))
       .limit(1);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "";
@@ -210,7 +211,7 @@ export async function getAppSettings(): Promise<AppSettingsRecord> {
         [row] = await db
           .select()
           .from(appSettings)
-          .where(eq(appSettings.id, appSettingsSingletonId))
+          .where(eq(appSettings.settingId, appSettingsSingletonId))
           .limit(1);
       } catch {
         // If we still cannot create/read the table (read-only DB, locked DB, or migration not applied),
@@ -230,7 +231,7 @@ export async function getAppSettings(): Promise<AppSettingsRecord> {
   try {
     await ensureAppSettingsTableExists();
     await db.insert(appSettings).values({
-      id: appSettingsSingletonId,
+      settingId: appSettingsSingletonId,
       maintenanceEnabled: false,
       clientDailyStationOrderLimit: 0,
       updatedAt: now(),
@@ -240,7 +241,7 @@ export async function getAppSettings(): Promise<AppSettingsRecord> {
     const [created] = await db
       .select()
       .from(appSettings)
-      .where(eq(appSettings.id, appSettingsSingletonId))
+      .where(eq(appSettings.settingId, appSettingsSingletonId))
       .limit(1);
 
     return created ? appSettingsFromRow(created) : { maintenanceEnabled: false, clientDailyStationOrderLimit: 0 };
@@ -259,6 +260,17 @@ export async function updateAppSettings(input: {
     throw new AppError("ليست لديك صلاحية لتحديث الإعدادات.", "SETTINGS_FORBIDDEN", 403);
   }
 
+  try {
+    await ensureAppSettingsTableExists();
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "";
+    throw new AppError(
+      "تعذر حفظ الإعدادات لأن قاعدة البيانات غير مهيأة بعد. شغّل `npm run db:migrate` ثم أعد المحاولة.",
+      message.toLowerCase().includes("readonly") ? "SETTINGS_DB_READONLY" : "SETTINGS_DB_UNAVAILABLE",
+      500,
+    );
+  }
+
   const safeLimit = Number.isFinite(input.clientDailyStationOrderLimit)
     ? Math.trunc(input.clientDailyStationOrderLimit)
     : 0;
@@ -269,24 +281,42 @@ export async function updateAppSettings(input: {
 
   const updatedAt = now();
 
-  await db
-    .insert(appSettings)
-    .values({
-      id: appSettingsSingletonId,
-      maintenanceEnabled: input.maintenanceEnabled,
-      clientDailyStationOrderLimit: safeLimit,
-      updatedAt,
-      updatedBy: input.actorUid,
-    })
-    .onConflictDoUpdate({
-      target: appSettings.id,
-      set: {
+  try {
+    await db
+      .insert(appSettings)
+      .values({
+        settingId: appSettingsSingletonId,
         maintenanceEnabled: input.maintenanceEnabled,
         clientDailyStationOrderLimit: safeLimit,
         updatedAt,
         updatedBy: input.actorUid,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: appSettings.settingId,
+        set: {
+          maintenanceEnabled: input.maintenanceEnabled,
+          clientDailyStationOrderLimit: safeLimit,
+          updatedAt,
+          updatedBy: input.actorUid,
+        },
+      });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "";
+    const lower = message.toLowerCase();
+    const looksLikeMissingTable =
+      lower.includes("app_settings") || lower.includes("no such table") || lower.includes("does not exist");
+    const isReadonly = lower.includes("readonly") || lower.includes("read-only");
+
+    throw new AppError(
+      looksLikeMissingTable
+        ? "لا يمكن حفظ الإعدادات لأن جدول الإعدادات غير موجود بقاعدة البيانات. شغّل `npm run db:migrate` ثم أعد المحاولة."
+        : isReadonly
+          ? "لا يمكن حفظ الإعدادات لأن قاعدة البيانات في وضع قراءة فقط. تحقق من `DATABASE_URL` وصلاحيات الملف."
+          : "تعذر حفظ الإعدادات في قاعدة البيانات. حاول مرة أخرى.",
+      looksLikeMissingTable ? "SETTINGS_TABLE_MISSING" : isReadonly ? "SETTINGS_DB_READONLY" : "SETTINGS_SAVE_FAILED",
+      looksLikeMissingTable || isReadonly ? 500 : 400,
+    );
+  }
 
   await writeAuditLogRecord({
     actorUid: input.actorUid,
