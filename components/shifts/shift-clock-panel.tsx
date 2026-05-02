@@ -260,17 +260,16 @@ export function ShiftClockPanel({ openShift, schedule }: ShiftClockPanelProps) {
   async function submitEndShift(fd: FormData) {
     const result = await endShiftAction(fd);
 
-    if (result.success && result.earlyExit && result.minutesWorked !== undefined) {
+    if (result.success) {
+      const completionUrl = result.shiftId ? `/scan/shift-complete?shiftId=${encodeURIComponent(result.shiftId)}` : "/scan";
       setMessage({
         type: "success",
-        text: `⚠️ تم تسجيل الانصراف. عملت ${formatDuration(result.minutesWorked)} من أصل ${formatDuration(openShift?.expectedDurationMinutes ?? 0)} المطلوبة.`,
+        text: result.earlyExit && result.minutesWorked !== undefined
+          ? `تم تسجيل الانصراف المبكر. عملت ${formatDuration(result.minutesWorked)} من أصل ${formatDuration(openShift?.expectedDurationMinutes ?? 0)} المطلوبة.`
+          : `تم تسجيل الانصراف. عملت ${formatDuration(result.minutesWorked ?? 0)}.`,
       });
       setNotes("");
-      router.refresh();
-    } else if (result.success) {
-      setMessage({ type: "success", text: `✅ تم تسجيل الانصراف. عملت ${formatDuration(result.minutesWorked ?? 0)}.` });
-      setNotes("");
-      router.refresh();
+      router.push(completionUrl);
     } else {
       setMessage({ type: "error", text: result.error ?? "تعذر تسجيل الانصراف." });
     }
@@ -292,8 +291,7 @@ export function ShiftClockPanel({ openShift, schedule }: ShiftClockPanelProps) {
         />
       )}
 
-      {/* Gradient top bar */}
-      <div className={`h-1.5 w-full ${openShift ? "bg-gradient-to-r from-emerald-400 to-teal-500" : "bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600"}`} />
+      <div className={`h-1.5 w-full ${openShift ? "bg-emerald-500" : "bg-[var(--border)]"}`} />
 
       <div className="p-6">
         {/* Header */}
@@ -363,6 +361,13 @@ export function ShiftClockPanel({ openShift, schedule }: ShiftClockPanelProps) {
           </div>
         )}
 
+        {!openShift && !schedule && (
+          <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300">
+            <IconAlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>لا يوجد جدول عمل نشط لحسابك. تواصل مع المدير قبل بدء الشيفت.</span>
+          </div>
+        )}
+
         {/* Notes (only for clock out) */}
         {openShift && (
           <textarea
@@ -379,7 +384,7 @@ export function ShiftClockPanel({ openShift, schedule }: ShiftClockPanelProps) {
           {!openShift ? (
             <button
               className="inline-flex min-h-[52px] w-full items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 px-6 text-base font-bold text-white shadow-lg shadow-emerald-600/20 transition-all hover:bg-emerald-500 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isPending}
+              disabled={isPending || !schedule}
               id="btn-start-shift"
               onClick={handleStartShift}
               type="button"
@@ -390,7 +395,7 @@ export function ShiftClockPanel({ openShift, schedule }: ShiftClockPanelProps) {
                   <path className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" fill="currentColor" />
                 </svg>
               ) : <IconLogIn className="h-5 w-5" />}
-              {isPending ? "جاري تحديد الموقع..." : "تسجيل الحضور"}
+              {isPending ? "جاري تحديد الموقع..." : schedule ? "تسجيل الحضور" : "لا يوجد جدول عمل"}
             </button>
           ) : (
             <button

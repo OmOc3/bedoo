@@ -4,7 +4,7 @@ import Link from "next/link";
 import { StationAttendancePanel, type SerializedOpenSession } from "@/components/attendance/station-attendance-panel";
 import { ReportForm } from "@/components/station/report-form";
 import { requireRole } from "@/lib/auth/server-session";
-import { getOpenAttendanceSession, getStationById } from "@/lib/db/repositories";
+import { getOpenAttendanceSession, getStationById, getOpenShift } from "@/lib/db/repositories";
 import { verifyStationQrToken } from "@/lib/qr/station-qr-token";
 
 interface StationReportPageProps {
@@ -36,19 +36,59 @@ function ErrorMessage({ message }: { message: string }) {
   );
 }
 
+function ShiftBlockedScreen() {
+  const links = [
+    { href: "/scan", label: "بدء الشيفت" },
+    { href: "/scan#shift-history", label: "سجل الشيفتات" },
+    { href: "/scan#salary-records", label: "سجل الرواتب" },
+    { href: "/scan#notifications", label: "الإشعارات" },
+  ];
+
+  return (
+    <main className="flex min-h-dvh items-center bg-[var(--surface-subtle)] px-4 py-6 text-right" dir="rtl">
+      <section className="mx-auto w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 sm:p-6">
+        <p className="text-sm font-semibold text-amber-700">الوصول مقيد</p>
+        <h1 className="mt-2 text-2xl font-bold text-[var(--foreground)]">ابدأ شيفت نشط قبل فحص المحطات</h1>
+        <p className="mt-3 text-base leading-7 text-[var(--muted)]">
+          لا يمكن تسجيل حضور محطة أو حفظ تقرير فحص خارج شيفت نشط. يمكنك متابعة سجلاتك وإشعاراتك من صفحة الفني.
+        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {links.map((link) => (
+            <Link
+              className="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
+              href={link.href}
+              key={link.href}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
 export default async function StationReportPage({ params, searchParams }: StationReportPageProps) {
   const { stationId } = await params;
   const { qr } = await searchParams;
+  const session = await requireRole(["technician", "manager"]);
+  const openShift = session.role === "technician" ? await getOpenShift(session.uid) : null;
+
+  if (session.role === "technician" && !openShift) {
+    return <ShiftBlockedScreen />;
+  }
 
   if (!verifyStationQrToken(stationId, qr)) {
     return <ErrorMessage message="رابط QR غير صالح. امسح رمز المحطة من لوحة المدير مرة أخرى." />;
   }
 
-  const session = await requireRole(["technician", "manager"]);
   const [station, openAttendanceSession] = await Promise.all([
     getStationById(stationId),
     session.role === "technician" ? getOpenAttendanceSession(session.uid) : Promise.resolve(null),
   ]);
+  const canTechnicianSubmit =
+    session.role !== "technician" ||
+    (openAttendanceSession?.clockInLocation?.stationId === stationId && openAttendanceSession.shiftId === openShift?.shiftId);
 
   const serializedOpenSession: SerializedOpenSession | null =
     openAttendanceSession
@@ -110,7 +150,7 @@ export default async function StationReportPage({ params, searchParams }: Statio
             ) : null}
             <ReportForm
               blockedReason={session.role === "technician" ? "سجل الحضور في هذه المحطة أولا حتى تتمكن من حفظ التقرير." : undefined}
-              canSubmit={session.role !== "technician" || serializedOpenSession?.clockInLocation?.stationId === stationId}
+              canSubmit={canTechnicianSubmit}
               stationId={stationId}
               stationLabel={station.label ?? "محطة بدون اسم"}
             />

@@ -37,7 +37,7 @@ function toSerializableOrder(order: ClientOrder): SerializableOrder {
 }
 
 export const metadata: Metadata = {
-  title: "طلبات العملاء - المشرف",
+  title: "العملاء والطلبات - المشرف",
 };
 
 const statusOptions: { value: ClientOrderStatus; label: string }[] = [
@@ -174,7 +174,7 @@ export default async function SupervisorClientOrdersPage() {
       <PageHeader
         backHref="/dashboard/supervisor"
         description="متابعة طلبات العملاء وتحديث حالة التنفيذ لكل محطة."
-        title="طلبات العملاء"
+        title="العملاء والطلبات"
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">

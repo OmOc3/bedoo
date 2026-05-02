@@ -2,7 +2,10 @@ import "server-only";
 
 import type { NextRequest } from "next/server";
 import { auth, type BetterAuthSession } from "@/lib/auth/better-auth";
+import { ensureAuthUserSchema } from "@/lib/auth/ensure-auth-schema";
+import { isBlockedAccountFlag } from "@/lib/db/boolean";
 import { requiredTimestamp } from "@/lib/db/mappers";
+import { ensureRuntimeDatabaseSchema } from "@/lib/db/runtime-schema";
 import { getActiveAppUser, getAppSettings } from "@/lib/db/repositories";
 import { AppError } from "@/lib/errors";
 import type { AppUser, UserRole } from "@/types";
@@ -22,7 +25,7 @@ function normalizeRole(value: unknown): UserRole | null {
 function userFromSession(user: BetterAuthSession["user"]): AppUser | null {
   const role = normalizeRole(user.role);
 
-  if (!role || user.banned === true) {
+  if (!role || isBlockedAccountFlag(user.banned)) {
     return null;
   }
 
@@ -49,6 +52,8 @@ export function getBearerToken(request: NextRequest): string | null {
 }
 
 export async function requireBearerRole(request: NextRequest, roles: UserRole[]): Promise<BearerSession> {
+  await ensureAuthUserSchema();
+
   const session = await auth.api.getSession({
     headers: request.headers,
   });
@@ -77,6 +82,8 @@ export async function requireBearerRole(request: NextRequest, roles: UserRole[])
   if (settings.maintenanceEnabled && (user.role === "client" || user.role === "technician")) {
     throw new AppError("النظام تحت الصيانة حاليًا. حاول لاحقًا.", "MAINTENANCE_MODE", 503);
   }
+
+  await ensureRuntimeDatabaseSchema();
 
   return {
     uid: user.uid,

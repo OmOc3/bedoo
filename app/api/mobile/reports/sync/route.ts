@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { mobileApiErrorResponse } from "@/lib/api/mobile";
 import { requireBearerRole } from "@/lib/auth/bearer-session";
 import { storeReportImage } from "@/lib/reports/store-report-image";
-import { getOpenAttendanceSession, getStationById } from "@/lib/db/repositories";
+import { getOpenAttendanceSession, getStationById, requireOpenTechnicianShift } from "@/lib/db/repositories";
 import { AppError } from "@/lib/errors";
 import { submitReportWithAdmin } from "@/lib/reports/submit-report";
 import { mobileReportSyncSchema } from "@/lib/validation/mobile";
@@ -97,9 +97,10 @@ export async function POST(
     }
 
     if (session.role === "technician") {
+      const openShift = await requireOpenTechnicianShift(session.uid);
       const openAttendance = await getOpenAttendanceSession(session.uid);
 
-      if (openAttendance?.clockInLocation?.stationId !== parsed.data.stationId) {
+      if (openAttendance?.clockInLocation?.stationId !== parsed.data.stationId || openAttendance.shiftId !== openShift.shiftId) {
         throw new AppError("يجب تسجيل الحضور في هذه المحطة قبل حفظ التقرير.", "ATTENDANCE_REQUIRED", 409);
       }
     }

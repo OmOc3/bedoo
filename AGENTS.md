@@ -110,7 +110,7 @@ npm run mobile:typecheck
 ## UI Conventions
 
 - Arabic RTL by default.
-- Tajawal font for Arabic text.
+- Cairo font for Arabic text.
 - Prefer logical Tailwind utilities: `ps-`, `pe-`, `ms-`, `me-`.
 - No hardcoded hex colors in new UI; use Tailwind classes.
 - Data-fetching pages should have `loading.tsx` and `error.tsx` siblings.

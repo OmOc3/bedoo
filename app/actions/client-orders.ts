@@ -1,12 +1,25 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { eq } from "drizzle-orm";
+import { auth } from "@/lib/auth/better-auth";
 import { requireRole } from "@/lib/auth/server-session";
-import { createClientOrder, replaceClientStationAccess, updateClientOrderStatus, upsertClientProfile } from "@/lib/db/repositories";
+import { db } from "@/lib/db/client";
+import { user as usersTable } from "@/lib/db/schema";
+import {
+  createClientOrder,
+  getClientProfile,
+  replaceClientStationAccess,
+  updateClientOrderStatus,
+  upsertClientProfile,
+} from "@/lib/db/repositories";
 import { writeAuditLog } from "@/lib/audit";
 import {
   clientAddressLinesFromText,
   createClientOrderSchema,
+  updateClientAccountPasswordSchema,
+  updateClientAccountProfileSchema,
   updateClientOrderStatusSchema,
   updateClientProfileSchema,
   updateClientStationAccessSchema,
@@ -15,6 +28,12 @@ import {
 export interface ClientOrderActionResult {
   error?: string;
   success?: boolean;
+}
+
+function formString(formData: FormData, key: string): string {
+  const value = formData.get(key);
+
+  return typeof value === "string" ? value : "";
 }
 
 function optionalString(formData: FormData, key: string): string | undefined {
@@ -26,6 +45,100 @@ function optionalString(formData: FormData, key: string): string | undefined {
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
+}
+
+export async function updateClientAccountProfileAction(formData: FormData): Promise<ClientOrderActionResult> {
+  const session = await requireRole(["client"]);
+  const parsed = updateClientAccountProfileSchema.safeParse({
+    displayName: formString(formData, "displayName"),
+    image: formData.get("image") || undefined,
+    phone: formData.get("phone"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "تحقق من بيانات الحساب." };
+  }
+
+  const profileUpdate: { image?: string | null; name: string } = {
+    name: parsed.data.displayName,
+  };
+
+  if (parsed.data.image !== undefined) {
+    profileUpdate.image = parsed.data.image.length > 0 ? parsed.data.image : null;
+  }
+
+  try {
+    const currentProfile = await getClientProfile(session.uid);
+
+    await db.update(usersTable).set(profileUpdate).where(eq(usersTable.id, session.uid));
+
+    await upsertClientProfile({
+      actorRole: session.role,
+      actorUid: session.uid,
+      addresses: currentProfile?.addresses ?? [],
+      clientUid: session.uid,
+      phone: parsed.data.phone || undefined,
+    });
+
+    await writeAuditLog({
+      actorUid: session.uid,
+      actorRole: session.role,
+      action: "client_account.profile_update",
+      entityType: "user",
+      entityId: session.uid,
+      metadata: {
+        imageChanged: parsed.data.image !== undefined && parsed.data.image !== session.user.image,
+        previousName: session.user.displayName,
+        nextName: parsed.data.displayName,
+      },
+    });
+
+    revalidatePath("/client/portal");
+    revalidatePath("/dashboard/manager/client-orders");
+    return { success: true };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "تعذر تحديث بيانات الحساب." };
+  }
+}
+
+export async function updateClientAccountPasswordAction(formData: FormData): Promise<ClientOrderActionResult> {
+  const session = await requireRole(["client"]);
+  const parsed = updateClientAccountPasswordSchema.safeParse({
+    confirmPassword: formString(formData, "confirmPassword"),
+    currentPassword: formString(formData, "currentPassword"),
+    newPassword: formString(formData, "newPassword"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "تحقق من كلمة المرور." };
+  }
+
+  try {
+    await auth.api.changePassword({
+      body: {
+        currentPassword: parsed.data.currentPassword,
+        newPassword: parsed.data.newPassword,
+        revokeOtherSessions: false,
+      },
+      headers: await headers(),
+    });
+
+    await db.update(usersTable).set({ passwordChangedAt: new Date() }).where(eq(usersTable.id, session.uid));
+
+    await writeAuditLog({
+      actorUid: session.uid,
+      actorRole: session.role,
+      action: "client_account.password_change",
+      entityType: "user",
+      entityId: session.uid,
+      metadata: { selfService: true },
+    });
+
+    revalidatePath("/client/portal");
+    return { success: true };
+  } catch (_error: unknown) {
+    return { error: "تعذر تحديث كلمة المرور. تحقق من كلمة المرور الحالية وحاول مرة أخرى." };
+  }
 }
 
 export async function createClientOrderAction(formData: FormData): Promise<ClientOrderActionResult> {

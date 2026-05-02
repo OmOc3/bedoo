@@ -5,16 +5,25 @@ import { requireRole } from "@/lib/auth/server-session";
 import {
   startShift,
   endShift,
+  updateShiftPayroll,
   updateShiftSalaryStatus,
 } from "@/lib/db/repositories";
+import { updateShiftPayrollSchema, type UpdateShiftPayrollValues } from "@/lib/validation/shifts";
 import type { ShiftSalaryStatus } from "@/types";
 
 export interface ShiftActionResult {
   error?: string;
   success?: boolean;
+  shiftId?: string;
   earlyExit?: boolean;
   minutesWorked?: number;
   earlyExitMinutes?: number;
+}
+
+export interface PayrollActionResult {
+  error?: string;
+  fieldErrors?: Partial<Record<keyof UpdateShiftPayrollValues, string[] | undefined>>;
+  success?: boolean;
 }
 
 function requiredNumber(formData: FormData, key: string): number {
@@ -77,6 +86,7 @@ export async function endShiftAction(formData: FormData): Promise<ShiftActionRes
     revalidatePath("/scan");
     return {
       success: true,
+      shiftId: result.shift.shiftId,
       earlyExit: result.earlyExit,
       minutesWorked: result.minutesWorked,
       earlyExitMinutes: result.earlyExitMinutes,
@@ -90,14 +100,45 @@ export async function updateSalaryStatusAction(
   shiftId: string,
   salaryStatus: ShiftSalaryStatus,
 ): Promise<{ error?: string; success?: boolean }> {
-  const session = await requireRole(["manager", "supervisor"]);
+  const session = await requireRole(["manager"]);
 
   try {
     await updateShiftSalaryStatus(shiftId, salaryStatus, session.uid, session.role);
     revalidatePath("/dashboard/manager/shifts");
+    revalidatePath("/dashboard/manager/payroll");
     revalidatePath("/dashboard/supervisor/shifts");
     return { success: true };
   } catch (error: unknown) {
     return { error: error instanceof Error ? error.message : "تعذر تحديث حالة الراتب." };
+  }
+}
+
+export async function updateShiftPayrollAction(input: unknown): Promise<PayrollActionResult> {
+  const session = await requireRole(["manager"]);
+  const parsed = updateShiftPayrollSchema.safeParse(input);
+
+  if (!parsed.success) {
+    return {
+      error: "تحقق من بيانات الراتب وحاول مرة أخرى.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  try {
+    await updateShiftPayroll({
+      actorRole: session.role,
+      actorUid: session.uid,
+      notes: parsed.data.notes,
+      salaryAmount: parsed.data.salaryAmount,
+      salaryStatus: parsed.data.salaryStatus,
+      shiftId: parsed.data.shiftId,
+    });
+    revalidatePath("/dashboard/manager/payroll");
+    revalidatePath("/dashboard/manager/shifts");
+    revalidatePath("/dashboard/supervisor/shifts");
+    revalidatePath("/scan");
+    return { success: true };
+  } catch (error: unknown) {
+    return { error: error instanceof Error ? error.message : "تعذر تحديث الراتب." };
   }
 }

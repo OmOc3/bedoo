@@ -19,7 +19,7 @@ import { listAppUsers } from "@/lib/db/repositories";
 import type { AppTimestamp, AppUser, UserRole } from "@/types";
 
 export const metadata: Metadata = {
-  title: "إدارة المستخدمين",
+  title: "الفريق",
 };
 
 interface ManagerUsersPageProps {
@@ -101,9 +101,10 @@ function RoleBadge({ role }: { role: UserRole }) {
 
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-control">
-      <p className="text-xs font-medium text-[var(--muted)]">{label}</p>
-      <p className="mt-1 text-2xl font-extrabold tracking-tight text-[var(--foreground)]">{value}</p>
+    <div className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--surface-subtle)] px-5 py-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-md">
+      <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <p className="relative text-sm font-medium text-[var(--muted)]">{label}</p>
+      <p className="relative mt-2 text-3xl font-extrabold tracking-tight text-[var(--foreground)]">{value}</p>
     </div>
   );
 }
@@ -139,7 +140,7 @@ function UserTools({ disabled, user }: { disabled: boolean; user: AppUser }) {
           </p>
           <Link
             className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-colors hover:bg-[var(--surface)] disabled:opacity-60"
-            href={`/dashboard/manager/users/${user.uid}/schedule`}
+            href={`/dashboard/manager/team/${user.uid}/schedule`}
           >
             إدارة جدول العمل
           </Link>
@@ -214,7 +215,7 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
         }
         backHref="/dashboard/manager"
         description="إدارة كثيفة للحسابات: إنشاء، بحث، تصفية، تعديل بيانات، تغيير دور، تفعيل، وتحديث كود الدخول."
-        title="إدارة المستخدمين"
+        title="الفريق"
       />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -225,17 +226,21 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
         <StatTile label="عملاء" value={clientUsers} />
       </section>
 
-      <details className="rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-control">
-        <summary className="flex min-h-12 cursor-pointer items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-[var(--foreground)]">
+      <details className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card transition-all duration-300 [&[open]]:shadow-card-md">
+        <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 py-3 text-sm font-bold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)] rounded-2xl [&[open]]:rounded-b-none">
           إنشاء مستخدم جديد
-          <span className="text-xs font-semibold text-[var(--muted)]">فتح النموذج</span>
+          <span className="text-xs font-semibold text-[var(--muted)] transition-transform duration-300 group-open:-rotate-180">
+            <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
         </summary>
-        <div className="border-t border-[var(--border-subtle)] p-4">
+        <div className="border-t border-[var(--border-subtle)] p-5">
           <CreateUserForm embedded />
         </div>
       </details>
 
-      <form action="/dashboard/manager/users" className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-control lg:grid-cols-[minmax(260px,1fr)_180px_180px_auto]">
+      <form action="/dashboard/manager/team" className="grid gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card lg:grid-cols-[minmax(260px,1fr)_180px_180px_auto]">
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-[var(--muted)]" htmlFor="users-search">
             البحث
@@ -281,11 +286,11 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
             <option value="inactive">غير نشط</option>
           </select>
         </div>
-        <div className="flex items-end gap-2">
-          <button className="min-h-11 rounded-lg bg-[var(--primary)] px-5 py-2 text-sm font-semibold text-[var(--primary-foreground)]" type="submit">
+        <div className="flex items-end gap-3">
+          <button className="min-h-11 rounded-lg bg-[var(--primary)] px-6 py-2 text-sm font-semibold text-[var(--primary-foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98]" type="submit">
             تطبيق
           </button>
-          <Link className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] hover:bg-[var(--surface-subtle)]" href="/dashboard/manager/users">
+          <Link className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-5 py-2 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]" href="/dashboard/manager/team">
             مسح
           </Link>
         </div>
@@ -297,7 +302,7 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
         </div>
       ) : (
         <>
-          <div className="hidden overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-control lg:block">
+          <div className="hidden overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card lg:block">
             <table className="w-full min-w-[980px]">
               <thead className="bg-[var(--surface-subtle)]">
                 <tr>
@@ -329,13 +334,18 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
                         <td className="px-4 py-3 text-sm text-[var(--muted)]">{formatTimestamp(user.createdAt)}</td>
                         <td className="px-4 py-3 text-xs text-[var(--muted)]" dir="ltr">{user.uid}</td>
                       </tr>
-                      <tr className="bg-[var(--surface-subtle)]">
-                        <td className="px-4 py-2" colSpan={5}>
-                          <details className="rounded-lg border border-[var(--border)] bg-[var(--surface)]">
-                            <summary className="cursor-pointer px-4 py-2 text-sm font-semibold text-[var(--foreground)]">
+                      <tr className="bg-[var(--surface-subtle)]/50">
+                        <td className="px-5 py-3" colSpan={5}>
+                          <details className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm transition-all duration-300">
+                            <summary className="cursor-pointer px-5 py-3 text-sm font-bold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)] rounded-xl [&[open]]:rounded-b-none flex items-center justify-between">
                               إدارة حساب {user.displayName}
+                              <span className="text-[var(--muted)] transition-transform duration-300 group-open:-rotate-180">
+                                <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                                  <path d="m6 9 6 6 6-6" />
+                                </svg>
+                              </span>
                             </summary>
-                            <div className="border-t border-[var(--border-subtle)] p-4">
+                            <div className="border-t border-[var(--border-subtle)] p-5">
                               <UserTools disabled={isCurrentUser} user={user} />
                             </div>
                           </details>
@@ -353,8 +363,8 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
               const isCurrentUser = user.uid === session.uid;
 
               return (
-                <article className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-control" key={user.uid}>
-                  <div className="flex items-start justify-between gap-3">
+                <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card transition-all duration-300 hover:shadow-card-md" key={user.uid}>
+                  <div className="flex items-start justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-3">
                       <UserAvatar user={user} />
                       <div className="min-w-0">
@@ -364,15 +374,20 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
                     </div>
                     <UserStatus isActive={user.isActive} />
                   </div>
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+                  <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
                     <RoleBadge role={user.role} />
                     <span>إنشاء: {formatTimestamp(user.createdAt)}</span>
                   </div>
-                  <details className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)]">
-                    <summary className="cursor-pointer px-3 py-2 text-sm font-semibold text-[var(--foreground)]">
+                  <details className="group mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] transition-all duration-300">
+                    <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-bold text-[var(--foreground)]">
                       إدارة الحساب
+                      <span className="text-[var(--muted)] transition-transform duration-300 group-open:-rotate-180">
+                        <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </span>
                     </summary>
-                    <div className="border-t border-[var(--border-subtle)] p-3">
+                    <div className="border-t border-[var(--border-subtle)] bg-[var(--surface)] p-4 rounded-b-xl">
                       <UserTools disabled={isCurrentUser} user={user} />
                     </div>
                   </details>

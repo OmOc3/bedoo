@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server-session";
-import { getOpenAttendanceSession, getReportById, getStationById, submitReportRecord, updateReportReviewRecord, updateReportSubmissionByReviewer } from "@/lib/db/repositories";
+import { getOpenAttendanceSession, getReportById, getStationById, requireOpenTechnicianShift, submitReportRecord, updateReportReviewRecord, updateReportSubmissionByReviewer } from "@/lib/db/repositories";
 import { editSubmittedReportSchema, reviewReportSchema, submitReportSchema } from "@/lib/validation/reports";
 import { storeReportImage } from "@/lib/reports/store-report-image";
 import { writeAuditLog } from "@/lib/audit";
@@ -86,9 +86,14 @@ export async function submitStationReportAction(
   }
 
   if (session.role === "technician") {
-    const openAttendance = await getOpenAttendanceSession(session.uid);
+    try {
+      const openShift = await requireOpenTechnicianShift(session.uid);
+      const openAttendance = await getOpenAttendanceSession(session.uid);
 
-    if (openAttendance?.clockInLocation?.stationId !== parsed.data.stationId) {
+      if (openAttendance?.clockInLocation?.stationId !== parsed.data.stationId || openAttendance.shiftId !== openShift.shiftId) {
+        return { error: "يجب تسجيل الحضور في هذه المحطة قبل حفظ التقرير." };
+      }
+    } catch {
       return { error: "يجب تسجيل الحضور في هذه المحطة قبل حفظ التقرير." };
     }
   }

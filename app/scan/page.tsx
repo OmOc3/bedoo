@@ -17,7 +17,7 @@ import {
 } from "@/lib/db/repositories";
 import { APP_TIME_ZONE } from "@/lib/datetime";
 import { i18n } from "@/lib/i18n";
-import type { TechnicianShift } from "@/types";
+import type { Report, ShiftSalaryStatus, TechnicianShift } from "@/types";
 
 export const metadata: Metadata = { title: i18n.scan.title };
 
@@ -33,10 +33,19 @@ function minutesToDisplay(minutes: number) {
   return `${h}س ${m}د`;
 }
 
-function ShiftHistoryCard({ shift }: { shift: TechnicianShift }) {
-  const salaryColors = { pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300", paid: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300", unpaid: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300" };
-  const salaryLabels = { pending: "قيد الانتظار", paid: "مدفوع", unpaid: "غير مدفوع" };
+const salaryColors: Record<ShiftSalaryStatus, string> = {
+  paid: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  pending: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+  unpaid: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+};
 
+const salaryLabels: Record<ShiftSalaryStatus, string> = {
+  paid: "مدفوع",
+  pending: "قيد المراجعة",
+  unpaid: "غير مدفوع",
+};
+
+function ShiftHistoryCard({ shift }: { shift: TechnicianShift }) {
   return (
     <li className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
@@ -66,6 +75,72 @@ function ShiftHistoryCard({ shift }: { shift: TechnicianShift }) {
   );
 }
 
+function SalaryRecordCard({ shift }: { shift: TechnicianShift }) {
+  return (
+    <li className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-[var(--foreground)]">{formatTs(shift.startedAt.toDate().getTime())}</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            القيمة: {shift.salaryAmount != null ? `${shift.salaryAmount}` : "لم يحددها المدير بعد"}
+          </p>
+        </div>
+        <span className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold ${salaryColors[shift.salaryStatus]}`}>
+          {salaryLabels[shift.salaryStatus]}
+        </span>
+      </div>
+      {shift.notes ? <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{shift.notes}</p> : null}
+    </li>
+  );
+}
+
+function TechnicianNotifications({ reports, shifts }: { reports: Report[]; shifts: TechnicianShift[] }) {
+  const items = [
+    ...shifts
+      .filter((shift) => shift.status === "completed" && shift.salaryStatus === "pending")
+      .map((shift) => ({
+        id: `salary-${shift.shiftId}`,
+        title: "راتب بانتظار المراجعة",
+        body: `${formatTs(shift.startedAt.toDate().getTime())} · ${shift.totalMinutes != null ? minutesToDisplay(shift.totalMinutes) : "مدة غير مسجلة"}`,
+      })),
+    ...shifts
+      .filter((shift) => shift.status === "completed" && shift.earlyExit)
+      .map((shift) => ({
+        id: `early-${shift.shiftId}`,
+        title: "تم تسجيل خروج مبكر",
+        body: `${formatTs(shift.startedAt.toDate().getTime())} · سيظهر للمدير في سجل الشيفتات.`,
+      })),
+    ...reports
+      .filter((report) => report.reviewStatus === "rejected")
+      .map((report) => ({
+        id: `report-${report.reportId}`,
+        title: "تقرير مرفوض",
+        body: `${report.stationLabel} · ${formatTs(report.submittedAt.toDate().getTime())}`,
+      })),
+  ].slice(0, 8);
+
+  return (
+    <div id="notifications" className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+      <div className="border-b border-[var(--border)] p-5">
+        <h2 className="text-lg font-bold text-[var(--foreground)]">الإشعارات</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">تنبيهات الشيفت والراتب والتقارير.</p>
+      </div>
+      {items.length > 0 ? (
+        <ul className="divide-y divide-[var(--border)]">
+          {items.map((item) => (
+            <li className="p-4" key={item.id}>
+              <p className="text-sm font-semibold text-[var(--foreground)]">{item.title}</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">{item.body}</p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="p-5 text-sm text-[var(--muted)]">لا توجد إشعارات جديدة.</p>
+      )}
+    </div>
+  );
+}
+
 export default async function ScanPage() {
   const session = await getCurrentSession();
 
@@ -81,7 +156,8 @@ export default async function ScanPage() {
 
   const isShiftActive = Boolean(openShift);
   // After a completed shift (no open shift but has past shifts), show profile/records mode
-  const hasCompletedShifts = pastShifts.length > 0;
+  const completedShifts = pastShifts.filter((shift) => shift.status === "completed");
+  const hasCompletedShifts = completedShifts.length > 0;
 
   const serializedShift = openShift
     ? {
@@ -131,59 +207,68 @@ export default async function ScanPage() {
               />
             </div>
 
-            {/* If no active shift → show ONLY the clock panel + schedule info, nothing else */}
+            {/* If no active shift, keep the technician in records mode. */}
             {!isShiftActive && (
               <div className="space-y-4">
-                {/* Schedule card */}
-                {schedule && (
-                  <div className="rounded-2xl border border-blue-100 bg-blue-50/80 p-5 dark:border-blue-900/30 dark:bg-blue-900/10">
-                    <h2 className="mb-3 text-base font-bold text-blue-800 dark:text-blue-300">جدول عملك</h2>
+                <div id="work-schedule" className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+                  <h2 className="text-lg font-bold text-[var(--foreground)]">جدول العمل</h2>
+                  {schedule ? (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      <div className="rounded-xl bg-white/80 p-3 dark:bg-blue-950/40">
-                        <p className="text-xs text-blue-600 dark:text-blue-400">بداية الشيفت</p>
-                        <p className="mt-1 text-lg font-black text-blue-900 dark:text-blue-200" dir="ltr">{schedule.shiftStartTime}</p>
+                      <div className="rounded-lg bg-[var(--surface-subtle)] p-3">
+                        <p className="text-sm text-[var(--muted)]">بداية الشيفت</p>
+                        <p className="mt-1 text-lg font-bold text-[var(--foreground)]" dir="ltr">{schedule.shiftStartTime}</p>
                       </div>
-                      <div className="rounded-xl bg-white/80 p-3 dark:bg-blue-950/40">
-                        <p className="text-xs text-blue-600 dark:text-blue-400">نهاية الشيفت</p>
-                        <p className="mt-1 text-lg font-black text-blue-900 dark:text-blue-200" dir="ltr">{schedule.shiftEndTime}</p>
+                      <div className="rounded-lg bg-[var(--surface-subtle)] p-3">
+                        <p className="text-sm text-[var(--muted)]">نهاية الشيفت</p>
+                        <p className="mt-1 text-lg font-bold text-[var(--foreground)]" dir="ltr">{schedule.shiftEndTime}</p>
                       </div>
-                      <div className="rounded-xl bg-white/80 p-3 dark:bg-blue-950/40">
-                        <p className="text-xs text-blue-600 dark:text-blue-400">المدة المطلوبة</p>
-                        <p className="mt-1 text-lg font-black text-blue-900 dark:text-blue-200">{minutesToDisplay(schedule.expectedDurationMinutes)}</p>
+                      <div className="rounded-lg bg-[var(--surface-subtle)] p-3">
+                        <p className="text-sm text-[var(--muted)]">المدة المطلوبة</p>
+                        <p className="mt-1 text-lg font-bold text-[var(--foreground)]">{minutesToDisplay(schedule.expectedDurationMinutes)}</p>
                       </div>
-                      <div className="rounded-xl bg-white/80 p-3 dark:bg-blue-950/40">
-                        <p className="text-xs text-blue-600 dark:text-blue-400">أيام العمل</p>
-                        <p className="mt-1 text-xs font-bold text-blue-900 dark:text-blue-200">
+                      <div className="rounded-lg bg-[var(--surface-subtle)] p-3">
+                        <p className="text-sm text-[var(--muted)]">أيام العمل</p>
+                        <p className="mt-1 text-sm font-semibold text-[var(--foreground)]">
                           {schedule.workDays.map((d) => ["أحد","إثنين","ثلاثاء","أربعاء","خميس","جمعة","سبت"][d]).join("، ")}
                         </p>
                       </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm font-medium text-amber-800 dark:border-amber-800/40 dark:bg-amber-900/20 dark:text-amber-300">
+                      لا يوجد جدول عمل نشط. لن تتمكن من بدء الشيفت حتى يحدد المدير جدولك.
+                    </p>
+                  )}
+                </div>
 
-                {/* Past shifts & salary – show when clocked out */}
                 {hasCompletedShifts && (
-                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+                  <div id="shift-history" className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
                     <div className="border-b border-[var(--border)] p-5">
-                      <h2 className="text-lg font-bold text-[var(--foreground)]">سجل الشيفتات والمرتبات</h2>
-                      <p className="mt-1 text-xs text-[var(--muted)]">شيفتاتك السابقة وحالة المدفوعات.</p>
+                      <h2 className="text-lg font-bold text-[var(--foreground)]">سجل الشيفتات</h2>
+                      <p className="mt-1 text-sm text-[var(--muted)]">آخر الشيفتات المكتملة ومدة كل شيفت.</p>
                     </div>
                     <ul className="space-y-3 p-5">
-                      {pastShifts.filter((s) => s.status === "completed").slice(0, 10).map((shift) => (
+                      {completedShifts.slice(0, 10).map((shift) => (
                         <ShiftHistoryCard key={shift.shiftId} shift={shift} />
                       ))}
                     </ul>
                   </div>
                 )}
 
-                {/* Login hint if no session */}
-                {!session && (
-                  <div className="flex justify-center">
-                    <Link className="inline-flex min-h-[52px] items-center gap-2 rounded-2xl bg-[var(--foreground)] px-8 text-base font-bold text-[var(--surface)] shadow-xl hover:scale-105" href="/login">
-                      تسجيل الدخول
-                    </Link>
+                {hasCompletedShifts && (
+                  <div id="salary-records" className="rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+                    <div className="border-b border-[var(--border)] p-5">
+                      <h2 className="text-lg font-bold text-[var(--foreground)]">سجل الرواتب</h2>
+                      <p className="mt-1 text-sm text-[var(--muted)]">حالة مراجعة الرواتب اليدوية لكل شيفت مكتمل.</p>
+                    </div>
+                    <ul className="space-y-3 p-5">
+                      {completedShifts.slice(0, 10).map((shift) => (
+                        <SalaryRecordCard key={shift.shiftId} shift={shift} />
+                      ))}
+                    </ul>
                   </div>
                 )}
+
+                <TechnicianNotifications reports={recentReports} shifts={completedShifts} />
               </div>
             )}
 

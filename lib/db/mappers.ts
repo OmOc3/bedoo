@@ -1,5 +1,6 @@
 import type { AppTimestamp, AppUser, AuditLog, Report, Station, UserRole } from "@/types";
 import type { user } from "@/lib/db/schema";
+import { isBlockedAccountFlag } from "@/lib/db/boolean";
 import { coordinatesFromRow } from "@/lib/db/schema";
 
 type AuthUserRow = typeof user.$inferSelect;
@@ -49,7 +50,7 @@ export function appUserFromAuthUser(row: AuthUserRow): AppUser {
     displayName: row.name,
     role: row.role,
     createdAt: requiredTimestamp(row.createdAt),
-    isActive: row.banned !== true,
+    isActive: !isBlockedAccountFlag(row.banned),
     image: row.image ?? undefined,
     passwordChangedAt: toAppTimestamp(row.passwordChangedAt),
     deactivatedAt: toAppTimestamp(row.deactivatedAt),

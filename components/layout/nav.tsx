@@ -20,15 +20,16 @@ interface NavItem {
 
 const managerItems: NavItem[] = [
   { href: "/dashboard/manager/attendance", icon: "attendance", label: "الحضور والانصراف" },
+  { href: "/dashboard/manager/payroll", icon: "payroll", label: "الرواتب" },
   { href: "/dashboard/manager/daily-reports", icon: "reports", label: "التقارير اليومية" },
   { href: "/dashboard/manager", icon: "dashboard", label: "لوحة القيادة" },
   { href: "/dashboard/manager/tasks", icon: "tasks", label: "مهام اليوم" },
   { href: "/dashboard/manager/stations", icon: "stations", label: "المحطات" },
   { href: "/dashboard/manager/stations/map", icon: "map", label: "خريطة المحطات" },
   { href: "/dashboard/manager/reports", icon: "reports", label: "التقارير" },
-  { href: "/dashboard/manager/client-orders", icon: "team", label: "طلبات العملاء" },
+  { href: "/dashboard/manager/client-orders", icon: "clients", label: "العملاء والطلبات" },
   { href: "/dashboard/manager/analytics", icon: "analytics", label: "التحليلات" },
-  { href: "/dashboard/manager/users", icon: "team", label: "الفريق" },
+  { href: "/dashboard/manager/team", icon: "team", label: "الفريق" },
   { href: "/dashboard/manager/audit", icon: "audit", label: "السجل" },
   { href: "/dashboard/manager/settings", icon: "settings", label: "الإعدادات" },
   { href: "/dashboard/supervisor", icon: "supervisor", label: "لوحة المشرف" },
@@ -40,15 +41,17 @@ const supervisorItems: NavItem[] = [
   { href: "/dashboard/supervisor", icon: "dashboard", label: "لوحة المشرف" },
   { href: "/dashboard/supervisor/tasks", icon: "tasks", label: "مهام اليوم" },
   { href: "/dashboard/supervisor/reports", icon: "reports", label: "التقارير" },
-  { href: "/dashboard/supervisor/client-orders", icon: "team", label: "طلبات العملاء" },
+  { href: "/dashboard/supervisor/client-orders", icon: "clients", label: "العملاء والطلبات" },
 ];
 
 type IconName =
   | "analytics"
   | "attendance"
   | "audit"
+  | "clients"
   | "dashboard"
   | "map"
+  | "payroll"
   | "reports"
   | "settings"
   | "stations"
@@ -135,6 +138,18 @@ function TeamIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+function ClientsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconFrame {...props}>
+      <rect height="14" rx="2" width="10" x="7" y="5" />
+      <path d="M10 9h4" />
+      <path d="M10 12h4" />
+      <path d="M10 15h2" />
+      <path d="M5 8H4a1 1 0 0 0-1 1v9a2 2 0 0 0 2 2h12" />
+    </IconFrame>
+  );
+}
+
 function TasksIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <IconFrame {...props}>
@@ -161,6 +176,17 @@ function AnalyticsIcon(props: SVGProps<SVGSVGElement>) {
       <path d="M4 19V5" />
       <path d="M4 19h16" />
       <path d="m7 15 4-5 3 3 5-7" />
+    </IconFrame>
+  );
+}
+
+function PayrollIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <IconFrame {...props}>
+      <rect height="14" rx="2" width="18" x="3" y="5" />
+      <path d="M7 9h4" />
+      <path d="M7 13h10" />
+      <path d="M16 9h1" />
     </IconFrame>
   );
 }
@@ -217,8 +243,10 @@ const icons: Record<IconName, (props: SVGProps<SVGSVGElement>) => ReactElement> 
   analytics: AnalyticsIcon,
   attendance: AttendanceIcon,
   audit: AuditIcon,
+  clients: ClientsIcon,
   dashboard: DashboardIcon,
   map: MapIcon,
+  payroll: PayrollIcon,
   reports: ReportsIcon,
   settings: SettingsIcon,
   stations: StationsIcon,

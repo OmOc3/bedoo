@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { createClientOrderSchema, type CreateClientOrderValues } from "@/lib/validation/client-orders";
 import type { Coordinates } from "@/types";
 
-// Load map only on client (no SSR) to avoid hydration issues
 const StationMap = dynamic(
   () => import("@/components/maps/station-map").then((m) => m.StationMap),
   { ssr: false, loading: () => <div className="h-64 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] animate-pulse" /> },
@@ -68,19 +67,18 @@ export function CreateClientOrderForm() {
 
   return (
     <form
-      className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:p-6"
+      className="space-y-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card"
       dir="rtl"
       onSubmit={form.handleSubmit(onSubmit)}
     >
       <div>
         <p className="text-sm font-semibold text-[var(--primary)]">طلب جديد</p>
-        <h2 className="mt-1 text-xl font-extrabold text-[var(--foreground)]">طلب فحص محطة</h2>
+        <h2 className="mt-1 text-lg font-bold text-[var(--foreground)]">طلب فحص محطة</h2>
         <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
           أرسل بيانات المحطة وسيقوم الفريق بمراجعة الطلب وربطه بحسابك.
         </p>
       </div>
 
-      {/* Station label */}
       <div className="group space-y-2">
         <label className="block text-sm font-semibold text-[var(--muted)] transition-colors duration-200 group-hover:text-[var(--foreground)]" htmlFor="stationLabel">
           اسم المحطة
@@ -96,7 +94,6 @@ export function CreateClientOrderForm() {
         )}
       </div>
 
-      {/* Station location text */}
       <div className="group space-y-2">
         <label className="block text-sm font-semibold text-[var(--muted)] transition-colors duration-200 group-hover:text-[var(--foreground)]" htmlFor="stationLocation">
           عنوان المحطة
@@ -104,7 +101,7 @@ export function CreateClientOrderForm() {
         <input
           className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] transition-all duration-200 hover:border-[var(--primary)]/50 focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id="stationLocation"
-          placeholder="مثال: الرياض - حي النخيل - مبنى A"
+          placeholder="مثال: القاهرة - التجمع - مبنى A"
           {...form.register("stationLocation")}
         />
         {form.formState.errors.stationLocation && (
@@ -112,7 +109,6 @@ export function CreateClientOrderForm() {
         )}
       </div>
 
-      {/* Map picker */}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
           <label className="text-sm font-semibold text-[var(--foreground)]">
@@ -168,14 +164,13 @@ export function CreateClientOrderForm() {
               </div>
             ) : (
               <div className="border-t border-[var(--border)] px-4 py-2.5">
-                <p className="text-xs text-[var(--muted)]">لم يتم تحديد موقع بعد — انقر على الخريطة لتثبيت نقطة.</p>
+                <p className="text-xs text-[var(--muted)]">لم يتم تحديد موقع بعد، انقر على الخريطة لتثبيت نقطة.</p>
               </div>
             )}
           </div>
         )}
       </div>
 
-      {/* Description */}
       <div className="group space-y-2">
         <label className="block text-sm font-semibold text-[var(--muted)] transition-colors duration-200 group-hover:text-[var(--foreground)]" htmlFor="stationDescription">
           بيانات المحطة
@@ -189,7 +184,6 @@ export function CreateClientOrderForm() {
         />
       </div>
 
-      {/* Note */}
       <div className="group space-y-2">
         <label className="block text-sm font-semibold text-[var(--muted)] transition-colors duration-200 group-hover:text-[var(--foreground)]" htmlFor="note">
           ملاحظات الطلب
@@ -203,7 +197,6 @@ export function CreateClientOrderForm() {
         />
       </div>
 
-      {/* Photo */}
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-[var(--foreground)]" htmlFor="photo">
           صورة للمحطة
@@ -227,7 +220,7 @@ export function CreateClientOrderForm() {
       </div>
 
       <Button className="w-full" disabled={form.formState.isSubmitting} isLoading={form.formState.isSubmitting} type="submit">
-        إرسال الطلب
+        إرسال الطلب للفريق
       </Button>
 
       {resultMessage ? (

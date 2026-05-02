@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/better-auth";
+import { ensureAuthUserSchema } from "@/lib/auth/ensure-auth-schema";
 import { toAuthenticatedUserResponse } from "@/lib/auth/public-user";
+import { isDisabledAuthError } from "@/lib/auth/disabled-error";
 import { checkLoginRateLimit, recordFailedLogin, resetLoginRateLimit } from "@/lib/auth/rate-limit";
 import { getRoleRedirect } from "@/lib/auth/redirects";
 import { createSignedRoleCookie } from "@/lib/auth/role-cookie";
 import { clearAuthCookies, setRoleCookie } from "@/lib/auth/session";
 import { getSessionMaxAgeMs } from "@/lib/auth/session-config";
+import { isBlockedAccountFlag } from "@/lib/db/boolean";
 import { requiredTimestamp } from "@/lib/db/mappers";
 import { i18n } from "@/lib/i18n";
 import { isRecord } from "@/lib/utils";
@@ -108,7 +111,7 @@ function authUserToAppUser(value: unknown): AuthClassification {
   const email = value.email;
   const name = value.name;
 
-  if (banned === true) {
+  if (isBlockedAccountFlag(banned)) {
     return { blocked: true, profile: null };
   }
 
@@ -131,17 +134,6 @@ function authUserToAppUser(value: unknown): AuthClassification {
 
 function errorStatus(error: unknown): number | null {
   return isRecord(error) && typeof error.status === "number" ? error.status : null;
-}
-
-function isDisabledAuthError(error: unknown): boolean {
-  if (!isRecord(error)) {
-    return false;
-  }
-
-  const errorCode = typeof error.code === "string" ? error.code : "";
-  const errorMessage = typeof error.message === "string" ? error.message.toLowerCase() : "";
-
-  return errorCode === "USER_DISABLED" || errorCode === "ACCOUNT_DISABLED" || errorMessage.includes("banned");
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorResponse | LoginSuccessResponse>> {
@@ -182,6 +174,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorR
         },
       );
     }
+
+    await ensureAuthUserSchema();
 
     try {
       const signIn = await auth.api.signInEmail({

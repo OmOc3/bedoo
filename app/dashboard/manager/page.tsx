@@ -151,7 +151,7 @@ export default async function ManagerDashboardPage() {
                 className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
                 href="/dashboard/manager/client-orders"
               >
-                إدارة العملاء
+                العملاء والطلبات
               </Link>
             </>
           }
@@ -170,7 +170,7 @@ export default async function ManagerDashboardPage() {
             tone="amber"
             value={stats.pendingReviewReports}
           />
-          <StatCard href="/dashboard/manager/users" label="الفنيون" tone="blue" value={stats.technicians} />
+          <StatCard href="/dashboard/manager/team" label="الفنيون" tone="blue" value={stats.technicians} />
           <StatCard href="/dashboard/manager/tasks" label="مهام اليوم" tone="amber" value={stats.pendingReviewReports} />
         </div>
 

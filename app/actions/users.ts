@@ -77,7 +77,7 @@ export async function createUserAccountAction(formData: FormData): Promise<UserA
       },
     });
 
-    revalidatePath("/dashboard/manager/users");
+    revalidatePath("/dashboard/manager/team");
     revalidatePath("/dashboard/manager/client-orders");
     revalidatePath("/dashboard/manager");
 
@@ -153,7 +153,7 @@ export async function toggleUserActiveAction(
     },
   });
 
-  revalidatePath("/dashboard/manager/users");
+  revalidatePath("/dashboard/manager/team");
   revalidatePath("/dashboard/manager");
 
   return { success: true };
@@ -207,7 +207,7 @@ export async function updateUserRoleAction(targetUid: string, formData: FormData
     },
   });
 
-  revalidatePath("/dashboard/manager/users");
+  revalidatePath("/dashboard/manager/team");
   revalidatePath("/dashboard/manager");
 
   return { success: true };
@@ -260,7 +260,7 @@ export async function updateUserAccessCodeAction(targetUid: string, formData: Fo
     },
   });
 
-  revalidatePath("/dashboard/manager/users");
+  revalidatePath("/dashboard/manager/team");
   revalidatePath("/dashboard/manager");
 
   return { success: true };
@@ -313,7 +313,7 @@ export async function updateUserProfileAction(targetUid: string, formData: FormD
     },
   });
 
-  revalidatePath("/dashboard/manager/users");
+  revalidatePath("/dashboard/manager/team");
   revalidatePath("/(tabs)/settings");
 
   return { success: true };
@@ -329,12 +329,12 @@ export async function deleteClientAccountAction(targetUid: string): Promise<void
       clientUid: targetUid,
     });
   } catch (error: unknown) {
-    redirect(`/dashboard/manager/users?error=${encodeURIComponent(error instanceof Error ? error.message : "تعذر حذف العميل.")}`);
+    redirect(`/dashboard/manager/team?error=${encodeURIComponent(error instanceof Error ? error.message : "تعذر حذف العميل.")}`);
   }
 
-  revalidatePath("/dashboard/manager/users");
+  revalidatePath("/dashboard/manager/team");
   revalidatePath("/dashboard/manager/client-orders");
   revalidatePath("/dashboard/manager");
 
-  redirect("/dashboard/manager/users?success=1");
+  redirect("/dashboard/manager/team?success=1");
 }

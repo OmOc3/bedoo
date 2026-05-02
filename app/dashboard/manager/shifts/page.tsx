@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { DashboardShell } from "@/components/layout/dashboard-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { requireRole } from "@/lib/auth/server-session";
@@ -21,7 +22,6 @@ function minutesToDisplay(minutes: number) {
 
 function ShiftRow({ shift, techName }: { shift: TechnicianShift; techName: string }) {
   const isActive = shift.status === "active";
-  const canEditSalary = !isActive && shift.salaryAmount != null;
   return (
     <tr className="border-b border-[var(--border)] text-sm transition-colors hover:bg-[var(--surface-subtle)]">
       <td className="p-3 font-medium text-[var(--foreground)]">{techName}</td>
@@ -35,7 +35,7 @@ function ShiftRow({ shift, techName }: { shift: TechnicianShift; techName: strin
       </td>
       <td className="p-3 text-[var(--muted)]">{shift.salaryAmount != null ? `${shift.salaryAmount}` : "—"}</td>
       <td className="p-3">
-        <SalaryStatusButton shiftId={shift.shiftId} current={shift.salaryStatus} readOnly={!canEditSalary} />
+        <SalaryStatusButton shiftId={shift.shiftId} current={shift.salaryStatus} readOnly />
       </td>
     </tr>
   );
@@ -51,7 +51,7 @@ export default async function ManagerShiftsPage() {
   const techMap = new Map(allUsers.filter((u) => u.role === "technician").map((u) => [u.uid, u.displayName]));
 
   const totalPaid = shifts.filter((s) => s.salaryStatus === "paid" && s.salaryAmount != null).reduce((sum, s) => sum + (s.salaryAmount ?? 0), 0);
-  const totalPending = shifts.filter((s) => s.salaryStatus === "pending" && s.salaryAmount != null).reduce((sum, s) => sum + (s.salaryAmount ?? 0), 0);
+  const pendingPayrollCount = shifts.filter((s) => s.status === "completed" && s.salaryStatus === "pending").length;
   const totalHours = shifts.filter((s) => s.totalMinutes != null).reduce((sum, s) => sum + (s.totalMinutes ?? 0), 0) / 60;
   const earlyExitCount = shifts.filter((s) => s.earlyExit).length;
 
@@ -59,8 +59,16 @@ export default async function ManagerShiftsPage() {
     <DashboardShell role="manager">
       <PageHeader
         title="الشيفتات والمرتبات"
-        description="إدارة شيفتات الفنيين وحالة المدفوعات."
+        description="سجل تشغيلي لشيفتات الفنيين. تعديلات الرواتب تتم من صفحة الرواتب."
         backHref="/dashboard/manager"
+        action={
+          <Link
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)]"
+            href="/dashboard/manager/payroll"
+          >
+            فتح الرواتب
+          </Link>
+        }
       />
 
       {/* Stats */}
@@ -69,7 +77,7 @@ export default async function ManagerShiftsPage() {
           { label: "إجمالي الشيفتات", value: shifts.length.toString(), color: "text-[var(--foreground)]" },
           { label: "ساعات العمل", value: `${totalHours.toFixed(1)}س`, color: "text-blue-600" },
           { label: "تم الدفع", value: `${totalPaid.toFixed(2)}`, color: "text-emerald-600" },
-          { label: "مستحقات معلقة", value: `${totalPending.toFixed(2)}`, color: "text-amber-600" },
+          { label: "رواتب قيد المراجعة", value: pendingPayrollCount.toString(), color: "text-amber-600" },
           { label: "انصراف مبكر", value: earlyExitCount.toString(), color: "text-red-600" },
         ].map((stat) => (
           <div key={stat.label} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">

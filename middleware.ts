@@ -11,18 +11,44 @@ function isMaintenanceEnabled(): boolean {
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
 }
 
-async function getMaintenanceEnabledFromSettingsApi(origin: string): Promise<boolean> {
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1500);
+interface MaintenanceStatusCache {
+  enabled: boolean;
+  expiresAt: number;
+  origin: string;
+}
 
+interface PendingMaintenanceStatusRequest {
+  origin: string;
+  promise: Promise<boolean>;
+}
+
+let maintenanceStatusCache: MaintenanceStatusCache | null = null;
+let pendingMaintenanceStatusRequest: PendingMaintenanceStatusRequest | null = null;
+
+function getMaintenanceStatusCacheTtlMs(): number {
+  const raw = process.env.MAINTENANCE_STATUS_CACHE_SECONDS;
+
+  if (raw) {
+    const seconds = Number(raw);
+
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return Math.trunc(seconds * 1000);
+    }
+  }
+
+  return process.env.NODE_ENV === "development" ? 60_000 : 0;
+}
+
+async function fetchMaintenanceEnabledFromSettingsApi(origin: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1500);
+
+  try {
     const response = await fetch(`${origin}/api/maintenance/status`, {
       method: "GET",
       cache: "no-store",
       signal: controller.signal,
     });
-
-    clearTimeout(timeout);
 
     if (!response.ok) {
       return false;
@@ -34,6 +60,47 @@ async function getMaintenanceEnabledFromSettingsApi(origin: string): Promise<boo
     return enabled === true;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function getMaintenanceEnabledFromSettingsApi(origin: string): Promise<boolean> {
+  const cacheTtlMs = getMaintenanceStatusCacheTtlMs();
+  const now = Date.now();
+
+  if (
+    cacheTtlMs > 0 &&
+    maintenanceStatusCache &&
+    maintenanceStatusCache.origin === origin &&
+    maintenanceStatusCache.expiresAt > now
+  ) {
+    return maintenanceStatusCache.enabled;
+  }
+
+  if (pendingMaintenanceStatusRequest?.origin === origin) {
+    return pendingMaintenanceStatusRequest.promise;
+  }
+
+  const promise = fetchMaintenanceEnabledFromSettingsApi(origin);
+  pendingMaintenanceStatusRequest = { origin, promise };
+
+  try {
+    const enabled = await promise;
+
+    if (cacheTtlMs > 0) {
+      maintenanceStatusCache = {
+        enabled,
+        expiresAt: Date.now() + cacheTtlMs,
+        origin,
+      };
+    }
+
+    return enabled;
+  } finally {
+    if (pendingMaintenanceStatusRequest?.promise === promise) {
+      pendingMaintenanceStatusRequest = null;
+    }
   }
 }
 
@@ -171,8 +238,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   try {
     const pathname = request.nextUrl.pathname;
+    const shouldCheckMaintenance = !isMaintenanceBypassPath(pathname);
 
-    if ((await isMaintenanceActive(request)) && !isMaintenanceBypassPath(pathname)) {
+    if (shouldCheckMaintenance && (await isMaintenanceActive(request))) {
       const roleCookie = request.cookies.get(ROLE_COOKIE_NAME)?.value;
       const payload = await verifySignedRoleCookie(roleCookie);
 

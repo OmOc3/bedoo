@@ -86,7 +86,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Cairo", ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "kern" 1, "liga" 1;
   -webkit-font-smoothing: antialiased;
   letter-spacing: 0;

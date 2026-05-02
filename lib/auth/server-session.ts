@@ -3,7 +3,10 @@ import "server-only";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth, type BetterAuthSession } from "@/lib/auth/better-auth";
+import { ensureAuthUserSchema } from "@/lib/auth/ensure-auth-schema";
+import { isBlockedAccountFlag } from "@/lib/db/boolean";
 import { requiredTimestamp } from "@/lib/db/mappers";
+import { ensureRuntimeDatabaseSchema } from "@/lib/db/runtime-schema";
 import { getActiveAppUser, getAppSettings, getAppUser } from "@/lib/db/repositories";
 import type { AppUser, UserRole } from "@/types";
 
@@ -27,7 +30,7 @@ function normalizeRole(value: unknown): UserRole | null {
 
 function userFromBetterAuth(user: BetterAuthSession["user"]): AppUser | null {
   const role = normalizeRole(user.role);
-  const isActive = user.banned !== true;
+  const isActive = !isBlockedAccountFlag(user.banned);
 
   if (!role || !isActive) {
     return null;
@@ -45,6 +48,8 @@ function userFromBetterAuth(user: BetterAuthSession["user"]): AppUser | null {
 
 export async function getCurrentSession(): Promise<CurrentSession | null> {
   try {
+    await ensureAuthUserSchema();
+
     const session = await auth.api.getSession({
       headers: await headers(),
     });
@@ -91,6 +96,8 @@ export async function requireSession(): Promise<CurrentSession> {
     redirect("/maintenance");
   }
 
+  await ensureRuntimeDatabaseSchema();
+
   return result.session;
 }
 
@@ -110,6 +117,8 @@ export async function requireRole(roles: UserRole[]): Promise<CurrentSession> {
  */
 export async function checkSessionWithStatus(): Promise<SessionCheckResult> {
   try {
+    await ensureAuthUserSchema();
+
     const authSession = await auth.api.getSession({
       headers: await headers(),
     });

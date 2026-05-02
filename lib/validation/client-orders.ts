@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { updateUserProfileSchema } from "@/lib/validation/users";
 
 export function clientAddressLinesFromText(value: string | undefined): string[] {
   return (value ?? "")
@@ -21,17 +22,19 @@ export const updateClientOrderStatusSchema = z.object({
   status: z.enum(["pending", "in_progress", "completed", "cancelled"]),
 });
 
+const clientPhoneSchema = z
+  .string()
+  .trim()
+  .max(40, "رقم الهاتف طويل جدًا.")
+  .regex(/^[0-9+\s().-]*$/, "رقم الهاتف يجب أن يحتوي على أرقام ورموز اتصال فقط.")
+  .optional()
+  .or(z.literal(""));
+
 export const updateClientProfileSchema = z
   .object({
     addressesText: z.string().trim().max(1200).optional().or(z.literal("")),
     clientUid: z.string().trim().min(1),
-    phone: z
-      .string()
-      .trim()
-      .max(40, "رقم الهاتف طويل جدًا.")
-      .regex(/^[0-9+\s().-]*$/, "رقم الهاتف يجب أن يحتوي على أرقام ورموز اتصال فقط.")
-      .optional()
-      .or(z.literal("")),
+    phone: clientPhoneSchema,
   })
   .superRefine((values, context) => {
     const addresses = clientAddressLinesFromText(values.addressesText);
@@ -60,7 +63,40 @@ export const updateClientStationAccessSchema = z.object({
   stationIds: z.array(z.string().trim().min(1)).max(500),
 });
 
+export const updateClientAccountProfileSchema = updateUserProfileSchema.extend({
+  phone: clientPhoneSchema,
+});
+
+export const updateClientAccountPasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "كلمة المرور الحالية مطلوبة."),
+    newPassword: z
+      .string()
+      .min(8, "كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف.")
+      .max(32, "كلمة المرور الجديدة يجب ألا تزيد عن 32 حرفًا."),
+    confirmPassword: z.string().min(1, "تأكيد كلمة المرور مطلوب."),
+  })
+  .superRefine((values, context) => {
+    if (values.newPassword !== values.confirmPassword) {
+      context.addIssue({
+        code: "custom",
+        message: "تأكيد كلمة المرور لا يطابق كلمة المرور الجديدة.",
+        path: ["confirmPassword"],
+      });
+    }
+
+    if (values.currentPassword === values.newPassword) {
+      context.addIssue({
+        code: "custom",
+        message: "استخدم كلمة مرور جديدة مختلفة عن الحالية.",
+        path: ["newPassword"],
+      });
+    }
+  });
+
 export type CreateClientOrderValues = z.infer<typeof createClientOrderSchema>;
+export type UpdateClientAccountPasswordValues = z.infer<typeof updateClientAccountPasswordSchema>;
+export type UpdateClientAccountProfileValues = z.infer<typeof updateClientAccountProfileSchema>;
 export type UpdateClientOrderStatusValues = z.infer<typeof updateClientOrderStatusSchema>;
 export type UpdateClientProfileValues = z.infer<typeof updateClientProfileSchema>;
 export type UpdateClientStationAccessValues = z.infer<typeof updateClientStationAccessSchema>;

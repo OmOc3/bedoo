@@ -41,7 +41,7 @@ export async function upsertWorkScheduleAction(formData: FormData): Promise<Sche
       workDays: workDaysRaw,
     });
 
-    revalidatePath(`/dashboard/manager/users/${technicianUid}/schedule`);
+    revalidatePath(`/dashboard/manager/team/${technicianUid}/schedule`);
     revalidatePath("/dashboard/manager/shifts");
     return { success: true };
   } catch (error: unknown) {

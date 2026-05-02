@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
-import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { customType, index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { booleanFlagFromDriver } from "@/lib/db/boolean";
 import type {
   ClientOrderStatus,
   Coordinates,
@@ -12,7 +13,22 @@ import type {
 import type { SharedReviewStatus } from "@ecopest/shared/constants";
 
 const timestamp = (name: string) => integer(name, { mode: "timestamp_ms" });
-const booleanFlag = (name: string) => integer(name, { mode: "boolean" });
+const sqliteBoolean = customType<{
+  data: boolean;
+  driverData: boolean | number | bigint | string;
+}>({
+  dataType() {
+    return "integer";
+  },
+  fromDriver(value) {
+    return booleanFlagFromDriver(value);
+  },
+  toDriver(value) {
+    return value ? 1 : 0;
+  },
+});
+
+const booleanFlag = (name: string) => sqliteBoolean(name);
 
 export const appSettings = sqliteTable("app_settings", {
   settingId: text("setting_id").primaryKey(),

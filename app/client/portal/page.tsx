@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { ClientAccountSettingsForm } from "@/components/client-orders/client-account-settings-form";
 import { CreateClientOrderForm } from "@/components/client-orders/create-client-order-form";
 import { OrderStatusTimeline } from "@/components/client-orders/order-status-timeline";
 import { BrandLockup } from "@/components/layout/brand";
-import { ThemeIconToggle } from "@/components/theme/theme-icon-toggle";
 import { StatusPills } from "@/components/reports/status-pills";
+import { ThemeIconToggle } from "@/components/theme/theme-icon-toggle";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { requireRole } from "@/lib/auth/server-session";
 import {
+  getClientProfile,
+  listAttendanceSessionsForClient,
   listClientOrdersForClient,
   listOrderedStationsForClient,
   listReportsForClientOrderedStations,
-  listAttendanceSessionsForClient,
 } from "@/lib/db/repositories";
 import type { AppTimestamp, ClientOrder, ClientOrderStatus } from "@/types";
 
@@ -58,351 +61,264 @@ function orderStatusTone(status: ClientOrderStatus): "active" | "inactive" | "pe
   return "active";
 }
 
-// Serializable attendance info
 interface AttendanceInfo {
-  technicianName: string;
   clockInAt?: string | null;
   clockOutAt?: string | null;
+  technicianName: string;
 }
 
-// Serializable order for client components
 interface SerializableOrder {
-  orderId: string;
+  clientName: string;
   clientUid: string;
+  createdAt?: string | null;
+  note?: string | null;
+  orderId: string;
+  photoUrl?: string | null;
   stationId: string;
   stationLabel: string;
-  clientName: string;
   status: ClientOrderStatus;
-  note?: string | null;
-  photoUrl?: string | null;
-  createdAt?: string | null; // ISO string
 }
 
-// Convert ClientOrder to serializable format
 function toSerializableOrder(order: ClientOrder): SerializableOrder {
   return {
-    orderId: order.orderId,
+    clientName: order.clientName,
     clientUid: order.clientUid,
+    createdAt: order.createdAt?.toDate().toISOString() ?? null,
+    note: order.note,
+    orderId: order.orderId,
+    photoUrl: order.photoUrl,
     stationId: order.stationId,
     stationLabel: order.stationLabel,
-    clientName: order.clientName,
     status: order.status,
-    note: order.note,
-    photoUrl: order.photoUrl,
-    createdAt: order.createdAt?.toDate().toISOString() ?? null,
   };
 }
 
-// Find attendance session and convert to serializable data
-function findAttendanceForOrder(order: ClientOrder, attendanceLogs: Array<{ technicianName: string; clockInAt?: AppTimestamp | null; clockOutAt?: AppTimestamp | null; clockInLocation?: { stationId: string } | null }>): AttendanceInfo | null {
-  const stationAttendance = attendanceLogs.find(
-    (log) => log.clockInLocation?.stationId === order.stationId
-  );
-  if (!stationAttendance) return null;
-  
+function findAttendanceForOrder(
+  order: ClientOrder,
+  attendanceLogs: Array<{
+    clockInAt?: AppTimestamp | null;
+    clockInLocation?: { stationId: string } | null;
+    clockOutAt?: AppTimestamp | null;
+    technicianName: string;
+  }>,
+): AttendanceInfo | null {
+  const stationAttendance = attendanceLogs.find((log) => log.clockInLocation?.stationId === order.stationId);
+
+  if (!stationAttendance) {
+    return null;
+  }
+
   return {
-    technicianName: stationAttendance.technicianName,
     clockInAt: stationAttendance.clockInAt?.toDate().toISOString() ?? null,
     clockOutAt: stationAttendance.clockOutAt?.toDate().toISOString() ?? null,
+    technicianName: stationAttendance.technicianName,
   };
 }
 
-interface SummaryCardProps {
-  label: string;
-  value: number;
+function SummaryCard({ helper, label, value }: { helper: string; label: string; value: number }) {
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--surface-subtle)] p-5 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-md">
+      <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <p className="relative text-sm font-medium text-[var(--muted)]">{label}</p>
+      <p className="relative mt-2 text-3xl font-extrabold tracking-tight text-[var(--foreground)]">{value}</p>
+      <p className="relative mt-1 text-xs leading-5 text-[var(--muted)]">{helper}</p>
+    </div>
+  );
 }
 
-function SummaryCard({ label, value }: SummaryCardProps) {
+function SectionHeader({
+  badge,
+  description,
+  title,
+}: {
+  badge?: ReactNode;
+  description: string;
+  title: string;
+}) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
-      <p className="text-sm font-medium text-[var(--muted)]">{label}</p>
-      <p className="mt-2 text-3xl font-extrabold tracking-tight text-[var(--foreground)]">{value}</p>
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <div>
+        <h2 className="text-lg font-bold text-[var(--foreground)]">{title}</h2>
+        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{description}</p>
+      </div>
+      {badge}
     </div>
   );
 }
 
 export default async function ClientPortalPage() {
   const session = await requireRole(["client"]);
-  const [orderedStations, orders, reports, attendanceLogs] = await Promise.all([
+  const [orderedStations, orders, reports, attendanceLogs, clientProfile] = await Promise.all([
     listOrderedStationsForClient(session.uid),
     listClientOrdersForClient(session.uid),
     listReportsForClientOrderedStations(session.uid),
     listAttendanceSessionsForClient(session.uid, 30),
+    getClientProfile(session.uid),
   ]);
-  const openOrders = orders.filter((order) => order.status === "pending" || order.status === "in_progress").length;
+
+  const pendingOrders = orders.filter((order) => order.status === "pending").length;
+  const inProgressOrders = orders.filter((order) => order.status === "in_progress").length;
+  const openOrders = pendingOrders + inProgressOrders;
   const completedOrders = orders.filter((order) => order.status === "completed").length;
+  const latestOrder = orders[0];
 
   return (
-    <main className="min-h-dvh bg-[var(--background)] px-4 py-6 text-right sm:px-6 lg:px-8" dir="rtl">
-      <section className="mx-auto flex max-w-7xl flex-col gap-8">
-        <header className="rounded-3xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 items-center gap-4">
-              <BrandLockup compact />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[var(--primary)]">بوابة العميل</p>
-                <h1 className="mt-1 truncate text-2xl font-extrabold tracking-tight text-[var(--foreground)]">
-                  أهلاً، {session.user.displayName}
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-7 text-[var(--muted)]">
-                  تابع طلبات الفحص والمحطات المرتبطة بحسابك من مكان واحد.
-                </p>
-              </div>
+    <main className="min-h-dvh bg-[var(--background)] px-4 py-5 text-right sm:px-6 lg:px-8" dir="rtl">
+      <section className="mx-auto flex max-w-7xl flex-col gap-6">
+        <header className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card lg:flex-row lg:items-center lg:justify-between transition-all duration-300 hover:shadow-card-md">
+          <div className="flex min-w-0 items-center gap-4">
+            <BrandLockup compact />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[var(--primary)]">بوابة العميل</p>
+              <h1 className="mt-1 truncate text-2xl font-bold text-[var(--foreground)]">
+                أهلًا، {session.user.displayName}
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--muted)]">
+                اطلب فحص محطة، تابع حالة التنفيذ، وراجع سجل الزيارات من مكان واحد.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <ThemeIconToggle />
-              <LogoutButton
-                buttonClassName="!w-full sm:!w-auto"
-                className="w-full sm:w-auto"
-                redirectTo="/client/login"
-              />
-            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeIconToggle />
+            <LogoutButton buttonClassName="!w-full sm:!w-auto" className="w-full sm:w-auto" redirectTo="/client/login" />
           </div>
         </header>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <SummaryCard label="المحطات المرتبطة" value={orderedStations.length} />
-          <SummaryCard label="طلبات مفتوحة" value={openOrders} />
-          <SummaryCard label="طلبات مكتملة" value={completedOrders} />
-          <SummaryCard label="تقارير مستلمة" value={reports.length} />
-          <SummaryCard label="سجلات حضور الفنيين" value={attendanceLogs.length} />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <SummaryCard helper={`${pendingOrders} جديد، ${inProgressOrders} قيد التنفيذ`} label="طلبات مفتوحة" value={openOrders} />
+          <SummaryCard helper="كل طلبات الفحص التي أرسلتها" label="إجمالي الطلبات" value={orders.length} />
+          <SummaryCard helper="محطات مرتبطة بحسابك" label="محطاتي" value={orderedStations.length} />
+          <SummaryCard helper={`${completedOrders} طلب مكتمل`} label="تقارير مستلمة" value={reports.length} />
         </div>
 
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.35fr)] xl:items-start">
-          <div className="xl:sticky xl:top-8">
+        <div className="grid gap-6 xl:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.35fr)] xl:items-start">
+          <aside className="flex flex-col gap-6 xl:sticky xl:top-6">
             <CreateClientOrderForm />
-          </div>
+            <ClientAccountSettingsForm
+              phone={clientProfile?.phone}
+              user={{
+                displayName: session.user.displayName,
+                email: session.user.email,
+                image: session.user.image,
+                passwordChangedAt: session.user.passwordChangedAt?.toDate().toISOString() ?? null,
+                uid: session.uid,
+              }}
+            />
+          </aside>
 
-          <div className="flex flex-col gap-8">
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-bold text-[var(--foreground)]">طلبات الفحص الخاصة بك</h2>
-                  <p className="mt-1 text-sm text-[var(--muted)]">آخر الطلبات وحالة تنفيذ كل محطة.</p>
-                </div>
-                <StatusBadge tone={openOrders > 0 ? "pending" : "reviewed"}>{openOrders} مفتوح</StatusBadge>
-              </div>
+          <div className="flex flex-col gap-6">
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
+              <SectionHeader
+                badge={<StatusBadge tone={openOrders > 0 ? "pending" : "reviewed"}>{openOrders} مفتوح</StatusBadge>}
+                description={
+                  latestOrder
+                    ? `آخر طلب: ${latestOrder.stationLabel} في ${formatTimestamp(latestOrder.createdAt)}`
+                    : "ابدأ بأول طلب فحص وسيظهر هنا خط التنفيذ."
+                }
+                title="طلباتي"
+              />
 
               {orders.length === 0 ? (
-                <EmptyState description="ابدأ بإرسال طلب فحص جديد من النموذج الجانبي." title="لا توجد طلبات حتى الآن" />
+                <div className="mt-5">
+                  <EmptyState description="استخدم نموذج الطلب لإرسال بيانات المحطة. سنعرض هنا حالة كل طلب خطوة بخطوة." title="لا توجد طلبات بعد" />
+                </div>
               ) : (
-                <>
-                  <div className="mt-5 grid gap-4 lg:hidden">
-                    {orders.map((order) => {
-                      const attendance = findAttendanceForOrder(order, attendanceLogs);
-                      const serializableOrder = toSerializableOrder(order);
-                      return (
-                        <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card" key={order.orderId}>
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
+                <div className="mt-5 space-y-3">
+                  {orders.map((order) => {
+                    const attendance = findAttendanceForOrder(order, attendanceLogs);
+                    const serializableOrder = toSerializableOrder(order);
+
+                    return (
+                      <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 transition-all duration-300 hover:shadow-card-md hover:-translate-y-1" key={order.orderId}>
+                        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
                               <h3 className="truncate text-base font-bold text-[var(--foreground)]">{order.stationLabel}</h3>
-                              <p className="mt-1 text-xs text-[var(--muted)]">{formatTimestamp(order.createdAt)}</p>
+                              <StatusBadge tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StatusBadge>
                             </div>
-                            <OrderStatusTimeline compact order={serializableOrder} attendanceSession={attendance} />
+                            <p className="mt-1 text-sm text-[var(--muted)]">تاريخ الطلب: {formatTimestamp(order.createdAt)}</p>
+                            {order.note ? <p className="mt-2 text-sm leading-6 text-[var(--foreground)]">{order.note}</p> : null}
                           </div>
-                          <details className="mt-4">
-                            <summary className="cursor-pointer text-sm font-medium text-[var(--primary)] hover:underline">
-                              تفاصيل الحالة
-                            </summary>
-                            <div className="mt-3 rounded-lg bg-[var(--surface-subtle)] p-3">
-                              <OrderStatusTimeline order={serializableOrder} attendanceSession={attendance} />
-                            </div>
-                          </details>
-                          {order.photoUrl ? (
-                            <a className="mt-3 inline-flex text-sm font-semibold text-[var(--primary)] hover:underline" href={order.photoUrl} rel="noreferrer" target="_blank">
-                              فتح الصورة المرفقة
-                            </a>
-                          ) : null}
-                        </article>
-                      );
-                    })}
-                  </div>
+                          <OrderStatusTimeline compact order={serializableOrder} attendanceSession={attendance} />
+                        </div>
 
-                  <div className="hidden space-y-4 lg:block">
-                    {orders.map((order) => {
-                      const attendance = findAttendanceForOrder(order, attendanceLogs);
-                      const serializableOrder = toSerializableOrder(order);
-                      return (
-                        <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card" key={order.orderId}>
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3">
-                                <h3 className="text-lg font-bold text-[var(--foreground)]">{order.stationLabel}</h3>
-                                <StatusBadge tone={orderStatusTone(order.status)}>{orderStatusLabel(order.status)}</StatusBadge>
-                              </div>
-                              <p className="mt-1 text-sm text-[var(--muted)]">تاريخ الطلب: {formatTimestamp(order.createdAt)}</p>
-                            </div>
-                            <OrderStatusTimeline compact order={serializableOrder} attendanceSession={attendance} />
-                          </div>
-                          <div className="mt-4 grid gap-4 border-t border-[var(--border-subtle)] pt-4 lg:grid-cols-[1fr_auto]">
-                            <OrderStatusTimeline className="max-w-md" order={serializableOrder} attendanceSession={attendance} />
-                            <div className="flex items-start gap-4">
+                        <details className="group mt-4 border-t border-[var(--border-subtle)] pt-4">
+                          <summary className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-[var(--primary)]">
+                            تفاصيل التنفيذ
+                            <span className="transition-transform duration-300 group-open:-rotate-180">
+                              <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                                <path d="m6 9 6 6 6-6" />
+                              </svg>
+                            </span>
+                          </summary>
+                          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,26rem)_1fr]">
+                            <OrderStatusTimeline order={serializableOrder} attendanceSession={attendance} />
+                            <div className="rounded-lg bg-[var(--surface-subtle)] p-3 text-sm leading-6 text-[var(--muted)]">
+                              <p>المحطة: {order.stationLabel}</p>
+                              <p>الحالة: {orderStatusLabel(order.status)}</p>
                               {order.photoUrl ? (
-                                <a className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--primary)] hover:underline" href={order.photoUrl} rel="noreferrer" target="_blank">
-                                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
-                                  </svg>
-                                  تحميل الصورة
-                                </a>
-                              ) : null}
-                            </div>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </section>
-
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:p-6">
-              <div>
-                <h2 className="text-lg font-bold text-[var(--foreground)]">محطاتي</h2>
-                <p className="mt-1 text-sm text-[var(--muted)]">المحطات التي تم ربطها بحساب العميل.</p>
-              </div>
-
-              {orderedStations.length === 0 ? (
-                <EmptyState description="ستظهر هنا المحطات بعد اعتماد أول طلب فحص." title="لا توجد محطات مرتبطة" />
-              ) : (
-                <>
-                  <div className="mt-5 grid gap-3 lg:hidden">
-                    {orderedStations.map((station) => (
-                      <article className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4" key={station.stationId}>
-                        <h3 className="text-sm font-bold text-[var(--foreground)]">{station.label}</h3>
-                        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{station.location}</p>
-                        <p className="mt-2 text-sm leading-6 text-[var(--foreground)]">{station.description ?? "لا توجد بيانات إضافية"}</p>
-                        {station.photoUrls?.[0] ? (
-                          <a className="mt-3 inline-flex text-sm font-semibold text-[var(--primary)] hover:underline" href={station.photoUrls[0]} rel="noreferrer" target="_blank">
-                            عرض الصورة
-                          </a>
-                        ) : null}
-                      </article>
-                    ))}
-                  </div>
-
-                  <div className="soft-scrollbar mt-5 hidden overflow-x-auto rounded-xl border border-[var(--border)] lg:block">
-                    <table className="w-full min-w-[640px]">
-                      <thead className="bg-[var(--surface-subtle)]">
-                        <tr>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">اسم المحطة</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">الموقع</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">الصورة</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">البيانات</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border-subtle)]">
-                        {orderedStations.map((station) => (
-                          <tr className="transition-colors hover:bg-[var(--surface-subtle)]" key={station.stationId}>
-                            <td className="px-4 py-3 text-sm font-semibold text-[var(--foreground)]">{station.label}</td>
-                            <td className="px-4 py-3 text-sm text-[var(--muted)]">{station.location}</td>
-                            <td className="px-4 py-3 text-sm text-[var(--muted)]">
-                              {station.photoUrls?.[0] ? (
-                                <a className="font-semibold text-[var(--primary)] hover:underline" href={station.photoUrls[0]} rel="noreferrer" target="_blank">
-                                  عرض الصورة
+                                <a className="mt-2 inline-flex font-semibold text-[var(--primary)] hover:underline" href={order.photoUrl} rel="noreferrer" target="_blank">
+                                  فتح الصورة المرفقة
                                 </a>
                               ) : (
-                                "لا يوجد"
+                                <p className="mt-2">لا توجد صورة مرفقة.</p>
                               )}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-[var(--muted)]">{station.description ?? "لا يوجد"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
-            </section>
-
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:p-6">
-              <div>
-                <h2 className="text-lg font-bold text-[var(--foreground)]">سجل حضور الفنيين</h2>
-                <p className="mt-1 text-sm text-[var(--muted)]">زيارات الفريق الميداني لمحطاتك المسجلة بالنظام.</p>
-              </div>
-
-              {attendanceLogs.length === 0 ? (
-                <EmptyState description="ستظهر هنا سجلات حضور الفنيين عند زيارتهم لمحطاتك." title="لا توجد سجلات حضور بعد" />
-              ) : (
-                <>
-                  {/* Mobile cards */}
-                  <div className="mt-5 grid gap-3 lg:hidden">
-                    {attendanceLogs.map((log) => (
-                      <article className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4" key={log.attendanceId}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h3 className="truncate text-sm font-bold text-[var(--foreground)]">{log.technicianName}</h3>
-                            <p className="mt-1 text-xs text-[var(--muted)]">{log.clockInLocation?.stationLabel ?? "غير محدد"}</p>
+                            </div>
                           </div>
-                          <StatusBadge tone={log.clockOutAt ? "reviewed" : "pending"}>
-                            {log.clockOutAt ? "مكتمل" : "قيد العمل"}
-                          </StatusBadge>
-                        </div>
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-[var(--muted)]">
-                          <span>حضور: {formatTimestamp(log.clockInAt)}</span>
-                          <span>انصراف: {log.clockOutAt ? formatTimestamp(log.clockOutAt) : "قيد العمل"}</span>
-                        </div>
-                        {log.clockInLocation && (
-                          <p className="mt-1 text-xs text-[var(--muted)]">
-                            المسافة: {Math.round(log.clockInLocation.distanceMeters)} م
-                          </p>
-                        )}
+                        </details>
                       </article>
-                    ))}
-                  </div>
-
-                  {/* Desktop table */}
-                  <div className="soft-scrollbar mt-5 hidden overflow-x-auto rounded-xl border border-[var(--border)] lg:block">
-                    <table className="w-full min-w-[700px]">
-                      <thead className="bg-[var(--surface-subtle)]">
-                        <tr>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">الفني</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">المحطة</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">وقت الحضور</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">وقت الانصراف</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">الحالة</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border-subtle)]">
-                        {attendanceLogs.map((log) => (
-                          <tr className="transition-colors hover:bg-[var(--surface-subtle)]" key={log.attendanceId}>
-                            <td className="px-4 py-3 text-sm font-semibold text-[var(--foreground)]">{log.technicianName}</td>
-                            <td className="px-4 py-3 text-sm text-[var(--muted)]">{log.clockInLocation?.stationLabel ?? "غير محدد"}</td>
-                            <td className="px-4 py-3 text-sm text-[var(--muted)]">{formatTimestamp(log.clockInAt)}</td>
-                            <td className="px-4 py-3 text-sm text-[var(--muted)]">{log.clockOutAt ? formatTimestamp(log.clockOutAt) : "قيد العمل"}</td>
-                            <td className="px-4 py-3">
-                              <StatusBadge tone={log.clockOutAt ? "reviewed" : "pending"}>
-                                {log.clockOutAt ? "مكتمل" : "قيد العمل"}
-                              </StatusBadge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
+                    );
+                  })}
+                </div>
               )}
             </section>
 
-            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card sm:p-6">
-              <div>
-                <h2 className="text-lg font-bold text-[var(--foreground)]">تقارير المحطات</h2>
-                <p className="mt-1 text-sm text-[var(--muted)]">نتائج الفحص التي رفعها فريق التشغيل.</p>
-              </div>
+            <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
+              <SectionHeader description="المحطات التي تم ربطها بحسابك بعد اعتماد الطلبات أو من الإدارة." title="محطاتي" />
 
-              {reports.length === 0 ? (
-                <EmptyState description="ستظهر تقارير الفحص هنا بعد زيارة الفريق للمحطات." title="لا توجد تقارير بعد" />
+              {orderedStations.length === 0 ? (
+                <div className="mt-5">
+                  <EmptyState description="بعد اعتماد أول طلب فحص ستظهر المحطة هنا لتتمكن من متابعة زياراتها وتقاريرها." title="لا توجد محطات مرتبطة" />
+                </div>
               ) : (
-                <>
-                  <div className="mt-5 grid gap-3 lg:hidden">
+                <div className="mt-5 divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border)]">
+                  {orderedStations.map((station) => (
+                    <article className="grid gap-3 p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center transition-colors hover:bg-[var(--surface-subtle)] first:rounded-t-2xl last:rounded-b-2xl" key={station.stationId}>
+                      <div className="min-w-0">
+                        <h3 className="text-base font-bold text-[var(--foreground)]">{station.label}</h3>
+                        <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{station.location}</p>
+                        {station.description ? <p className="mt-1 text-sm leading-6 text-[var(--foreground)]">{station.description}</p> : null}
+                      </div>
+                      {station.photoUrls?.[0] ? (
+                        <a className="inline-flex text-sm font-semibold text-[var(--primary)] hover:underline" href={station.photoUrls[0]} rel="noreferrer" target="_blank">
+                          عرض الصورة
+                        </a>
+                      ) : (
+                        <span className="text-sm text-[var(--muted)]">بدون صورة</span>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <div className="grid gap-6 xl:grid-cols-2">
+              <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
+                <SectionHeader description="نتائج الفحص التي رفعها فريق التشغيل للمحطات المرتبطة بك." title="تقارير المحطات" />
+
+                {reports.length === 0 ? (
+                  <div className="mt-5">
+                    <EmptyState description="ستظهر نتائج الفحص هنا بعد زيارة الفريق للمحطات." title="لا توجد تقارير بعد" />
+                  </div>
+                ) : (
+                  <div className="mt-5 divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border)]">
                     {reports.map((report) => (
-                      <article className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4" key={report.reportId}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <h3 className="truncate text-sm font-bold text-[var(--foreground)]">{report.stationLabel}</h3>
-                            <p className="mt-1 text-xs text-[var(--muted)]">
-                              {report.technicianName} · {formatTimestamp(report.submittedAt)}
+                      <article className="p-5 transition-colors hover:bg-[var(--surface-subtle)] first:rounded-t-2xl last:rounded-b-2xl" key={report.reportId}>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-sm font-bold text-[var(--foreground)]">{report.stationLabel}</h3>
+                            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                              {report.technicianName}، {formatTimestamp(report.submittedAt)}
                             </p>
                           </div>
                           <StatusPills status={report.status} />
@@ -410,34 +326,39 @@ export default async function ClientPortalPage() {
                       </article>
                     ))}
                   </div>
+                )}
+              </section>
 
-                  <div className="soft-scrollbar mt-5 hidden overflow-x-auto rounded-xl border border-[var(--border)] lg:block">
-                    <table className="w-full min-w-[640px]">
-                      <thead className="bg-[var(--surface-subtle)]">
-                        <tr>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">المحطة</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">الفني</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">التاريخ</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">حالة الفحص</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--border-subtle)]">
-                        {reports.map((report) => (
-                          <tr className="transition-colors hover:bg-[var(--surface-subtle)]" key={report.reportId}>
-                            <td className="px-4 py-3 text-sm font-semibold text-[var(--foreground)]">{report.stationLabel}</td>
-                            <td className="px-4 py-3 text-sm text-[var(--foreground)]">{report.technicianName}</td>
-                            <td className="px-4 py-3 text-sm text-[var(--muted)]">{formatTimestamp(report.submittedAt)}</td>
-                            <td className="px-4 py-3 text-sm text-[var(--foreground)]">
-                              <StatusPills status={report.status} />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
+                <SectionHeader description="آخر زيارات الفنيين للمحطات التي تخص حسابك." title="حضور الفنيين" />
+
+                {attendanceLogs.length === 0 ? (
+                  <div className="mt-5">
+                    <EmptyState description="عند تسجيل حضور فني في إحدى محطاتك سيظهر السجل هنا." title="لا توجد زيارات مسجلة" />
                   </div>
-                </>
-              )}
-            </section>
+                ) : (
+                  <div className="mt-5 divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border)]">
+                    {attendanceLogs.map((log) => (
+                      <article className="p-5 transition-colors hover:bg-[var(--surface-subtle)] first:rounded-t-2xl last:rounded-b-2xl" key={log.attendanceId}>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <h3 className="text-sm font-bold text-[var(--foreground)]">{log.technicianName}</h3>
+                            <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                              {log.clockInLocation?.stationLabel ?? "محطة غير محددة"}
+                            </p>
+                          </div>
+                          <StatusBadge tone={log.clockOutAt ? "reviewed" : "pending"}>{log.clockOutAt ? "مكتمل" : "قيد العمل"}</StatusBadge>
+                        </div>
+                        <div className="mt-3 grid gap-1 text-xs leading-5 text-[var(--muted)]">
+                          <p>حضور: {formatTimestamp(log.clockInAt)}</p>
+                          <p>انصراف: {log.clockOutAt ? formatTimestamp(log.clockOutAt) : "قيد العمل"}</p>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
         </div>
       </section>

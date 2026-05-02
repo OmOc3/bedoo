@@ -42,7 +42,7 @@ export default async function TechnicianSchedulePage({ params, searchParams }: P
       <PageHeader
         title={`جدول عمل: ${tech.displayName}`}
         description="تحديد أيام وساعات العمل المسموح للفني بتسجيل حضوره فيها."
-        backHref={`/dashboard/manager/users/${uid}`}
+        backHref={`/dashboard/manager/team/${uid}`}
       />
 
       {sp.error && (
@@ -75,9 +75,9 @@ export default async function TechnicianSchedulePage({ params, searchParams }: P
           const result = await upsertWorkScheduleAction(formData);
           const { redirect } = await import("next/navigation");
           if (result.success) {
-            redirect(`/dashboard/manager/users/${uid}/schedule?success=1`);
+            redirect(`/dashboard/manager/team/${uid}/schedule?success=1`);
           } else {
-            redirect(`/dashboard/manager/users/${uid}/schedule?error=${encodeURIComponent(result.error ?? "خطأ")}`);
+            redirect(`/dashboard/manager/team/${uid}/schedule?error=${encodeURIComponent(result.error ?? "خطأ")}`);
           }
         }}
         className="space-y-6"

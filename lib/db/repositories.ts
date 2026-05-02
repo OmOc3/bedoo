@@ -972,7 +972,10 @@ export async function clockInAttendanceSession(input: ClockAttendanceInput): Pro
     throw new AppError("يوجد حضور مفتوح بالفعل، يجب تسجيل الانصراف أولًا.", "ATTENDANCE_ALREADY_OPEN", 409);
   }
 
-  const openShift = await getOpenShift(input.technicianUid);
+  const openShift =
+    input.actorRole === "technician"
+      ? await requireOpenTechnicianShift(input.technicianUid)
+      : await getOpenShift(input.technicianUid);
 
   let verifiedLocation: AttendanceLocation;
 
@@ -1042,6 +1045,13 @@ export async function clockOutAttendanceSession(input: ClockAttendanceInput): Pr
 
   if (!openSession) {
     throw new AppError("لا يوجد حضور مفتوح لتسجيل الانصراف.", "ATTENDANCE_NOT_FOUND", 404);
+  }
+
+  if (input.actorRole === "technician") {
+    const openShift = await requireOpenTechnicianShift(input.technicianUid);
+    if (openSession.shiftId !== openShift.shiftId) {
+      throw new AppError("هذا الحضور غير مرتبط بالشيفت النشط.", "ATTENDANCE_SHIFT_MISMATCH", 409);
+    }
   }
 
   if (openSession.clockInLocation?.stationId !== input.stationId) {
@@ -1165,6 +1175,12 @@ function clientProfileFromRow(row: typeof clientProfiles.$inferSelect): ClientPr
     createdAt: requiredTimestamp(row.createdAt),
     updatedAt: row.updatedAt ? requiredTimestamp(row.updatedAt) : undefined,
   };
+}
+
+export async function getClientProfile(clientUid: string): Promise<ClientProfile | null> {
+  const [row] = await db.select().from(clientProfiles).where(eq(clientProfiles.clientUid, clientUid)).limit(1);
+
+  return row ? clientProfileFromRow(row) : null;
 }
 
 function normalizeClientAddresses(addresses: string[]): string[] {
@@ -2522,6 +2538,21 @@ export async function getOpenShift(technicianUid: string): Promise<TechnicianShi
   return row ? shiftFromRow(row) : null;
 }
 
+export async function requireOpenTechnicianShift(technicianUid: string): Promise<TechnicianShift> {
+  const openShift = await getOpenShift(technicianUid);
+
+  if (!openShift) {
+    throw new AppError("يجب بدء شيفت نشط قبل الوصول إلى عمل المحطات.", "SHIFT_REQUIRED", 403);
+  }
+
+  return openShift;
+}
+
+export async function getShiftById(shiftId: string): Promise<TechnicianShift | null> {
+  const [row] = await db.select().from(technicianShifts).where(eq(technicianShifts.shiftId, shiftId)).limit(1);
+  return row ? shiftFromRow(row) : null;
+}
+
 export async function startShift(input: StartShiftInput): Promise<StartShiftResult> {
   if (input.actorRole !== "technician" && input.actorRole !== "manager") {
     throw new AppError("ليست لديك صلاحية لبدء شيفت.", "SHIFT_FORBIDDEN", 403);
@@ -2554,28 +2585,36 @@ export async function startShift(input: StartShiftInput): Promise<StartShiftResu
 
   const nearestStation = nearbyList[0].station;
 
-  // Check schedule constraints (if technician has a schedule)
+  // Check schedule constraints.
   let scheduleRecord: TechnicianWorkSchedule | null = null;
-  let scheduleWarning: string | undefined;
 
   if (input.actorRole === "technician") {
     scheduleRecord = await getActiveWorkSchedule(input.technicianUid);
-    if (scheduleRecord) {
-      const check = isWithinScheduleWindow(scheduleRecord);
-      if (!check.allowed) {
-        // Write audit then throw
-        await writeAuditLogRecord({
-          actorUid: input.technicianUid,
-          actorRole: input.actorRole,
-          action: "shift.start_rejected",
-          entityType: "technician_shift",
-          entityId: input.technicianUid,
-          metadata: { reason: check.warning, stationId: nearestStation.stationId },
-        });
-        throw new AppError(check.warning ?? "خارج نطاق الشيفت.", "SHIFT_OUTSIDE_WINDOW", 403);
-      }
+
+    if (!scheduleRecord) {
+      await writeAuditLogRecord({
+        actorUid: input.technicianUid,
+        actorRole: input.actorRole,
+        action: "shift.start_rejected",
+        entityType: "technician_shift",
+        entityId: input.technicianUid,
+        metadata: { reason: "no_active_schedule", stationId: nearestStation.stationId },
+      });
+      throw new AppError("لا يوجد جدول عمل نشط لحسابك. تواصل مع المدير قبل بدء الشيفت.", "SHIFT_SCHEDULE_REQUIRED", 403);
     }
-    // No schedule = no time restriction for now (manager can always start)
+
+    const check = isWithinScheduleWindow(scheduleRecord);
+    if (!check.allowed) {
+      await writeAuditLogRecord({
+        actorUid: input.technicianUid,
+        actorRole: input.actorRole,
+        action: "shift.start_rejected",
+        entityType: "technician_shift",
+        entityId: input.technicianUid,
+        metadata: { reason: check.warning, scheduleId: scheduleRecord.scheduleId, stationId: nearestStation.stationId },
+      });
+      throw new AppError(check.warning ?? "خارج نطاق الشيفت.", "SHIFT_OUTSIDE_WINDOW", 403);
+    }
   }
 
   const shiftId = crypto.randomUUID();
@@ -2625,7 +2664,7 @@ export async function startShift(input: StartShiftInput): Promise<StartShiftResu
   const [row] = await db.select().from(technicianShifts).where(eq(technicianShifts.shiftId, shiftId)).limit(1);
   if (!row) throw new AppError("تعذر بدء الشيفت.", "SHIFT_CREATE_FAILED", 500);
 
-  return { shift: shiftFromRow(row), earlyWarning: scheduleWarning };
+  return { shift: shiftFromRow(row) };
 }
 
 export interface EndShiftInput {
@@ -2653,6 +2692,11 @@ export async function endShift(input: EndShiftInput): Promise<EndShiftResult> {
     throw new AppError("لا يوجد شيفت مفتوح.", "SHIFT_NOT_FOUND", 404);
   }
 
+  const openAttendance = await getOpenAttendanceSession(input.technicianUid);
+  if (openAttendance) {
+    throw new AppError("سجّل الانصراف من المحطة المفتوحة قبل إنهاء الشيفت.", "SHIFT_ATTENDANCE_OPEN", 409);
+  }
+
   if (!isValidCoordinates(input.location)) {
     throw new AppError("إحداثيات الموقع غير صالحة.", "SHIFT_LOCATION_INVALID", 400);
   }
@@ -2674,12 +2718,6 @@ export async function endShift(input: EndShiftInput): Promise<EndShiftResult> {
   const isEarlyExit = expectedMinutes > 0 && minutesWorked < expectedMinutes;
   const earlyExitMinutes = isEarlyExit ? expectedMinutes - minutesWorked : 0;
 
-  // Calculate salary if hourly rate available
-  let salaryAmount: number | null = null;
-  if (typeof openShift.baseSalary === "number" && openShift.baseSalary >= 0) {
-    salaryAmount = Math.round(((minutesWorked / 60) * openShift.baseSalary) * 100) / 100;
-  }
-
   await db
     .update(technicianShifts)
     .set({
@@ -2691,7 +2729,8 @@ export async function endShift(input: EndShiftInput): Promise<EndShiftResult> {
       status: "completed",
       totalMinutes: minutesWorked,
       earlyExit: isEarlyExit,
-      salaryAmount,
+      salaryAmount: null,
+      salaryStatus: "pending",
       notes: input.notes ?? openShift.notes ?? null,
       updatedAt: now(),
     })
@@ -2708,7 +2747,7 @@ export async function endShift(input: EndShiftInput): Promise<EndShiftResult> {
       earlyExit: isEarlyExit,
       earlyExitMinutes,
       stationId: nearestStation.stationId,
-      salaryAmount,
+      salaryStatus: "pending",
     },
   });
 
@@ -2762,46 +2801,92 @@ export async function listShiftsForTechnician(technicianUid: string, limit = 50)
   return rows.map(shiftFromRow);
 }
 
+export type PayrollFilters = Pick<ShiftFilters, "dateFrom" | "dateTo" | "salaryStatus" | "technicianUid">;
+
+export async function listPayrollShifts(filters: PayrollFilters = {}, limit = 200): Promise<TechnicianShift[]> {
+  return listShiftsForAdmin({ ...filters, status: "completed" }, limit);
+}
+
+export interface UpdateShiftPayrollInput {
+  actorRole: UserRole;
+  actorUid: string;
+  notes?: string;
+  salaryAmount?: number;
+  salaryStatus: ShiftSalaryStatus;
+  shiftId: string;
+}
+
+export async function updateShiftPayroll(input: UpdateShiftPayrollInput): Promise<TechnicianShift> {
+  if (input.actorRole !== "manager") {
+    throw new AppError("ليست لديك صلاحية لتعديل الرواتب.", "PAYROLL_FORBIDDEN", 403);
+  }
+
+  if (!isShiftSalaryStatus(input.salaryStatus)) {
+    throw new AppError("حالة الراتب غير صالحة.", "PAYROLL_STATUS_INVALID", 400);
+  }
+
+  if (input.salaryAmount !== undefined && (!Number.isFinite(input.salaryAmount) || input.salaryAmount < 0)) {
+    throw new AppError("قيمة الراتب غير صالحة.", "PAYROLL_AMOUNT_INVALID", 400);
+  }
+
+  const [existing] = await db.select().from(technicianShifts).where(eq(technicianShifts.shiftId, input.shiftId)).limit(1);
+  if (!existing) throw new AppError("الشيفت غير موجود.", "SHIFT_NOT_FOUND", 404);
+
+  if (existing.status !== "completed") {
+    throw new AppError("لا يمكن تعديل راتب شيفت لم ينته بعد.", "PAYROLL_SHIFT_ACTIVE", 409);
+  }
+
+  if (input.salaryStatus === "paid" && input.salaryAmount === undefined) {
+    throw new AppError("أدخل قيمة الراتب قبل اعتماد الدفع.", "PAYROLL_AMOUNT_REQUIRED", 400);
+  }
+
+  const salaryAmount = input.salaryAmount ?? null;
+  const notes = input.notes?.trim() ? input.notes.trim() : null;
+
+  await db
+    .update(technicianShifts)
+    .set({ notes, salaryAmount, salaryStatus: input.salaryStatus, updatedAt: now() })
+    .where(eq(technicianShifts.shiftId, input.shiftId));
+
+  await writeAuditLogRecord({
+    actorUid: input.actorUid,
+    actorRole: input.actorRole,
+    action: "shift.payroll_update",
+    entityType: "technician_shift",
+    entityId: input.shiftId,
+    metadata: {
+      notes,
+      previousSalaryAmount: existing.salaryAmount,
+      previousSalaryStatus: existing.salaryStatus,
+      salaryAmount,
+      salaryStatus: input.salaryStatus,
+    },
+  });
+
+  const [row] = await db.select().from(technicianShifts).where(eq(technicianShifts.shiftId, input.shiftId)).limit(1);
+  if (!row) throw new AppError("تعذر تحديث الراتب.", "PAYROLL_UPDATE_FAILED", 500);
+  return shiftFromRow(row);
+}
+
 export async function updateShiftSalaryStatus(
   shiftId: string,
   salaryStatus: ShiftSalaryStatus,
   actorUid: string,
   actorRole: UserRole,
 ): Promise<TechnicianShift> {
-  if (!["manager", "supervisor"].includes(actorRole)) {
+  if (actorRole !== "manager") {
     throw new AppError("ليست لديك صلاحية لتعديل حالة الراتب.", "SALARY_FORBIDDEN", 403);
-  }
-
-  if (!isShiftSalaryStatus(salaryStatus)) {
-    throw new AppError("حالة الراتب غير صالحة.", "SALARY_STATUS_INVALID", 400);
   }
 
   const [existing] = await db.select().from(technicianShifts).where(eq(technicianShifts.shiftId, shiftId)).limit(1);
   if (!existing) throw new AppError("الشيفت غير موجود.", "SHIFT_NOT_FOUND", 404);
 
-  if (existing.status !== "completed") {
-    throw new AppError("لا يمكن تعديل راتب شيفت لم ينته بعد.", "SALARY_SHIFT_ACTIVE", 409);
-  }
-
-  if (salaryStatus === "paid" && typeof existing.salaryAmount !== "number") {
-    throw new AppError("لا يمكن اعتماد الدفع قبل حساب قيمة الراتب.", "SALARY_AMOUNT_MISSING", 409);
-  }
-
-  await db
-    .update(technicianShifts)
-    .set({ salaryStatus, updatedAt: now() })
-    .where(eq(technicianShifts.shiftId, shiftId));
-
-  await writeAuditLogRecord({
+  return updateShiftPayroll({
     actorUid,
     actorRole,
-    action: "shift.salary_status_update",
-    entityType: "technician_shift",
-    entityId: shiftId,
-    metadata: { salaryStatus },
+    notes: existing.notes ?? undefined,
+    salaryAmount: typeof existing.salaryAmount === "number" ? existing.salaryAmount : undefined,
+    salaryStatus,
+    shiftId,
   });
-
-  const [row] = await db.select().from(technicianShifts).where(eq(technicianShifts.shiftId, shiftId)).limit(1);
-  if (!row) throw new AppError("تعذر تحديث حالة الراتب.", "SALARY_UPDATE_FAILED", 500);
-  return shiftFromRow(row);
 }
