@@ -143,6 +143,12 @@ export default async function ManagerDashboardPage() {
               <ThemeIconToggle />
               <Link
                 className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
+                href="/dashboard/manager/shifts"
+              >
+                إدارة الشيفتات
+              </Link>
+              <Link
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
                 href="/dashboard/manager/client-orders"
               >
                 إدارة العملاء

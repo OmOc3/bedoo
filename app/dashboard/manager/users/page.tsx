@@ -131,6 +131,20 @@ function UserTools({ disabled, user }: { disabled: boolean; user: AppUser }) {
           آخر تغيير: {user.passwordChangedAt ? formatTimestamp(user.passwordChangedAt) : "غير متاح"}
         </p>
       </div>
+      {user.role === "technician" ? (
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 lg:col-span-3">
+          <h3 className="text-sm font-bold text-[var(--foreground)]">جدول العمل</h3>
+          <p className="mt-2 text-xs leading-6 text-[var(--muted)]">
+            تحديد أوقات عمل الفني والساعات المسموح له بتسجيل حضوره فيها.
+          </p>
+          <Link
+            className="mt-3 inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-colors hover:bg-[var(--surface)] disabled:opacity-60"
+            href={`/dashboard/manager/users/${user.uid}/schedule`}
+          >
+            إدارة جدول العمل
+          </Link>
+        </div>
+      ) : null}
       {user.role === "client" ? (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 lg:col-span-3">
           <h3 className="text-sm font-bold text-[var(--foreground)]">حذف العميل</h3>

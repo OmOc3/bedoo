@@ -60,6 +60,12 @@ export default async function SupervisorDashboardPage() {
               >
                 مهام اليوم
               </Link>
+              <Link
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
+                href="/dashboard/supervisor/shifts"
+              >
+                شيفتات الفنيين
+              </Link>
             </div>
           }
           description="متابعة التقارير اليومية وحالات المراجعة للمحطات النشطة."

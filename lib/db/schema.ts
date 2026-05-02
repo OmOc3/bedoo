@@ -234,10 +234,82 @@ export const auditLogs = sqliteTable(
   ],
 );
 
+// Work schedule for a technician: which days and time window they are expected to work
+export const technicianWorkSchedules = sqliteTable(
+  "technician_work_schedules",
+  {
+    scheduleId: text("schedule_id").primaryKey(),
+    technicianUid: text("technician_uid")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    // Comma-separated day numbers: 0=Sun,1=Mon,...,6=Sat  e.g. "0,1,2,3,4"
+    workDays: text("work_days").notNull().default("0,1,2,3,4,5,6"),
+    // HH:MM 24h format e.g. "08:00"
+    shiftStartTime: text("shift_start_time").notNull().default("08:00"),
+    // HH:MM 24h format e.g. "17:00"
+    shiftEndTime: text("shift_end_time").notNull().default("17:00"),
+    // Expected shift duration in minutes (used for early-exit warning)
+    expectedDurationMinutes: integer("expected_duration_minutes").notNull().default(480),
+    // Hourly or daily rate in whatever currency
+    hourlyRate: real("hourly_rate"),
+    isActive: booleanFlag("is_active").notNull().default(true),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at"),
+    createdBy: text("created_by").notNull(),
+    updatedBy: text("updated_by"),
+  },
+  (table) => [
+    index("tech_work_schedules_technician_uid_idx").on(table.technicianUid),
+    index("tech_work_schedules_is_active_idx").on(table.isActive),
+  ]
+);
+
+export const technicianShifts = sqliteTable(
+  "technician_shifts",
+  {
+    shiftId: text("shift_id").primaryKey(),
+    technicianUid: text("technician_uid")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    technicianName: text("technician_name").notNull(),
+    // Link to the schedule used, if any
+    scheduleId: text("schedule_id").references(() => technicianWorkSchedules.scheduleId, { onDelete: "set null" }),
+    startedAt: timestamp("started_at").notNull(),
+    startLat: real("start_lat"),
+    startLng: real("start_lng"),
+    startStationId: text("start_station_id"),
+    startStationLabel: text("start_station_label"),
+    endedAt: timestamp("ended_at"),
+    endLat: real("end_lat"),
+    endLng: real("end_lng"),
+    endStationId: text("end_station_id"),
+    endStationLabel: text("end_station_label"),
+    status: text("status").notNull().default("active"), // active, completed
+    totalHours: real("total_hours"),
+    totalMinutes: integer("total_minutes"),
+    expectedDurationMinutes: integer("expected_duration_minutes"),
+    earlyExit: booleanFlag("early_exit").notNull().default(false),
+    baseSalary: real("base_salary"),
+    salaryAmount: real("salary_amount"),
+    salaryStatus: text("salary_status").notNull().default("pending"), // pending, paid, unpaid
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull(),
+    updatedAt: timestamp("updated_at"),
+  },
+  (table) => [
+    index("technician_shifts_technician_uid_idx").on(table.technicianUid),
+    index("technician_shifts_started_at_idx").on(table.startedAt),
+    index("technician_shifts_status_idx").on(table.status),
+    index("technician_shifts_salary_status_idx").on(table.salaryStatus),
+  ]
+);
+
 export const attendanceSessions = sqliteTable(
   "attendance_sessions",
   {
     attendanceId: text("attendance_id").primaryKey(),
+    shiftId: text("shift_id").references(() => technicianShifts.shiftId, { onDelete: "cascade" }),
     technicianUid: text("technician_uid")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
@@ -417,6 +489,29 @@ export const reportRelations = relations(reports, ({ many, one }) => ({
 export const dailyWorkReportRelations = relations(dailyWorkReports, ({ many }) => ({
   photos: many(dailyReportPhotos),
   stations: many(dailyWorkReportStations),
+}));
+
+export const technicianWorkScheduleRelations = relations(technicianWorkSchedules, ({ one, many }) => ({
+  technician: one(user, {
+    fields: [technicianWorkSchedules.technicianUid],
+    references: [user.id],
+  }),
+  shifts: many(technicianShifts),
+}));
+
+export const technicianShiftRelations = relations(technicianShifts, ({ many, one }) => ({
+  attendanceSessions: many(attendanceSessions),
+  schedule: one(technicianWorkSchedules, {
+    fields: [technicianShifts.scheduleId],
+    references: [technicianWorkSchedules.scheduleId],
+  }),
+}));
+
+export const attendanceSessionRelations = relations(attendanceSessions, ({ one }) => ({
+  shift: one(technicianShifts, {
+    fields: [attendanceSessions.shiftId],
+    references: [technicianShifts.shiftId],
+  }),
 }));
 
 export function coordinatesFromRow(row: { lat: number | null; lng: number | null }): Coordinates | undefined {

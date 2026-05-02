@@ -26,6 +26,8 @@ import {
   reportStatuses,
   reports,
   stations,
+  technicianShifts,
+  technicianWorkSchedules,
   user,
 } from "@/lib/db/schema";
 import { appUserFromAuthUser, auditLogFromRow, reportFromRow, requiredTimestamp, stationFromRow } from "@/lib/db/mappers";
@@ -49,8 +51,12 @@ import type {
   PestTypeOption,
   ReportPhotoCategory,
   ReportPhotoPaths,
+  ShiftSalaryStatus,
+  ShiftStatus,
   Station,
   StatusOption,
+  TechnicianShift,
+  TechnicianWorkSchedule,
   UserRole,
 } from "@/types";
 import type { SharedReviewStatus } from "@ecopest/shared/constants";
@@ -2321,3 +2327,480 @@ export async function consumeMobileWebSessionRecord(tokenHash: string): Promise<
     };
   });
 }
+
+// ─── Technician Work Schedules ─────────────────────────────────────────────
+
+export interface UpsertWorkScheduleInput {
+  actorRole: UserRole;
+  actorUid: string;
+  expectedDurationMinutes: number;
+  hourlyRate?: number;
+  isActive?: boolean;
+  notes?: string;
+  shiftEndTime: string;
+  shiftStartTime: string;
+  technicianUid: string;
+  workDays: number[];
+}
+
+function workScheduleFromRow(row: typeof technicianWorkSchedules.$inferSelect): TechnicianWorkSchedule {
+  return {
+    scheduleId: row.scheduleId,
+    technicianUid: row.technicianUid,
+    workDays: row.workDays.split(",").map(Number).filter((n) => Number.isFinite(n)),
+    shiftStartTime: row.shiftStartTime,
+    shiftEndTime: row.shiftEndTime,
+    expectedDurationMinutes: row.expectedDurationMinutes,
+    hourlyRate: typeof row.hourlyRate === "number" ? row.hourlyRate : undefined,
+    isActive: row.isActive,
+    notes: row.notes ?? undefined,
+    createdAt: requiredTimestamp(row.createdAt),
+    updatedAt: row.updatedAt ? requiredTimestamp(row.updatedAt) : undefined,
+    createdBy: row.createdBy,
+  };
+}
+
+export async function upsertWorkSchedule(input: UpsertWorkScheduleInput): Promise<TechnicianWorkSchedule> {
+  if (!["manager"].includes(input.actorRole)) {
+    throw new AppError("ليست لديك صلاحية لإدارة جداول العمل.", "SCHEDULE_FORBIDDEN", 403);
+  }
+
+  const tech = await getAppUser(input.technicianUid);
+  if (!tech || tech.role !== "technician") {
+    throw new AppError("الفني غير موجود.", "TECHNICIAN_NOT_FOUND", 404);
+  }
+
+  const validDays = input.workDays.filter((d) => d >= 0 && d <= 6);
+  if (validDays.length === 0) {
+    throw new AppError("يجب تحديد يوم عمل واحد على الأقل.", "SCHEDULE_DAYS_INVALID", 400);
+  }
+
+  const timePattern = /^\d{2}:\d{2}$/;
+  if (!timePattern.test(input.shiftStartTime) || !timePattern.test(input.shiftEndTime)) {
+    throw new AppError("توقيتات العمل غير صالحة. استخدم الصيغة HH:MM.", "SCHEDULE_TIME_INVALID", 400);
+  }
+
+  if (input.expectedDurationMinutes < 15 || input.expectedDurationMinutes > 720) {
+    throw new AppError("مدة الشيفت المتوقعة يجب أن تكون بين 15 دقيقة و12 ساعة.", "SCHEDULE_DURATION_INVALID", 400);
+  }
+
+  // Deactivate old schedule first
+  await db
+    .update(technicianWorkSchedules)
+    .set({ isActive: false, updatedAt: now() })
+    .where(and(eq(technicianWorkSchedules.technicianUid, input.technicianUid), eq(technicianWorkSchedules.isActive, true)));
+
+  const scheduleId = crypto.randomUUID();
+  const timestamp = now();
+  await db.insert(technicianWorkSchedules).values({
+    scheduleId,
+    technicianUid: input.technicianUid,
+    workDays: validDays.join(","),
+    shiftStartTime: input.shiftStartTime,
+    shiftEndTime: input.shiftEndTime,
+    expectedDurationMinutes: input.expectedDurationMinutes,
+    hourlyRate: input.hourlyRate ?? null,
+    isActive: true,
+    notes: input.notes ?? null,
+    createdAt: timestamp,
+    updatedAt: null,
+    createdBy: input.actorUid,
+    updatedBy: null,
+  });
+
+  await writeAuditLogRecord({
+    actorUid: input.actorUid,
+    actorRole: input.actorRole,
+    action: "work_schedule.upsert",
+    entityType: "technician_work_schedule",
+    entityId: scheduleId,
+    metadata: { technicianUid: input.technicianUid, workDays: validDays, shiftStartTime: input.shiftStartTime, shiftEndTime: input.shiftEndTime },
+  });
+
+  const [row] = await db.select().from(technicianWorkSchedules).where(eq(technicianWorkSchedules.scheduleId, scheduleId)).limit(1);
+  if (!row) throw new AppError("تعذر حفظ الجدول.", "SCHEDULE_SAVE_FAILED", 500);
+  return workScheduleFromRow(row);
+}
+
+export async function getActiveWorkSchedule(technicianUid: string): Promise<TechnicianWorkSchedule | null> {
+  const row = await db.query.technicianWorkSchedules.findFirst({
+    where: and(
+      eq(technicianWorkSchedules.technicianUid, technicianUid),
+      eq(technicianWorkSchedules.isActive, true),
+    ),
+    orderBy: [desc(technicianWorkSchedules.createdAt)],
+  });
+  return row ? workScheduleFromRow(row) : null;
+}
+
+export async function listWorkSchedulesForTechnician(technicianUid: string): Promise<TechnicianWorkSchedule[]> {
+  const rows = await db
+    .select()
+    .from(technicianWorkSchedules)
+    .where(eq(technicianWorkSchedules.technicianUid, technicianUid))
+    .orderBy(desc(technicianWorkSchedules.createdAt))
+    .limit(20);
+  return rows.map(workScheduleFromRow);
+}
+
+// ─── Technician Shifts ─────────────────────────────────────────────────────
+
+function shiftFromRow(row: typeof technicianShifts.$inferSelect): TechnicianShift {
+  return {
+    shiftId: row.shiftId,
+    technicianUid: row.technicianUid,
+    technicianName: row.technicianName,
+    scheduleId: row.scheduleId ?? undefined,
+    startedAt: requiredTimestamp(row.startedAt),
+    startLat: typeof row.startLat === "number" ? row.startLat : undefined,
+    startLng: typeof row.startLng === "number" ? row.startLng : undefined,
+    startStationId: row.startStationId ?? undefined,
+    startStationLabel: row.startStationLabel ?? undefined,
+    endedAt: row.endedAt ? requiredTimestamp(row.endedAt) : undefined,
+    endLat: typeof row.endLat === "number" ? row.endLat : undefined,
+    endLng: typeof row.endLng === "number" ? row.endLng : undefined,
+    endStationId: row.endStationId ?? undefined,
+    endStationLabel: row.endStationLabel ?? undefined,
+    status: row.status as ShiftStatus,
+    totalMinutes: typeof row.totalMinutes === "number" ? row.totalMinutes : undefined,
+    expectedDurationMinutes: typeof row.expectedDurationMinutes === "number" ? row.expectedDurationMinutes : undefined,
+    earlyExit: row.earlyExit,
+    baseSalary: typeof row.baseSalary === "number" ? row.baseSalary : undefined,
+    salaryAmount: typeof row.salaryAmount === "number" ? row.salaryAmount : undefined,
+    salaryStatus: row.salaryStatus as ShiftSalaryStatus,
+    notes: row.notes ?? undefined,
+    createdAt: requiredTimestamp(row.createdAt),
+    updatedAt: row.updatedAt ? requiredTimestamp(row.updatedAt) : undefined,
+  };
+}
+
+export interface StartShiftInput {
+  actorRole: UserRole;
+  location: Coordinates & { accuracyMeters?: number };
+  stationId: string;
+  technicianName: string;
+  technicianUid: string;
+}
+
+export interface StartShiftResult {
+  shift: TechnicianShift;
+  earlyWarning?: string; // if outside schedule window
+}
+
+function parseTimeToday(timeStr: string): Date {
+  const [h, m] = timeStr.split(":").map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+function isWithinScheduleWindow(schedule: TechnicianWorkSchedule): { allowed: boolean; warning?: string } {
+  const now_ = new Date();
+  const currentDay = now_.getDay(); // 0=Sun
+  if (!schedule.workDays.includes(currentDay)) {
+    return { allowed: false, warning: "هذا اليوم ليس ضمن أيام عملك المحددة." };
+  }
+
+  const windowStart = parseTimeToday(schedule.shiftStartTime);
+  const windowEnd = parseTimeToday(schedule.shiftEndTime);
+  const graceBefore = 30; // 30 min before start allowed
+  const graceAfter = 30;  // 30 min after end allowed
+  const minTime = new Date(windowStart.getTime() - graceBefore * 60_000);
+  const maxTime = new Date(windowEnd.getTime() + graceAfter * 60_000);
+
+  if (now_ < minTime) {
+    return {
+      allowed: false,
+      warning: `وقت بدء الشيفت هو ${schedule.shiftStartTime}. لا يمكن تسجيل الحضور مبكراً بأكثر من 30 دقيقة.`,
+    };
+  }
+
+  if (now_ > maxTime) {
+    return {
+      allowed: false,
+      warning: `انتهى وقت الشيفت (${schedule.shiftEndTime}). تواصل مع المشرف لتسجيل حضور متأخر.`,
+    };
+  }
+
+  return { allowed: true };
+}
+
+export async function getOpenShift(technicianUid: string): Promise<TechnicianShift | null> {
+  const row = await db.query.technicianShifts.findFirst({
+    where: and(
+      eq(technicianShifts.technicianUid, technicianUid),
+      eq(technicianShifts.status, "active"),
+    ),
+    orderBy: [desc(technicianShifts.startedAt)],
+  });
+  return row ? shiftFromRow(row) : null;
+}
+
+export async function startShift(input: StartShiftInput): Promise<StartShiftResult> {
+  if (input.actorRole !== "technician" && input.actorRole !== "manager") {
+    throw new AppError("ليست لديك صلاحية لبدء شيفت.", "SHIFT_FORBIDDEN", 403);
+  }
+
+  // Check no open shift already
+  const existing = await getOpenShift(input.technicianUid);
+  if (existing) {
+    throw new AppError("يوجد شيفت مفتوح بالفعل. سجّل الانصراف أولاً.", "SHIFT_ALREADY_OPEN", 409);
+  }
+
+  // Geo verify — must be within 100m of ANY active station
+  if (!isValidCoordinates(input.location)) {
+    throw new AppError("إحداثيات الموقع غير صالحة.", "SHIFT_LOCATION_INVALID", 400);
+  }
+
+  if (typeof input.location.accuracyMeters === "number" && input.location.accuracyMeters > maxLocationAccuracyMeters) {
+    throw new AppError("دقة الموقع ضعيفة. فعّل GPS وحاول مجدداً.", "SHIFT_LOCATION_ACCURACY_LOW", 400);
+  }
+
+  // Find nearest station within 100m
+  const nearbyList = await listNearbyStations(input.location, 1, stationAccessRadiusMeters);
+  if (nearbyList.length === 0) {
+    throw new AppError(
+      "لست قريباً من أي محطة (الحد الأدنى 100 متر). اقترب من محطة أولاً.",
+      "SHIFT_NOT_NEAR_STATION",
+      403,
+    );
+  }
+
+  const nearestStation = nearbyList[0].station;
+
+  // Check schedule constraints (if technician has a schedule)
+  let scheduleRecord: TechnicianWorkSchedule | null = null;
+  let scheduleWarning: string | undefined;
+
+  if (input.actorRole === "technician") {
+    scheduleRecord = await getActiveWorkSchedule(input.technicianUid);
+    if (scheduleRecord) {
+      const check = isWithinScheduleWindow(scheduleRecord);
+      if (!check.allowed) {
+        // Write audit then throw
+        await writeAuditLogRecord({
+          actorUid: input.technicianUid,
+          actorRole: input.actorRole,
+          action: "shift.start_rejected",
+          entityType: "technician_shift",
+          entityId: input.technicianUid,
+          metadata: { reason: check.warning, stationId: nearestStation.stationId },
+        });
+        throw new AppError(check.warning ?? "خارج نطاق الشيفت.", "SHIFT_OUTSIDE_WINDOW", 403);
+      }
+    }
+    // No schedule = no time restriction for now (manager can always start)
+  }
+
+  const shiftId = crypto.randomUUID();
+  const startedAt = now();
+
+  await db.insert(technicianShifts).values({
+    shiftId,
+    technicianUid: input.technicianUid,
+    technicianName: input.technicianName,
+    scheduleId: scheduleRecord?.scheduleId ?? null,
+    startedAt,
+    startLat: input.location.lat,
+    startLng: input.location.lng,
+    startStationId: nearestStation.stationId,
+    startStationLabel: nearestStation.label,
+    endedAt: null,
+    endLat: null,
+    endLng: null,
+    endStationId: null,
+    endStationLabel: null,
+    status: "active",
+    totalMinutes: null,
+    expectedDurationMinutes: scheduleRecord?.expectedDurationMinutes ?? null,
+    earlyExit: false,
+    baseSalary: scheduleRecord?.hourlyRate ?? null,
+    salaryAmount: null,
+    salaryStatus: "pending",
+    notes: null,
+    createdAt: now(),
+    updatedAt: null,
+  });
+
+  await writeAuditLogRecord({
+    actorUid: input.technicianUid,
+    actorRole: input.actorRole,
+    action: "shift.start",
+    entityType: "technician_shift",
+    entityId: shiftId,
+    metadata: {
+      stationId: nearestStation.stationId,
+      scheduleId: scheduleRecord?.scheduleId,
+      lat: input.location.lat,
+      lng: input.location.lng,
+    },
+  });
+
+  const [row] = await db.select().from(technicianShifts).where(eq(technicianShifts.shiftId, shiftId)).limit(1);
+  if (!row) throw new AppError("تعذر بدء الشيفت.", "SHIFT_CREATE_FAILED", 500);
+
+  return { shift: shiftFromRow(row), earlyWarning: scheduleWarning };
+}
+
+export interface EndShiftInput {
+  actorRole: UserRole;
+  location: Coordinates & { accuracyMeters?: number };
+  notes?: string;
+  stationId: string;
+  technicianUid: string;
+}
+
+export interface EndShiftResult {
+  shift: TechnicianShift;
+  earlyExit: boolean;
+  minutesWorked: number;
+  earlyExitMinutes: number;
+}
+
+export async function endShift(input: EndShiftInput): Promise<EndShiftResult> {
+  const openShift = await getOpenShift(input.technicianUid);
+  if (!openShift) {
+    throw new AppError("لا يوجد شيفت مفتوح.", "SHIFT_NOT_FOUND", 404);
+  }
+
+  if (!isValidCoordinates(input.location)) {
+    throw new AppError("إحداثيات الموقع غير صالحة.", "SHIFT_LOCATION_INVALID", 400);
+  }
+
+  if (typeof input.location.accuracyMeters === "number" && input.location.accuracyMeters > maxLocationAccuracyMeters) {
+    throw new AppError("دقة الموقع ضعيفة. فعّل GPS وحاول مجدداً.", "SHIFT_LOCATION_ACCURACY_LOW", 400);
+  }
+
+  // Find nearest station within 100m
+  const nearbyList = await listNearbyStations(input.location, 1, stationAccessRadiusMeters);
+  if (nearbyList.length === 0) {
+    throw new AppError("لست قريباً من أي محطة. يجب الانصراف من قرب محطة.", "SHIFT_NOT_NEAR_STATION", 403);
+  }
+
+  const nearestStation = nearbyList[0].station;
+  const endedAt = now();
+  const minutesWorked = Math.round((endedAt.getTime() - openShift.startedAt.toDate().getTime()) / 60_000);
+  const expectedMinutes = openShift.expectedDurationMinutes ?? 0;
+  const isEarlyExit = expectedMinutes > 0 && minutesWorked < expectedMinutes;
+  const earlyExitMinutes = isEarlyExit ? expectedMinutes - minutesWorked : 0;
+
+  // Calculate salary if hourly rate available
+  let salaryAmount: number | null = null;
+  if (typeof openShift.baseSalary === "number" && openShift.baseSalary > 0) {
+    salaryAmount = Math.round(((minutesWorked / 60) * openShift.baseSalary) * 100) / 100;
+  }
+
+  await db
+    .update(technicianShifts)
+    .set({
+      endedAt,
+      endLat: input.location.lat,
+      endLng: input.location.lng,
+      endStationId: nearestStation.stationId,
+      endStationLabel: nearestStation.label,
+      status: "completed",
+      totalMinutes: minutesWorked,
+      earlyExit: isEarlyExit,
+      salaryAmount,
+      notes: input.notes ?? openShift.notes ?? null,
+      updatedAt: now(),
+    })
+    .where(eq(technicianShifts.shiftId, openShift.shiftId));
+
+  await writeAuditLogRecord({
+    actorUid: input.technicianUid,
+    actorRole: input.actorRole,
+    action: "shift.end",
+    entityType: "technician_shift",
+    entityId: openShift.shiftId,
+    metadata: {
+      minutesWorked,
+      earlyExit: isEarlyExit,
+      earlyExitMinutes,
+      stationId: nearestStation.stationId,
+      salaryAmount,
+    },
+  });
+
+  const [row] = await db.select().from(technicianShifts).where(eq(technicianShifts.shiftId, openShift.shiftId)).limit(1);
+  if (!row) throw new AppError("تعذر إنهاء الشيفت.", "SHIFT_END_FAILED", 500);
+
+  return {
+    shift: shiftFromRow(row),
+    earlyExit: isEarlyExit,
+    minutesWorked,
+    earlyExitMinutes,
+  };
+}
+
+export interface ShiftFilters {
+  dateFrom?: Date | null;
+  dateTo?: Date | null;
+  salaryStatus?: ShiftSalaryStatus | "";
+  status?: ShiftStatus | "";
+  technicianUid?: string;
+}
+
+export async function listShiftsForAdmin(filters: ShiftFilters = {}, limit = 200): Promise<TechnicianShift[]> {
+  const safeLimit = Math.min(Math.max(limit, 1), 2000);
+  const conditions = [
+    filters.technicianUid ? eq(technicianShifts.technicianUid, filters.technicianUid) : undefined,
+    filters.status ? eq(technicianShifts.status, filters.status) : undefined,
+    filters.salaryStatus ? eq(technicianShifts.salaryStatus, filters.salaryStatus) : undefined,
+    filters.dateFrom ? gte(technicianShifts.startedAt, filters.dateFrom) : undefined,
+    filters.dateTo ? lte(technicianShifts.startedAt, filters.dateTo) : undefined,
+  ].filter((c) => c !== undefined);
+
+  const rows = await db
+    .select()
+    .from(technicianShifts)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(desc(technicianShifts.startedAt))
+    .limit(safeLimit);
+
+  return rows.map(shiftFromRow);
+}
+
+export async function listShiftsForTechnician(technicianUid: string, limit = 50): Promise<TechnicianShift[]> {
+  const safeLimit = Math.min(Math.max(limit, 1), 200);
+  const rows = await db
+    .select()
+    .from(technicianShifts)
+    .where(eq(technicianShifts.technicianUid, technicianUid))
+    .orderBy(desc(technicianShifts.startedAt))
+    .limit(safeLimit);
+  return rows.map(shiftFromRow);
+}
+
+export async function updateShiftSalaryStatus(
+  shiftId: string,
+  salaryStatus: ShiftSalaryStatus,
+  actorUid: string,
+  actorRole: UserRole,
+): Promise<TechnicianShift> {
+  if (!["manager", "supervisor"].includes(actorRole)) {
+    throw new AppError("ليست لديك صلاحية لتعديل حالة الراتب.", "SALARY_FORBIDDEN", 403);
+  }
+
+  const [existing] = await db.select().from(technicianShifts).where(eq(technicianShifts.shiftId, shiftId)).limit(1);
+  if (!existing) throw new AppError("الشيفت غير موجود.", "SHIFT_NOT_FOUND", 404);
+
+  await db
+    .update(technicianShifts)
+    .set({ salaryStatus, updatedAt: now() })
+    .where(eq(technicianShifts.shiftId, shiftId));
+
+  await writeAuditLogRecord({
+    actorUid,
+    actorRole,
+    action: "shift.salary_status_update",
+    entityType: "technician_shift",
+    entityId: shiftId,
+    metadata: { salaryStatus },
+  });
+
+  const [row] = await db.select().from(technicianShifts).where(eq(technicianShifts.shiftId, shiftId)).limit(1);
+  if (!row) throw new AppError("تعذر تحديث حالة الراتب.", "SALARY_UPDATE_FAILED", 500);
+  return shiftFromRow(row);
+}
+
