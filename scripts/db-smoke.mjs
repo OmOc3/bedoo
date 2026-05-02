@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { createClient } from "@libsql/client";
 import nextEnv from "@next/env";
 

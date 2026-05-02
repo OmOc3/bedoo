@@ -261,3 +261,48 @@ export interface AiDataCoverageItem {
   totalRows: number;
   truncated: boolean;
 }
+
+export type ShiftStatus = "active" | "completed";
+export type ShiftSalaryStatus = "pending" | "paid" | "unpaid";
+
+export interface TechnicianWorkSchedule {
+  scheduleId: string;
+  technicianUid: string;
+  workDays: number[]; // 0=Sun ... 6=Sat
+  shiftStartTime: string; // "HH:MM"
+  shiftEndTime: string;   // "HH:MM"
+  expectedDurationMinutes: number;
+  hourlyRate?: number;
+  isActive: boolean;
+  notes?: string;
+  createdAt: AppTimestamp;
+  updatedAt?: AppTimestamp;
+  createdBy: string;
+}
+
+export interface TechnicianShift {
+  shiftId: string;
+  technicianUid: string;
+  technicianName: string;
+  scheduleId?: string;
+  startedAt: AppTimestamp;
+  startLat?: number;
+  startLng?: number;
+  startStationId?: string;
+  startStationLabel?: string;
+  endedAt?: AppTimestamp;
+  endLat?: number;
+  endLng?: number;
+  endStationId?: string;
+  endStationLabel?: string;
+  status: ShiftStatus;
+  totalMinutes?: number;
+  expectedDurationMinutes?: number;
+  earlyExit: boolean;
+  baseSalary?: number;
+  salaryAmount?: number;
+  salaryStatus: ShiftSalaryStatus;
+  notes?: string;
+  createdAt: AppTimestamp;
+  updatedAt?: AppTimestamp;
+}
