@@ -6,6 +6,7 @@ import { storeReportImage } from "@/lib/reports/store-report-image";
 import { getOpenAttendanceSession, getStationById, requireOpenTechnicianShift } from "@/lib/db/repositories";
 import { AppError } from "@/lib/errors";
 import { submitReportWithAdmin } from "@/lib/reports/submit-report";
+import { assertStationAccessLocation } from "@/lib/stations/location-access";
 import { mobileReportSyncSchema } from "@/lib/validation/mobile";
 
 export const runtime = "nodejs";
@@ -26,6 +27,16 @@ function optionalText(formData: FormData, key: string): string | undefined {
   const value = formData.get(key);
 
   return typeof value === "string" ? value : undefined;
+}
+
+function optionalNumber(formData: FormData, key: string): number | undefined {
+  const value = optionalText(formData, key);
+
+  if (!value || value.trim().length === 0) {
+    return undefined;
+  }
+
+  return Number(value);
 }
 
 function statusFromFormData(formData: FormData): unknown {
@@ -73,7 +84,10 @@ async function readMobileReportRequest(request: NextRequest): Promise<MobileRepo
 
   return {
     body: {
+      accuracyMeters: optionalNumber(formData, "accuracyMeters"),
       clientReportId: optionalText(formData, "clientReportId"),
+      lat: optionalNumber(formData, "lat"),
+      lng: optionalNumber(formData, "lng"),
       notes: optionalText(formData, "notes"),
       stationId: optionalText(formData, "stationId"),
       status: statusFromFormData(formData),
@@ -118,6 +132,15 @@ export async function POST(
       if (openAttendance?.clockInLocation?.stationId !== parsed.data.stationId || openAttendance.shiftId !== openShift.shiftId) {
         throw new AppError("يجب تسجيل الحضور في هذه المحطة قبل حفظ التقرير.", "ATTENDANCE_REQUIRED", 409);
       }
+      if (typeof parsed.data.lat !== "number" || typeof parsed.data.lng !== "number") {
+        throw new AppError("يجب السماح بقراءة موقعك الحالي قبل حفظ التقرير.", "REPORT_LOCATION_REQUIRED", 400);
+      }
+
+      assertStationAccessLocation(station, {
+        accuracyMeters: parsed.data.accuracyMeters,
+        lat: parsed.data.lat,
+        lng: parsed.data.lng,
+      });
     }
 
     const stationPhotoUrl = inspectionPhoto

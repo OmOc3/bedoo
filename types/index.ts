@@ -321,9 +321,15 @@ export interface TechnicianShift {
   updatedAt?: AppTimestamp;
 }
 
+export interface ShiftStationScan {
+  reportId: string;
+  submittedAt: AppTimestamp;
+}
+
 /** Stations that had at least one report filed during an ended shift window */
 export interface ShiftStationCompletion {
   reportCount: number;
+  scans: ShiftStationScan[];
   stationId: string;
   stationLabel: string;
 }

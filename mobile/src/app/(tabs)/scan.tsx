@@ -14,7 +14,7 @@ import { useStation } from '@/hooks/use-station';
 import { useCurrentUser } from '@/lib/auth';
 import { errorHaptic, successHaptic, warningHaptic } from '@/lib/haptics';
 import { languageDateLocales } from '@/lib/i18n';
-import { getDistanceMeters } from '@/lib/geo';
+import { getDistanceMeters, maxLocationAccuracyMeters, stationAccessRadiusMeters } from '@/lib/geo';
 import * as Location from 'expo-location';
 
 function normalizeStationId(value: string): string {
@@ -100,6 +100,17 @@ export default function ScanScreen() {
         }
         
         const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        if (
+          typeof location.coords.accuracy === 'number' &&
+          Number.isFinite(location.coords.accuracy) &&
+          location.coords.accuracy > maxLocationAccuracyMeters
+        ) {
+          setError('دقة الموقع ضعيفة. فعّل GPS واقترب من المحطة ثم حاول مرة أخرى.');
+          void warningHaptic();
+          setIsCheckingLocation(false);
+          return;
+        }
+
         const distance = getDistanceMeters(
           location.coords.latitude,
           location.coords.longitude,
@@ -107,7 +118,7 @@ export default function ScanScreen() {
           preview.station.coordinates.lng
         );
         
-        if (distance > 100) {
+        if (distance > stationAccessRadiusMeters) {
           setError(`المحطة خارج النطاق المسموح (المسافة: ${Math.round(distance)} متر). لا يمكنك إنشاء تقرير لها.`);
           void errorHaptic();
           setIsCheckingLocation(false);

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { and, count, desc, eq, gte, inArray, like, lt, lte, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, like, lt, lte, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import {
   distanceMeters,
@@ -3180,7 +3180,8 @@ export async function listStationCompletionsDuringShift(input: TechnicianShift):
 
   const rows = await db
     .select({
-      reportCount: count(),
+      reportId: reports.reportId,
+      submittedAt: reports.submittedAt,
       stationId: reports.stationId,
       stationLabel: reports.stationLabel,
     })
@@ -3192,15 +3193,32 @@ export async function listStationCompletionsDuringShift(input: TechnicianShift):
         lte(reports.submittedAt, windowEnd),
       ),
     )
-    .groupBy(reports.stationId, reports.stationLabel);
+    .orderBy(asc(reports.submittedAt), asc(reports.reportId));
 
-  rows.sort((a, b) => b.reportCount - a.reportCount);
+  const completionByStation = new Map<string, ShiftStationCompletion>();
 
-  return rows.map((row) => ({
-    reportCount: row.reportCount,
-    stationId: row.stationId,
-    stationLabel: row.stationLabel,
-  }));
+  rows.forEach((row) => {
+    const existing = completionByStation.get(row.stationId);
+    const scan = {
+      reportId: row.reportId,
+      submittedAt: requiredTimestamp(row.submittedAt),
+    };
+
+    if (existing) {
+      existing.reportCount += 1;
+      existing.scans.push(scan);
+      return;
+    }
+
+    completionByStation.set(row.stationId, {
+      reportCount: 1,
+      scans: [scan],
+      stationId: row.stationId,
+      stationLabel: row.stationLabel,
+    });
+  });
+
+  return Array.from(completionByStation.values());
 }
 
 export interface UpdateShiftPayrollInput {

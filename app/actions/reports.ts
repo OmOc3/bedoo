@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server-session";
 import { getOpenAttendanceSession, getReportById, getStationById, requireOpenTechnicianShift, submitReportRecord, updateReportReviewRecord, updateReportSubmissionByReviewer } from "@/lib/db/repositories";
+import { AppError } from "@/lib/errors";
 import { editSubmittedReportSchema, reviewReportSchema, submitReportSchema } from "@/lib/validation/reports";
 import { storeReportImage } from "@/lib/reports/store-report-image";
+import { assertStationAccessLocation, type StationAccessLocation } from "@/lib/stations/location-access";
 import { writeAuditLog } from "@/lib/audit";
 
 export interface SubmitReportActionResult {
@@ -51,6 +53,31 @@ function getImageFiles(formData: FormData, key: string): File[] {
   return formData.getAll(key).filter((value): value is File => value instanceof File && value.size > 0);
 }
 
+function optionalNumber(formData: FormData, key: string): number | undefined {
+  const value = optionalString(formData, key);
+
+  if (!value) {
+    return undefined;
+  }
+
+  return Number(value);
+}
+
+function reportLocationFromFormData(formData: FormData): StationAccessLocation | null {
+  const lat = optionalNumber(formData, "lat");
+  const lng = optionalNumber(formData, "lng");
+
+  if (lat === undefined && lng === undefined) {
+    return null;
+  }
+
+  return {
+    accuracyMeters: optionalNumber(formData, "accuracyMeters"),
+    lat: lat ?? Number.NaN,
+    lng: lng ?? Number.NaN,
+  };
+}
+
 export async function submitStationReportAction(
   stationId: string,
   formData: FormData,
@@ -95,6 +122,51 @@ export async function submitStationReportAction(
       }
     } catch {
       return { error: "يجب تسجيل الحضور في هذه المحطة قبل حفظ التقرير." };
+    }
+
+    const reportLocation = reportLocationFromFormData(formData);
+
+    if (!reportLocation) {
+      const message = "يجب السماح بقراءة موقعك الحالي قبل حفظ التقرير.";
+
+      await writeAuditLog({
+        actorUid: session.uid,
+        actorRole: session.role,
+        action: "report.submit_rejected",
+        entityType: "station",
+        entityId: parsed.data.stationId,
+        metadata: {
+          code: "REPORT_LOCATION_REQUIRED",
+          message,
+          stationId: parsed.data.stationId,
+        },
+      });
+
+      return { error: message };
+    }
+
+    try {
+      assertStationAccessLocation(station, reportLocation);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "المحطة دي خارج النطاق ولا يمكن حفظ التقرير.";
+
+      await writeAuditLog({
+        actorUid: session.uid,
+        actorRole: session.role,
+        action: "report.submit_rejected",
+        entityType: "station",
+        entityId: parsed.data.stationId,
+        metadata: {
+          accuracyMeters: reportLocation.accuracyMeters,
+          code: error instanceof AppError ? error.code : "REPORT_LOCATION_REJECTED",
+          lat: reportLocation.lat,
+          lng: reportLocation.lng,
+          message,
+          stationId: parsed.data.stationId,
+        },
+      });
+
+      return { error: message };
     }
   }
 

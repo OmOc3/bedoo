@@ -2,24 +2,110 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { submitStationReportAction, type SubmitReportActionResult } from "@/app/actions/reports";
 import { Button } from "@/components/ui/button";
+import { distanceMeters, maxLocationAccuracyMeters, stationAccessRadiusMeters } from "@/lib/geo";
 import { pestTypeLabels, statusOptionLabels } from "@/lib/i18n";
 import { maxReportImageSizeBytes } from "@/lib/reports/image-constraints";
 import { submitReportSchema, type SubmitReportValues } from "@/lib/validation/reports";
-import type { PestTypeOption, StatusOption } from "@/types";
+import type { Coordinates, PestTypeOption, StatusOption } from "@/types";
 import { pestTypeOptions } from "@ecopest/shared/constants";
 
 const statusOptions = Object.keys(statusOptionLabels) as StatusOption[];
 const maxReportImagePayloadBytes = 11 * 1024 * 1024;
 
+type ReportLocationCheck =
+  | { status: "idle" | "checking"; message: string | null; distanceMeters?: undefined }
+  | { status: "ready"; message: string; distanceMeters: number }
+  | { status: "blocked"; message: string; distanceMeters?: number };
+
+type ReportPosition = Coordinates & {
+  accuracyMeters?: number;
+};
+
 interface ReportFormProps {
   blockedReason?: string;
   canSubmit?: boolean;
+  requiresLocationCheck?: boolean;
+  stationCoordinates?: Coordinates;
   stationId: string;
   stationLabel: string;
+}
+
+function readPosition(): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("المتصفح لا يدعم قراءة الموقع."));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      maximumAge: 10_000,
+      timeout: 20_000,
+    });
+  });
+}
+
+function positionToReportLocation(position: GeolocationPosition): ReportPosition {
+  return {
+    ...(Number.isFinite(position.coords.accuracy) ? { accuracyMeters: position.coords.accuracy } : {}),
+    lat: position.coords.latitude,
+    lng: position.coords.longitude,
+  };
+}
+
+function locationToFormData(formData: FormData, location: ReportPosition): void {
+  formData.set("lat", String(location.lat));
+  formData.set("lng", String(location.lng));
+
+  if (typeof location.accuracyMeters === "number") {
+    formData.set("accuracyMeters", String(location.accuracyMeters));
+  }
+}
+
+function formatDistance(value: number): string {
+  return value < 1000 ? `${Math.round(value)} متر` : `${(value / 1000).toFixed(1)} كم`;
+}
+
+function validateReportLocation(
+  stationCoordinates: Coordinates | undefined,
+  location: ReportPosition,
+): ReportLocationCheck {
+  if (!stationCoordinates) {
+    return {
+      status: "blocked",
+      message: "لا توجد إحداثيات مسجلة لهذه المحطة. تواصل مع المدير لتحديث موقع المحطة قبل حفظ التقرير.",
+    };
+  }
+
+  if (
+    typeof location.accuracyMeters === "number" &&
+    (!Number.isFinite(location.accuracyMeters) || location.accuracyMeters > maxLocationAccuracyMeters)
+  ) {
+    return {
+      status: "blocked",
+      message: "دقة الموقع ضعيفة. فعّل GPS واقترب من المحطة ثم حاول مرة أخرى.",
+    };
+  }
+
+  const distance = Math.round(distanceMeters(location, stationCoordinates));
+
+  if (distance > stationAccessRadiusMeters) {
+    return {
+      distanceMeters: distance,
+      status: "blocked",
+      message: `المحطة دي خارج النطاق المسموح (المسافة: ${formatDistance(distance)}). لازم تكون داخل ${stationAccessRadiusMeters} متر عشان تسجل التقرير.`,
+    };
+  }
+
+  return {
+    distanceMeters: distance,
+    status: "ready",
+    message: `أنت داخل نطاق المحطة (المسافة: ${formatDistance(distance)}).`,
+  };
 }
 
 function toFormData(values: SubmitReportValues): FormData {
@@ -94,9 +180,20 @@ function imageSizeError(values: SubmitReportValues): string | null {
   return null;
 }
 
-export function ReportForm({ blockedReason, canSubmit = true, stationId, stationLabel }: ReportFormProps) {
+export function ReportForm({
+  blockedReason,
+  canSubmit = true,
+  requiresLocationCheck = false,
+  stationCoordinates,
+  stationId,
+  stationLabel,
+}: ReportFormProps) {
   const [actionResult, setActionResult] = useState<SubmitReportActionResult | null>(null);
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const [locationCheck, setLocationCheck] = useState<ReportLocationCheck>({
+    status: requiresLocationCheck ? "checking" : "idle",
+    message: requiresLocationCheck ? "جاري التحقق من موقعك الحالي..." : null,
+  });
   const form = useForm<SubmitReportValues>({
     resolver: zodResolver(submitReportSchema),
     defaultValues: {
@@ -107,6 +204,46 @@ export function ReportForm({ blockedReason, canSubmit = true, stationId, station
     },
   });
 
+  const refreshLocationCheck = useCallback(async (): Promise<{
+    check: ReportLocationCheck;
+    location: ReportPosition | null;
+  }> => {
+    if (!requiresLocationCheck) {
+      const nextCheck: ReportLocationCheck = { status: "idle", message: null };
+      setLocationCheck(nextCheck);
+      return { check: nextCheck, location: null };
+    }
+
+    setLocationCheck({ status: "checking", message: "جاري التحقق من موقعك الحالي..." });
+
+    try {
+      const position = await readPosition();
+      const location = positionToReportLocation(position);
+      const nextCheck = validateReportLocation(stationCoordinates, location);
+
+      setLocationCheck(nextCheck);
+
+      return {
+        check: nextCheck,
+        location: nextCheck.status === "ready" ? location : null,
+      };
+    } catch {
+      const nextCheck: ReportLocationCheck = {
+        status: "blocked",
+        message: "تعذر قراءة موقعك الحالي. اسمح بقراءة الموقع ثم حاول مرة أخرى.",
+      };
+
+      setLocationCheck(nextCheck);
+      return { check: nextCheck, location: null };
+    }
+  }, [requiresLocationCheck, stationCoordinates]);
+
+  useEffect(() => {
+    if (requiresLocationCheck) {
+      void refreshLocationCheck();
+    }
+  }, [refreshLocationCheck, requiresLocationCheck]);
+
   async function onSubmit(values: SubmitReportValues): Promise<void> {
     setActionResult(null);
     const fileError = imageSizeError(values);
@@ -116,7 +253,20 @@ export function ReportForm({ blockedReason, canSubmit = true, stationId, station
       return;
     }
 
-    const result = await submitStationReportAction(stationId, toFormData(values));
+    const formData = toFormData(values);
+
+    if (requiresLocationCheck) {
+      const { check, location } = await refreshLocationCheck();
+
+      if (check.status !== "ready" || !location) {
+        setActionResult({ error: check.message ?? "المحطة دي خارج النطاق ولا يمكن حفظ التقرير." });
+        return;
+      }
+
+      locationToFormData(formData, location);
+    }
+
+    const result = await submitStationReportAction(stationId, formData);
 
     if (result.success) {
       setSubmittedAt(new Date());
@@ -154,6 +304,13 @@ export function ReportForm({ blockedReason, canSubmit = true, stationId, station
   const notesError = form.formState.errors.notes?.message ?? getFieldError(actionResult, "notes");
   const duringPhotosError = form.formState.errors.duringPhotos?.message ?? getFieldError(actionResult, "duringPhotos");
   const otherPhotosError = form.formState.errors.otherPhotos?.message ?? getFieldError(actionResult, "otherPhotos");
+  const isLocationBlocked = requiresLocationCheck && locationCheck.status !== "ready";
+  const locationMessageTone =
+    locationCheck.status === "ready"
+      ? "border-green-200 bg-green-50 text-green-800"
+      : locationCheck.status === "blocked"
+        ? "border-red-200 bg-red-50 text-red-800"
+        : "border-amber-200 bg-amber-50 text-amber-800";
 
   return (
     <form className="space-y-5" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
@@ -167,6 +324,24 @@ export function ReportForm({ blockedReason, canSubmit = true, stationId, station
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
           {blockedReason}
         </p>
+      ) : null}
+
+      {requiresLocationCheck && locationCheck.message ? (
+        <div
+          className={`rounded-lg border px-4 py-3 text-sm font-medium ${locationMessageTone}`}
+          role={locationCheck.status === "blocked" ? "alert" : "status"}
+        >
+          <p>{locationCheck.message}</p>
+          {locationCheck.status === "blocked" ? (
+            <button
+              className="mt-3 inline-flex min-h-10 items-center justify-center rounded-lg border border-current px-3 py-2 text-sm font-semibold"
+              onClick={() => void refreshLocationCheck()}
+              type="button"
+            >
+              إعادة فحص الموقع
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       <input type="hidden" value={stationId} {...form.register("stationId")} />
@@ -310,7 +485,7 @@ export function ReportForm({ blockedReason, canSubmit = true, stationId, station
         </div>
       </div>
 
-      <Button className="w-full py-3 text-base" disabled={!canSubmit || form.formState.isSubmitting} isLoading={form.formState.isSubmitting} type="submit">
+      <Button className="w-full py-3 text-base" disabled={!canSubmit || form.formState.isSubmitting || isLocationBlocked} isLoading={form.formState.isSubmitting} type="submit">
         حفظ التقرير
       </Button>
     </form>

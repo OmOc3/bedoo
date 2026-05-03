@@ -1,3 +1,6 @@
+export const stationAccessRadiusMeters = 100;
+export const maxLocationAccuracyMeters = 100;
+
 export function getDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const earthRadiusMeters = 6371000;
   const toRadians = (value: number) => (value * Math.PI) / 180;

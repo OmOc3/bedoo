@@ -17,7 +17,8 @@ import { useLanguage } from '@/contexts/language-context';
 import { useStation } from '@/hooks/use-station';
 import { useTheme } from '@/hooks/use-theme';
 import { useCurrentUser } from '@/lib/auth';
-import { clearWorkingDraft, getWorkingDraft, saveSubmittedReport, syncDraft, upsertWorkingDraft } from '@/lib/drafts';
+import { clearWorkingDraft, getWorkingDraft, saveSubmittedReport, syncDraft, upsertWorkingDraft, type ReportLocation } from '@/lib/drafts';
+import { getDistanceMeters, maxLocationAccuracyMeters, stationAccessRadiusMeters } from '@/lib/geo';
 import { errorHaptic, successHaptic, warningHaptic } from '@/lib/haptics';
 import { apiGet, apiPost } from '@/lib/sync/api-client';
 import type { AttendanceSession, OpenAttendanceResponse, StatusOption } from '@/lib/sync/types';
@@ -353,6 +354,47 @@ export default function StationReportScreen() {
     };
   }
 
+  async function readReportPosition(): Promise<ReportLocation> {
+    const permissionResult = await Location.requestForegroundPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      throw new Error('يجب السماح بقراءة موقعك الحالي قبل حفظ التقرير.');
+    }
+
+    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
+
+    return {
+      ...(typeof position.coords.accuracy === 'number' && Number.isFinite(position.coords.accuracy)
+        ? { accuracyMeters: position.coords.accuracy }
+        : {}),
+      lat: position.coords.latitude,
+      lng: position.coords.longitude,
+    };
+  }
+
+  function validateCurrentReportLocation(location: ReportLocation): string | null {
+    if (!station?.coordinates) {
+      return 'لا توجد إحداثيات مسجلة لهذه المحطة. تواصل مع المدير لتحديث موقع المحطة قبل حفظ التقرير.';
+    }
+
+    if (
+      typeof location.accuracyMeters === 'number' &&
+      (!Number.isFinite(location.accuracyMeters) || location.accuracyMeters > maxLocationAccuracyMeters)
+    ) {
+      return 'دقة الموقع ضعيفة. فعّل GPS واقترب من المحطة ثم حاول مرة أخرى.';
+    }
+
+    const distance = Math.round(
+      getDistanceMeters(location.lat, location.lng, station.coordinates.lat, station.coordinates.lng),
+    );
+
+    if (distance > stationAccessRadiusMeters) {
+      return `المحطة دي خارج النطاق المسموح (المسافة: ${distance} متر). لا يمكنك حفظ تقرير لهذه المحطة.`;
+    }
+
+    return null;
+  }
+
   async function submitAttendance(action: 'clockIn' | 'clockOut'): Promise<void> {
     setIsAttendanceLoading(true);
     setAttendanceError(null);
@@ -556,12 +598,23 @@ export default function StationReportScreen() {
     setIsSaving(true);
 
     try {
+      const reportLocation = await readReportPosition();
+      const locationError = validateCurrentReportLocation(reportLocation);
+
+      if (locationError) {
+        setError(locationError);
+        showToast(locationError, 'error');
+        await warningHaptic();
+        return;
+      }
+
       const queuedReport = await saveSubmittedReport({
         notes: notes.trim(),
         inspectionPhotoName,
         inspectionPhotoType,
         inspectionPhotoUri: inspectionPhotoUri ?? undefined,
         pestTypes,
+        reportLocation,
         stationId: stationId.trim(),
         stationLabel: station?.label,
         status,
@@ -578,9 +631,11 @@ export default function StationReportScreen() {
       setInspectionPhotoType(undefined);
       setInspectionPhotoUri(null);
       router.push('/(tabs)/history');
-    } catch {
-      setError(strings.errors.unexpected);
-      showToast(strings.errors.unexpected, 'error');
+    } catch (submitError: unknown) {
+      const message = submitError instanceof Error ? submitError.message : strings.errors.unexpected;
+
+      setError(message);
+      showToast(message, 'error');
       await errorHaptic();
     } finally {
       setIsSaving(false);

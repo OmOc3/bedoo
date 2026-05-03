@@ -151,6 +151,8 @@ export default async function StationReportPage({ params, searchParams }: Statio
             <ReportForm
               blockedReason={session.role === "technician" ? "سجل الحضور في هذه المحطة أولا حتى تتمكن من حفظ التقرير." : undefined}
               canSubmit={canTechnicianSubmit}
+              requiresLocationCheck={session.role === "technician"}
+              stationCoordinates={station.coordinates}
               stationId={stationId}
               stationLabel={station.label ?? "محطة بدون اسم"}
             />

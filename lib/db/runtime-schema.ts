@@ -27,6 +27,16 @@ function columnNameFromPragmaRow(row: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
+function columnNotNullFromPragmaRow(row: unknown): boolean {
+  if (!row || typeof row !== "object" || !("notnull" in row)) {
+    return false;
+  }
+
+  const value = row.notnull;
+
+  return value === true || value === 1 || value === "1";
+}
+
 async function tableExists(table: string): Promise<boolean> {
   const result = await db.$client.execute({
     sql: "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
@@ -64,6 +74,136 @@ async function addMissingColumns(table: string, columns: ColumnDefinition[]): Pr
 
 async function execute(sql: string): Promise<void> {
   await db.$client.execute({ sql, args: [] });
+}
+
+async function createClientOrdersTable(): Promise<void> {
+  await execute(`
+    CREATE TABLE IF NOT EXISTS client_orders (
+      order_id text PRIMARY KEY NOT NULL,
+      client_uid text NOT NULL REFERENCES user(id) ON DELETE restrict,
+      client_name text NOT NULL,
+      station_id text REFERENCES stations(station_id) ON DELETE restrict,
+      station_label text NOT NULL,
+      proposal_location text,
+      proposal_description text,
+      proposal_lat real,
+      proposal_lng real,
+      note text,
+      photo_url text,
+      status text DEFAULT 'pending' NOT NULL,
+      created_at integer NOT NULL,
+      reviewed_at integer,
+      reviewed_by text,
+      decision_note text
+    )
+  `);
+}
+
+async function rebuildLegacyClientOrdersTable(): Promise<void> {
+  if (!(await tableExists("client_orders"))) {
+    return;
+  }
+
+  const tableInfo = await db.$client.execute({
+    sql: "PRAGMA table_info(\"client_orders\")",
+    args: [],
+  });
+  const columnsInTable = new Set(tableInfo.rows.map(columnNameFromPragmaRow).filter((name): name is string => Boolean(name)));
+  const stationIdColumn = tableInfo.rows.find((row) => columnNameFromPragmaRow(row) === "station_id");
+  const expectedColumns = [
+    "proposal_location",
+    "proposal_description",
+    "proposal_lat",
+    "proposal_lng",
+    "decision_note",
+  ];
+  const needsRebuild =
+    columnNotNullFromPragmaRow(stationIdColumn) ||
+    expectedColumns.some((column) => !columnsInTable.has(column));
+
+  if (!needsRebuild) {
+    return;
+  }
+
+  const sourceOrFallback = (column: string, fallback: string): string =>
+    columnsInTable.has(column) ? quoteSqlIdentifier(column) : fallback;
+
+  await execute("PRAGMA foreign_keys = OFF");
+
+  try {
+    await execute("DROP TABLE IF EXISTS __new_client_orders");
+    await execute(`
+      CREATE TABLE __new_client_orders (
+        order_id text PRIMARY KEY NOT NULL,
+        client_uid text NOT NULL REFERENCES user(id) ON DELETE restrict,
+        client_name text NOT NULL,
+        station_id text REFERENCES stations(station_id) ON DELETE restrict,
+        station_label text NOT NULL,
+        proposal_location text,
+        proposal_description text,
+        proposal_lat real,
+        proposal_lng real,
+        note text,
+        photo_url text,
+        status text DEFAULT 'pending' NOT NULL,
+        created_at integer NOT NULL,
+        reviewed_at integer,
+        reviewed_by text,
+        decision_note text
+      )
+    `);
+    await execute(`
+      INSERT INTO __new_client_orders (
+        order_id,
+        client_uid,
+        client_name,
+        station_id,
+        station_label,
+        proposal_location,
+        proposal_description,
+        proposal_lat,
+        proposal_lng,
+        note,
+        photo_url,
+        status,
+        created_at,
+        reviewed_at,
+        reviewed_by,
+        decision_note
+      )
+      SELECT
+        ${sourceOrFallback("order_id", "lower(hex(randomblob(16)))")},
+        ${sourceOrFallback("client_uid", "''")},
+        ${sourceOrFallback("client_name", "''")},
+        ${sourceOrFallback("station_id", "NULL")},
+        ${sourceOrFallback("station_label", "''")},
+        ${sourceOrFallback("proposal_location", "NULL")},
+        ${sourceOrFallback("proposal_description", "NULL")},
+        ${sourceOrFallback("proposal_lat", "NULL")},
+        ${sourceOrFallback("proposal_lng", "NULL")},
+        ${sourceOrFallback("note", "NULL")},
+        ${sourceOrFallback("photo_url", "NULL")},
+        ${sourceOrFallback("status", "'pending'")},
+        ${sourceOrFallback("created_at", "CAST(strftime('%s', 'now') AS INTEGER) * 1000")},
+        ${sourceOrFallback("reviewed_at", "NULL")},
+        ${sourceOrFallback("reviewed_by", "NULL")},
+        ${sourceOrFallback("decision_note", "NULL")}
+      FROM client_orders
+    `);
+    await execute("DROP TABLE client_orders");
+    await execute("ALTER TABLE __new_client_orders RENAME TO client_orders");
+  } finally {
+    await execute("PRAGMA foreign_keys = ON");
+  }
+}
+
+async function ensureClientOrdersSchema(): Promise<void> {
+  await createClientOrdersTable();
+  await rebuildLegacyClientOrdersTable();
+  await execute("CREATE INDEX IF NOT EXISTS client_orders_client_uid_idx ON client_orders (client_uid)");
+  await execute("CREATE INDEX IF NOT EXISTS client_orders_station_id_idx ON client_orders (station_id)");
+  await execute("CREATE INDEX IF NOT EXISTS client_orders_status_idx ON client_orders (status)");
+  await execute("CREATE INDEX IF NOT EXISTS client_orders_created_at_idx ON client_orders (created_at)");
 }
 
 async function createIndexIfColumnsExist(index: string, table: string, columns: string[]): Promise<void> {
@@ -222,6 +362,8 @@ async function ensureRuntimeSchemaInternal(): Promise<void> {
     { name: "pest_types", sql: "ALTER TABLE `reports` ADD `pest_types` text" },
   ]);
 
+  await ensureClientOrdersSchema();
+
   await execute(`
     CREATE TABLE IF NOT EXISTS client_profiles (
       client_uid text PRIMARY KEY NOT NULL REFERENCES user(id) ON DELETE cascade,
@@ -258,6 +400,7 @@ async function ensureRuntimeSchemaInternal(): Promise<void> {
     INSERT OR IGNORE INTO client_station_access (access_id, client_uid, station_id, created_at, created_by)
     SELECT 'legacy_' || client_uid || '_' || station_id, client_uid, station_id, min(created_at), client_uid
     FROM client_orders
+    WHERE station_id IS NOT NULL AND station_id <> ''
     GROUP BY client_uid, station_id
   `);
 

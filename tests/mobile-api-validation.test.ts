@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { updateClientStationAccessSchema } from "@/lib/validation/client-orders";
 import { createDailyWorkReportSchema } from "@/lib/validation/daily-reports";
+import { mobileReportSyncSchema } from "@/lib/validation/mobile";
 import { updateAppSettingsSchema } from "@/lib/validation/settings";
 import { updateShiftPayrollSchema } from "@/lib/validation/shifts";
 
@@ -67,6 +68,21 @@ describe("mobile API validation contracts", () => {
         summary: "تمت مراجعة المحطات اليومية",
       }).success,
       false,
+    );
+  });
+
+  it("accepts mobile report sync location fields", () => {
+    assert.equal(
+      mobileReportSyncSchema.safeParse({
+        accuracyMeters: 12,
+        clientReportId: "client-report-1",
+        lat: 30.0444,
+        lng: 31.2357,
+        pestTypes: ["rodents"],
+        stationId: "station-1",
+        status: ["station_ok"],
+      }).success,
+      true,
     );
   });
 

@@ -8,6 +8,12 @@ import type { StatusOption } from '@/lib/sync/types';
 
 export type ReportSyncStatus = 'draft' | 'failed' | 'queued' | 'submitted' | 'syncing';
 
+export interface ReportLocation {
+  accuracyMeters?: number;
+  lat: number;
+  lng: number;
+}
+
 export interface DraftReport {
   createdAt: string;
   id: string;
@@ -19,6 +25,7 @@ export interface DraftReport {
   serverReportId?: string;
   stationId: string;
   stationLabel?: string;
+  reportLocation?: ReportLocation;
   submittedAt?: string;
   syncStatus?: ReportSyncStatus;
   synced?: boolean;
@@ -39,6 +46,7 @@ type DraftInput = Pick<
   | 'inspectionPhotoUri'
   | 'notes'
   | 'pestTypes'
+  | 'reportLocation'
   | 'stationId'
   | 'status'
 >;
@@ -67,6 +75,23 @@ function isPestTypeOption(value: unknown): value is MobilePestTypeOption {
   return typeof value === 'string' && (pestTypeOptions as readonly string[]).includes(value);
 }
 
+function isReportLocation(value: unknown): value is ReportLocation {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const location = value as Record<string, unknown>;
+
+  return (
+    typeof location.lat === 'number' &&
+    Number.isFinite(location.lat) &&
+    typeof location.lng === 'number' &&
+    Number.isFinite(location.lng) &&
+    (location.accuracyMeters === undefined ||
+      (typeof location.accuracyMeters === 'number' && Number.isFinite(location.accuracyMeters)))
+  );
+}
+
 function isDraftReport(value: unknown): value is DraftReport {
   if (!value || typeof value !== 'object') {
     return false;
@@ -91,6 +116,7 @@ function isDraftReport(value: unknown): value is DraftReport {
     (draft.inspectionPhotoUri === undefined || typeof draft.inspectionPhotoUri === 'string') &&
     (draft.serverReportId === undefined || typeof draft.serverReportId === 'string') &&
     (draft.stationLabel === undefined || typeof draft.stationLabel === 'string') &&
+    (draft.reportLocation === undefined || isReportLocation(draft.reportLocation)) &&
     (draft.submittedAt === undefined || typeof draft.submittedAt === 'string') &&
     (draft.synced === undefined || typeof draft.synced === 'boolean') &&
     (draft.retryCount === undefined || typeof draft.retryCount === 'number') &&
@@ -109,6 +135,7 @@ function resolvePestTypesForSync(target: DraftReport): MobilePestTypeOption[] {
 function createReportSyncBody(target: DraftReport): ReportSyncBody {
   const notes = target.notes.trim();
   const pestTypes = resolvePestTypesForSync(target);
+  const reportLocation = target.reportLocation;
 
   if (!target.inspectionPhotoUri) {
     return {
@@ -116,6 +143,13 @@ function createReportSyncBody(target: DraftReport): ReportSyncBody {
       pestTypes,
       stationId: target.stationId,
       status: target.status,
+      ...(reportLocation
+        ? {
+            accuracyMeters: reportLocation.accuracyMeters,
+            lat: reportLocation.lat,
+            lng: reportLocation.lng,
+          }
+        : {}),
       ...(notes.length > 0 ? { notes } : {}),
     };
   }
@@ -131,6 +165,15 @@ function createReportSyncBody(target: DraftReport): ReportSyncBody {
   formData.append('stationId', target.stationId);
   formData.append('status', JSON.stringify(target.status));
   formData.append('pestTypes', JSON.stringify(pestTypes));
+
+  if (reportLocation) {
+    formData.append('lat', String(reportLocation.lat));
+    formData.append('lng', String(reportLocation.lng));
+
+    if (typeof reportLocation.accuracyMeters === 'number') {
+      formData.append('accuracyMeters', String(reportLocation.accuracyMeters));
+    }
+  }
 
   if (notes.length > 0) {
     formData.append('notes', notes);
