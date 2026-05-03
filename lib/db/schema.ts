@@ -35,6 +35,9 @@ export const appSettings = sqliteTable("app_settings", {
   maintenanceEnabled: booleanFlag("maintenance_mode_enabled").notNull().default(false),
   clientDailyStationOrderLimit: integer("client_daily_order_limit").notNull().default(5),
   maintenanceMessage: text("maintenance_message"),
+  supportEmail: text("support_email"),
+  supportHours: text("support_hours"),
+  supportPhone: text("support_phone"),
   updatedAt: timestamp("updated_at"),
   updatedBy: text("updated_by"),
 });
@@ -61,6 +64,12 @@ export const user = sqliteTable(
   },
   (table) => [uniqueIndex("user_email_unique").on(table.email), index("user_role_idx").on(table.role)],
 );
+
+export const clientSignupDevices = sqliteTable("client_signup_devices", {
+  deviceHash: text("device_hash").primaryKey(),
+  clientUid: text("client_uid").references(() => user.id, { onDelete: "restrict" }),
+  createdAt: timestamp("created_at").notNull(),
+});
 
 export const session = sqliteTable(
   "session",

@@ -8,7 +8,19 @@ import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { isRecord } from "@/lib/utils";
 import { clientSignupSchema, type ClientSignupValues } from "@/lib/validation/auth";
-import type { ApiErrorResponse, LoginSuccessResponse } from "@/types";
+import type { ApiErrorResponse, LoginSuccessResponse, SupportContactSettings } from "@/types";
+
+const clientSignupDeviceStorageKey = "ecopest.clientSignupDeviceId";
+const clientSignupDeviceCookieName = "ecopest_client_signup_device_id";
+
+function isSupportContactSettings(value: unknown): value is SupportContactSettings {
+  return (
+    isRecord(value) &&
+    (value.phone === undefined || typeof value.phone === "string") &&
+    (value.email === undefined || typeof value.email === "string") &&
+    (value.hours === undefined || typeof value.hours === "string")
+  );
+}
 
 function isAuthenticatedUserResponse(value: unknown): boolean {
   return (
@@ -26,12 +38,104 @@ function isLoginSuccessResponse(value: unknown): value is LoginSuccessResponse {
 }
 
 function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
-  return isRecord(value) && typeof value.message === "string" && typeof value.code === "string";
+  return (
+    isRecord(value) &&
+    typeof value.message === "string" &&
+    typeof value.code === "string" &&
+    (value.supportContact === undefined || isSupportContactSettings(value.supportContact))
+  );
+}
+
+function normalizeDeviceId(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+
+  return /^[A-Za-z0-9_-]{16,128}$/.test(trimmed) ? trimmed : null;
+}
+
+function readDeviceIdCookie(): string | null {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  const cookie = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${clientSignupDeviceCookieName}=`));
+
+  if (!cookie) {
+    return null;
+  }
+
+  return normalizeDeviceId(decodeURIComponent(cookie.split("=").slice(1).join("=")));
+}
+
+function writeDeviceIdCookie(deviceId: string): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  document.cookie = `${clientSignupDeviceCookieName}=${encodeURIComponent(deviceId)}; Max-Age=31536000; Path=/; SameSite=Lax`;
+}
+
+function readStoredDeviceId(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return normalizeDeviceId(window.localStorage.getItem(clientSignupDeviceStorageKey));
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredDeviceId(deviceId: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(clientSignupDeviceStorageKey, deviceId);
+  } catch {
+    // The cookie is still enough for the server-side device check in restricted browsers.
+  }
+}
+
+function createDeviceId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID().replace(/-/g, "");
+  }
+
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    const bytes = new Uint8Array(24);
+
+    crypto.getRandomValues(bytes);
+
+    return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 18)}`;
+}
+
+function getOrCreateDeviceId(): string {
+  const storedDeviceId = readStoredDeviceId();
+  const cookieDeviceId = readDeviceIdCookie();
+  const deviceId = storedDeviceId ?? cookieDeviceId ?? createDeviceId();
+
+  writeStoredDeviceId(deviceId);
+  writeDeviceIdCookie(deviceId);
+
+  return deviceId;
 }
 
 export function ClientSignupForm() {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
+  const [supportContact, setSupportContact] = useState<SupportContactSettings | null>(null);
   const {
     formState: { errors, isSubmitting },
     handleSubmit,
@@ -40,6 +144,7 @@ export function ClientSignupForm() {
     resolver: zodResolver(clientSignupSchema),
     defaultValues: {
       accessCode: "",
+      confirmAccessCode: "",
       addressesText: "",
       displayName: "",
       email: "",
@@ -50,17 +155,24 @@ export function ClientSignupForm() {
   async function onSubmit(values: ClientSignupValues): Promise<void> {
     try {
       setFormError(null);
+      setSupportContact(null);
+      const deviceId = getOrCreateDeviceId();
       const response = await fetch("/api/auth/client-signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, deviceId }),
       });
       const payload = (await response.json()) as unknown;
 
       if (!response.ok) {
-        setFormError(isApiErrorResponse(payload) ? payload.message : "تعذر إنشاء حساب العميل.");
+        if (isApiErrorResponse(payload)) {
+          setFormError(payload.message);
+          setSupportContact(payload.code === "CLIENT_SIGNUP_DEVICE_EXISTS" ? (payload.supportContact ?? {}) : null);
+        } else {
+          setFormError("تعذر إنشاء حساب العميل.");
+        }
         return;
       }
 
@@ -108,12 +220,22 @@ export function ClientSignupForm() {
         {...register("accessCode")}
       />
       <TextField
+        autoComplete="new-password"
+        dir="ltr"
+        error={errors.confirmAccessCode?.message}
+        id="confirmAccessCode"
+        label="تأكيد كود الدخول"
+        placeholder="أعد إدخال نفس الكود"
+        type="password"
+        {...register("confirmAccessCode")}
+      />
+      <TextField
         autoComplete="tel"
         dir="ltr"
         error={errors.phone?.message}
         id="phone"
         inputMode="tel"
-        label="رقم الهاتف اختياري"
+        label="رقم الهاتف"
         placeholder="+20..."
         {...register("phone")}
       />
@@ -142,6 +264,41 @@ export function ClientSignupForm() {
           role="alert"
         >
           {formError}
+        </div>
+      ) : null}
+      {supportContact ? (
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
+          <h2 className="text-sm font-bold text-[var(--foreground)]">تواصل مع الدعم</h2>
+          <div className="mt-3 grid gap-2 text-sm">
+            {supportContact.phone ? (
+              <a
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
+                dir="ltr"
+                href={`tel:${supportContact.phone}`}
+              >
+                {supportContact.phone}
+              </a>
+            ) : null}
+            {supportContact.email ? (
+              <a
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
+                dir="ltr"
+                href={`mailto:${supportContact.email}`}
+              >
+                {supportContact.email}
+              </a>
+            ) : null}
+            {supportContact.hours ? (
+              <p className="rounded-lg bg-[var(--surface)] px-4 py-3 text-sm leading-6 text-[var(--muted)]">
+                مواعيد الدعم: <span className="font-semibold text-[var(--foreground)]">{supportContact.hours}</span>
+              </p>
+            ) : null}
+            {!supportContact.phone && !supportContact.email && !supportContact.hours ? (
+              <p className="text-sm leading-6 text-[var(--muted)]">
+                بيانات الدعم لم تُضبط بعد. تواصل مع إدارة الشركة لمراجعة حسابك.
+              </p>
+            ) : null}
+          </div>
         </div>
       ) : null}
       <Button isLoading={isSubmitting} type="submit">

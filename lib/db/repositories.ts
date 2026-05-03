@@ -14,6 +14,7 @@ import {
   attendanceSessions,
   appSettings,
   auditLogs,
+  clientSignupDevices,
   clientOrders,
   clientProfiles,
   clientStationAccess,
@@ -63,6 +64,7 @@ import type {
   ShiftStatus,
   Station,
   StatusOption,
+  SupportContactSettings,
   TechnicianShift,
   TechnicianWorkSchedule,
   UserRole,
@@ -182,18 +184,55 @@ export interface AppSettingsRecord {
   clientDailyStationOrderLimit: number;
   maintenanceEnabled: boolean;
   maintenanceMessage?: string;
+  supportContact?: SupportContactSettings;
+  supportEmail?: string;
+  supportHours?: string;
+  supportPhone?: string;
   updatedAt?: AppTimestamp;
   updatedBy?: string;
 }
 
 function appSettingsFromRow(row: typeof appSettings.$inferSelect): AppSettingsRecord {
+  const supportEmail = row.supportEmail ?? undefined;
+  const supportHours = row.supportHours ?? undefined;
+  const supportPhone = row.supportPhone ?? undefined;
+  const supportContact =
+    supportEmail || supportHours || supportPhone
+      ? {
+          email: supportEmail,
+          hours: supportHours,
+          phone: supportPhone,
+        }
+      : undefined;
+
   return {
     clientDailyStationOrderLimit: row.clientDailyStationOrderLimit,
     maintenanceEnabled: row.maintenanceEnabled,
     maintenanceMessage: row.maintenanceMessage ?? undefined,
+    supportContact,
+    supportEmail,
+    supportHours,
+    supportPhone,
     updatedAt: row.updatedAt ? requiredTimestamp(row.updatedAt) : undefined,
     updatedBy: row.updatedBy ?? undefined,
   };
+}
+
+function columnNameFromPragmaRow(row: unknown): string | null {
+  if (!row || typeof row !== "object" || !("name" in row)) {
+    return null;
+  }
+
+  return typeof row.name === "string" ? row.name : null;
+}
+
+async function tableColumnNames(table: string): Promise<Set<string>> {
+  const tableInfo = await db.$client.execute({
+    sql: `PRAGMA table_info(${table})`,
+    args: [],
+  });
+
+  return new Set(tableInfo.rows.map(columnNameFromPragmaRow).filter((name): name is string => Boolean(name)));
 }
 
 async function ensureAppSettingsTableExists(): Promise<void> {
@@ -206,18 +245,35 @@ async function ensureAppSettingsTableExists(): Promise<void> {
         maintenance_mode_enabled integer not null default 0,
         maintenance_message text,
         client_daily_order_limit integer not null default 5,
+        support_phone text,
+        support_email text,
+        support_hours text,
         updated_at integer,
         updated_by text
       )
     `,
     args: [],
   });
+
+  const columns = await tableColumnNames("app_settings");
+  const missingColumns = [
+    { name: "support_phone", sql: "ALTER TABLE app_settings ADD support_phone text" },
+    { name: "support_email", sql: "ALTER TABLE app_settings ADD support_email text" },
+    { name: "support_hours", sql: "ALTER TABLE app_settings ADD support_hours text" },
+  ];
+
+  for (const column of missingColumns) {
+    if (!columns.has(column.name)) {
+      await db.$client.execute({ sql: column.sql, args: [] });
+    }
+  }
 }
 
 export async function getAppSettings(): Promise<AppSettingsRecord> {
   let row: typeof appSettings.$inferSelect | undefined;
 
   try {
+    await ensureAppSettingsTableExists();
     [row] = await db
       .select()
       .from(appSettings)
@@ -277,6 +333,9 @@ export async function updateAppSettings(input: {
   maintenanceEnabled: boolean;
   maintenanceMessage?: string;
   clientDailyStationOrderLimit: number;
+  supportEmail?: string;
+  supportHours?: string;
+  supportPhone?: string;
 }): Promise<AppSettingsRecord> {
   if (input.actorRole !== "manager") {
     throw new AppError("ليست لديك صلاحية لتحديث الإعدادات.", "SETTINGS_FORBIDDEN", 403);
@@ -306,6 +365,12 @@ export async function updateAppSettings(input: {
     typeof input.maintenanceMessage === "string"
       ? input.maintenanceMessage.trim().slice(0, 280) || null
       : null;
+  const safeSupportPhone =
+    typeof input.supportPhone === "string" ? input.supportPhone.trim().slice(0, 40) || null : null;
+  const safeSupportEmail =
+    typeof input.supportEmail === "string" ? input.supportEmail.trim().toLowerCase().slice(0, 120) || null : null;
+  const safeSupportHours =
+    typeof input.supportHours === "string" ? input.supportHours.trim().slice(0, 160) || null : null;
 
   try {
     await db
@@ -315,6 +380,9 @@ export async function updateAppSettings(input: {
         maintenanceEnabled: input.maintenanceEnabled,
         clientDailyStationOrderLimit: safeLimit,
         maintenanceMessage: safeMessage,
+        supportEmail: safeSupportEmail,
+        supportHours: safeSupportHours,
+        supportPhone: safeSupportPhone,
         updatedAt,
         updatedBy: input.actorUid,
       })
@@ -324,6 +392,9 @@ export async function updateAppSettings(input: {
           maintenanceEnabled: input.maintenanceEnabled,
           clientDailyStationOrderLimit: safeLimit,
           maintenanceMessage: safeMessage,
+          supportEmail: safeSupportEmail,
+          supportHours: safeSupportHours,
+          supportPhone: safeSupportPhone,
           updatedAt,
           updatedBy: input.actorUid,
         },
@@ -356,6 +427,9 @@ export async function updateAppSettings(input: {
       maintenanceEnabled: input.maintenanceEnabled,
       maintenanceMessage: safeMessage ?? undefined,
       clientDailyStationOrderLimit: safeLimit,
+      supportEmail: safeSupportEmail ?? undefined,
+      supportHours: safeSupportHours ?? undefined,
+      supportPhone: safeSupportPhone ?? undefined,
     },
   });
 
@@ -527,6 +601,81 @@ export async function getClientByPhone(phone: string): Promise<boolean> {
     .limit(1);
 
   return row.length > 0;
+}
+
+export interface ClientSignupDeviceReservation {
+  deviceHash: string;
+  existingClientUid?: string;
+  reserved: boolean;
+}
+
+function hashClientSignupDeviceId(deviceId: string): string {
+  return createHash("sha256").update(deviceId.trim()).digest("hex");
+}
+
+async function ensureClientSignupDevicesTableExists(): Promise<void> {
+  await db.$client.execute({
+    sql: `
+      create table if not exists client_signup_devices (
+        device_hash text primary key not null,
+        client_uid text references user(id) on delete restrict,
+        created_at integer not null
+      )
+    `,
+    args: [],
+  });
+}
+
+export async function reserveClientSignupDevice(deviceId: string): Promise<ClientSignupDeviceReservation> {
+  const deviceHash = hashClientSignupDeviceId(deviceId);
+
+  await ensureClientSignupDevicesTableExists();
+
+  try {
+    await db.insert(clientSignupDevices).values({
+      deviceHash,
+      clientUid: null,
+      createdAt: now(),
+    });
+
+    return { deviceHash, reserved: true };
+  } catch (error: unknown) {
+    const [existing] = await db
+      .select({
+        clientUid: clientSignupDevices.clientUid,
+      })
+      .from(clientSignupDevices)
+      .where(eq(clientSignupDevices.deviceHash, deviceHash))
+      .limit(1);
+
+    if (existing) {
+      return {
+        deviceHash,
+        existingClientUid: existing.clientUid ?? undefined,
+        reserved: false,
+      };
+    }
+
+    throw error;
+  }
+}
+
+export async function attachClientSignupDeviceToClient(input: {
+  clientUid: string;
+  deviceHash: string;
+}): Promise<void> {
+  await ensureClientSignupDevicesTableExists();
+  await db
+    .update(clientSignupDevices)
+    .set({ clientUid: input.clientUid })
+    .where(eq(clientSignupDevices.deviceHash, input.deviceHash));
+}
+
+export async function releaseClientSignupDeviceReservation(deviceHash: string): Promise<void> {
+  await ensureClientSignupDevicesTableExists();
+  await db
+    .delete(clientSignupDevices)
+    .where(and(eq(clientSignupDevices.deviceHash, deviceHash), sql`${clientSignupDevices.clientUid} is null`));
 }
 
 export async function listAppUsers(): Promise<AppUser[]> {

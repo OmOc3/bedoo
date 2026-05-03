@@ -28,6 +28,9 @@ export async function updateAppSettingsAction(formData: FormData): Promise<void>
     maintenanceEnabled: booleanFromFormData(formData, "maintenanceEnabled"),
     maintenanceMessage: stringFromFormData(formData, "maintenanceMessage"),
     clientDailyStationOrderLimit: numberFromFormData(formData, "clientDailyStationOrderLimit"),
+    supportEmail: stringFromFormData(formData, "supportEmail"),
+    supportHours: stringFromFormData(formData, "supportHours"),
+    supportPhone: stringFromFormData(formData, "supportPhone"),
   });
 
   if (!parsed.success) {
@@ -41,6 +44,9 @@ export async function updateAppSettingsAction(formData: FormData): Promise<void>
       maintenanceEnabled: parsed.data.maintenanceEnabled,
       maintenanceMessage: parsed.data.maintenanceMessage,
       clientDailyStationOrderLimit: parsed.data.clientDailyStationOrderLimit,
+      supportEmail: parsed.data.supportEmail,
+      supportHours: parsed.data.supportHours,
+      supportPhone: parsed.data.supportPhone,
     });
   } catch (error: unknown) {
     redirect(`/dashboard/manager/settings?error=${encodeURIComponent(error instanceof Error ? error.message : "تعذر حفظ الإعدادات.")}`);
@@ -49,6 +55,7 @@ export async function updateAppSettingsAction(formData: FormData): Promise<void>
   revalidatePath("/dashboard/manager/settings");
   revalidatePath("/dashboard/manager");
   revalidatePath("/client/portal");
+  revalidatePath("/client/signup");
   revalidatePath("/scan");
   redirect("/dashboard/manager/settings?success=1");
 }

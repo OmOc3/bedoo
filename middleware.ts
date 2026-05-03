@@ -285,7 +285,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       return NextResponse.redirect(url);
     }
 
-    if ((pathname.startsWith("/dashboard") || pathname.startsWith("/scan")) && payload.role === "client") {
+    if (
+      payload.role === "client" &&
+      (pathname.startsWith("/dashboard") || pathname.startsWith("/scan") || pathname.startsWith("/station"))
+    ) {
       const url = request.nextUrl.clone();
       url.pathname = getRoleRedirect(payload.role);
       return NextResponse.redirect(url);

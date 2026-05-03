@@ -31,7 +31,31 @@ interface ManagerUsersPageProps {
 type StatusFilter = "active" | "all" | "inactive";
 type StaffRole = Exclude<UserRole, "client">;
 
-const roleOptions = (Object.keys(roleLabels) as UserRole[]).filter((role): role is StaffRole => role !== "client");
+interface RoleGroupConfig {
+  description: string;
+  label: string;
+  role: StaffRole;
+}
+
+const roleGroups: RoleGroupConfig[] = [
+  {
+    description: "صلاحيات كاملة لإدارة النظام والمراجعة والتقارير.",
+    label: "المدراء",
+    role: "manager",
+  },
+  {
+    description: "متابعة التشغيل اليومي ومراجعة البلاغات والطلبات.",
+    label: "المشرفون",
+    role: "supervisor",
+  },
+  {
+    description: "فرق الزيارات الميدانية والمسح وتسجيل التقارير.",
+    label: "الفنيون",
+    role: "technician",
+  },
+];
+
+const roleOptions = roleGroups.map((group) => group.role);
 
 function getInitials(name: string): string {
   const initials = name
@@ -58,6 +82,16 @@ function normalizeRoleFilter(value: string | undefined): StaffRole | "all" {
 
 function normalizeStatusFilter(value: string | undefined): StatusFilter {
   return value === "active" || value === "inactive" ? value : "all";
+}
+
+function sortUsersForTeamView(users: AppUser[]): AppUser[] {
+  return [...users].sort((first, second) => {
+    if (first.isActive !== second.isActive) {
+      return first.isActive ? -1 : 1;
+    }
+
+    return first.displayName.localeCompare(second.displayName, "ar");
+  });
 }
 
 function userMatchesSearch(user: AppUser, query: string): boolean {
@@ -100,10 +134,9 @@ function RoleBadge({ role }: { role: UserRole }) {
 
 function StatTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--surface-subtle)] px-5 py-4 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-md">
-      <div className="absolute inset-0 bg-gradient-to-br from-teal-500/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <p className="relative text-sm font-medium text-[var(--muted)]">{label}</p>
-      <p className="relative mt-2 text-3xl font-extrabold tracking-tight text-[var(--foreground)]">{value}</p>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-sm">
+      <p className="text-sm font-medium text-[var(--muted)]">{label}</p>
+      <p className="mt-2 text-3xl font-bold tracking-tight text-[var(--foreground)]">{value}</p>
     </div>
   );
 }
@@ -149,6 +182,134 @@ function UserTools({ disabled, user }: { disabled: boolean; user: AppUser }) {
   );
 }
 
+function RoleGroupSummary({ activeCount, totalCount }: { activeCount: number; totalCount: number }) {
+  const inactiveCount = totalCount - activeCount;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+      <span className="rounded-full bg-[var(--surface-subtle)] px-2.5 py-1 text-[var(--foreground)] ring-1 ring-[var(--border)]">
+        {totalCount} حساب
+      </span>
+      <span className="rounded-full bg-green-100 px-2.5 py-1 text-green-800">
+        {activeCount} نشط
+      </span>
+      {inactiveCount > 0 ? (
+        <span className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-600">
+          {inactiveCount} غير نشط
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function UserManagementDetails({ currentUid, user }: { currentUid: string; user: AppUser }) {
+  const isCurrentUser = user.uid === currentUid;
+
+  return (
+    <details className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm transition-colors">
+      <summary className="flex cursor-pointer items-center justify-between gap-3 rounded-xl px-5 py-3 text-sm font-bold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)] [&[open]]:rounded-b-none">
+        إدارة حساب {user.displayName}
+        <span className="text-[var(--muted)] transition-transform duration-150 group-open:-rotate-180">
+          <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </span>
+      </summary>
+      <div className="border-t border-[var(--border-subtle)] p-5">
+        <UserTools disabled={isCurrentUser} user={user} />
+      </div>
+    </details>
+  );
+}
+
+function UsersTable({ currentUid, users }: { currentUid: string; users: AppUser[] }) {
+  return (
+    <div className="hidden overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] lg:block">
+      <table className="w-full min-w-[920px]">
+        <thead className="border-b border-[var(--border-subtle)] bg-[var(--surface-subtle)]">
+          <tr>
+            <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">المستخدم</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">الحالة</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">تاريخ الإنشاء</th>
+            <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">UID</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[var(--border-subtle)]">
+          {users.map((user) => (
+            <Fragment key={user.uid}>
+              <tr className="align-top transition-colors hover:bg-[var(--surface-subtle)]">
+                <td className="px-4 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <UserAvatar user={user} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-[var(--foreground)]">{user.displayName}</p>
+                      <p className="truncate text-xs text-[var(--muted)]">{user.email}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3"><UserStatus isActive={user.isActive} /></td>
+                <td className="px-4 py-3 text-sm text-[var(--muted)]">{formatTimestamp(user.createdAt)}</td>
+                <td className="px-4 py-3 text-xs text-[var(--muted)]" dir="ltr">{user.uid}</td>
+              </tr>
+              <tr className="bg-[var(--surface-subtle)]/50">
+                <td className="px-5 py-3" colSpan={4}>
+                  <UserManagementDetails currentUid={currentUid} user={user} />
+                </td>
+              </tr>
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function MobileUserCard({ currentUid, user }: { currentUid: string; user: AppUser }) {
+  return (
+    <article className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm" key={user.uid}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <UserAvatar user={user} />
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-bold text-[var(--foreground)]">{user.displayName}</h3>
+            <p className="truncate text-xs text-[var(--muted)]">{user.email}</p>
+          </div>
+        </div>
+        <UserStatus isActive={user.isActive} />
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+        <RoleBadge role={user.role} />
+        <span>إنشاء: {formatTimestamp(user.createdAt)}</span>
+      </div>
+      <div className="mt-5">
+        <UserManagementDetails currentUid={currentUid} user={user} />
+      </div>
+    </article>
+  );
+}
+
+function RoleSection({ currentUid, group, users }: { currentUid: string; group: RoleGroupConfig; users: AppUser[] }) {
+  const activeCount = users.filter((user) => user.isActive).length;
+
+  return (
+    <section className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-bold text-[var(--foreground)]">{group.label}</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{group.description}</p>
+        </div>
+        <RoleGroupSummary activeCount={activeCount} totalCount={users.length} />
+      </div>
+      <UsersTable currentUid={currentUid} users={users} />
+      <div className="grid gap-3 lg:hidden">
+        {users.map((user) => (
+          <MobileUserCard currentUid={currentUid} key={user.uid} user={user} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default async function ManagerUsersPage({ searchParams }: ManagerUsersPageProps) {
   const session = await requireRole(["manager"]);
   const params = await searchParams;
@@ -157,7 +318,7 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
   const query = (params.q ?? "").trim();
   const roleFilter = normalizeRoleFilter(params.role);
   const statusFilter = normalizeStatusFilter(params.status);
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = sortUsersForTeamView(users).filter((user) => {
     const roleMatches = roleFilter === "all" || user.role === roleFilter;
     const statusMatches =
       statusFilter === "all" || (statusFilter === "active" ? user.isActive : !user.isActive);
@@ -166,7 +327,15 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
   });
   const activeUsers = users.filter((user) => user.isActive).length;
   const inactiveUsers = users.length - activeUsers;
-  const fieldUsers = users.filter((user) => user.role === "technician").length;
+  const technicianUsers = users.filter((user) => user.role === "technician").length;
+  const supervisorUsers = users.filter((user) => user.role === "supervisor").length;
+  const managerUsers = users.filter((user) => user.role === "manager").length;
+  const visibleGroups = roleGroups
+    .map((group) => ({
+      ...group,
+      users: filteredUsers.filter((user) => user.role === group.role),
+    }))
+    .filter((group) => group.users.length > 0);
 
   return (
     <DashboardShell role="manager">
@@ -196,21 +365,23 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
           </div>
         }
         backHref="/dashboard/manager"
-        description="إدارة كثيفة للحسابات: إنشاء، بحث، تصفية، تعديل بيانات، تغيير دور، تفعيل، وتحديث كود الدخول."
+        description="إدارة الفريق مقسمة حسب الدور مع البحث والتصفية وتحديث الحسابات من نفس المكان."
         title="الفريق"
       />
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <StatTile label="إجمالي المستخدمين" value={users.length} />
         <StatTile label="حسابات نشطة" value={activeUsers} />
         <StatTile label="حسابات غير نشطة" value={inactiveUsers} />
-        <StatTile label="فنيون" value={fieldUsers} />
+        <StatTile label="مدراء" value={managerUsers} />
+        <StatTile label="مشرفون" value={supervisorUsers} />
+        <StatTile label="فنيون" value={technicianUsers} />
       </section>
 
-      <details className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card transition-all duration-300 [&[open]]:shadow-card-md">
-        <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 px-5 py-3 text-sm font-bold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)] rounded-2xl [&[open]]:rounded-b-none">
+      <details className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm transition-colors">
+        <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-3 rounded-xl px-5 py-3 text-sm font-bold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)] [&[open]]:rounded-b-none">
           إنشاء مستخدم جديد
-          <span className="text-xs font-semibold text-[var(--muted)] transition-transform duration-300 group-open:-rotate-180">
+          <span className="text-xs font-semibold text-[var(--muted)] transition-transform duration-150 group-open:-rotate-180">
             <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
               <path d="m6 9 6 6 6-6" />
             </svg>
@@ -221,7 +392,7 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
         </div>
       </details>
 
-      <form action="/dashboard/manager/team" className="grid gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card lg:grid-cols-[minmax(260px,1fr)_180px_180px_auto]">
+      <form action="/dashboard/manager/team" className="grid gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-sm lg:grid-cols-[minmax(260px,1fr)_180px_180px_auto]">
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-[var(--muted)]" htmlFor="users-search">
             البحث
@@ -268,7 +439,7 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
           </select>
         </div>
         <div className="flex items-end gap-3">
-          <button className="min-h-11 rounded-lg bg-[var(--primary)] px-6 py-2 text-sm font-semibold text-[var(--primary-foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98]" type="submit">
+          <button className="min-h-11 rounded-lg bg-[var(--primary)] px-6 py-2 text-sm font-semibold text-[var(--primary-foreground)] shadow-sm transition-colors hover:bg-[var(--primary-hover)]" type="submit">
             تطبيق
           </button>
           <Link className="inline-flex min-h-11 items-center rounded-lg border border-[var(--border)] px-5 py-2 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]" href="/dashboard/manager/team">
@@ -277,106 +448,16 @@ export default async function ManagerUsersPage({ searchParams }: ManagerUsersPag
         </div>
       </form>
 
-      {filteredUsers.length === 0 ? (
+      {visibleGroups.length === 0 ? (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-control">
           <EmptyState description="غيّر البحث أو أضف مستخدمًا جديدًا من أعلى الصفحة." title="لا توجد نتائج مطابقة" />
         </div>
       ) : (
-        <>
-          <div className="hidden overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card lg:block">
-            <table className="w-full min-w-[980px]">
-              <thead className="bg-[var(--surface-subtle)]">
-                <tr>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">المستخدم</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">الدور</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">الحالة</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">تاريخ الإنشاء</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-[var(--muted)]">UID</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
-                {filteredUsers.map((user) => {
-                  const isCurrentUser = user.uid === session.uid;
-
-                  return (
-                    <Fragment key={user.uid}>
-                      <tr className="align-top transition-colors hover:bg-[var(--surface-subtle)]" key={user.uid}>
-                        <td className="px-4 py-3">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <UserAvatar user={user} />
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-bold text-[var(--foreground)]">{user.displayName}</p>
-                              <p className="truncate text-xs text-[var(--muted)]">{user.email}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3"><RoleBadge role={user.role} /></td>
-                        <td className="px-4 py-3"><UserStatus isActive={user.isActive} /></td>
-                        <td className="px-4 py-3 text-sm text-[var(--muted)]">{formatTimestamp(user.createdAt)}</td>
-                        <td className="px-4 py-3 text-xs text-[var(--muted)]" dir="ltr">{user.uid}</td>
-                      </tr>
-                      <tr className="bg-[var(--surface-subtle)]/50">
-                        <td className="px-5 py-3" colSpan={5}>
-                          <details className="group rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm transition-all duration-300">
-                            <summary className="cursor-pointer px-5 py-3 text-sm font-bold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)] rounded-xl [&[open]]:rounded-b-none flex items-center justify-between">
-                              إدارة حساب {user.displayName}
-                              <span className="text-[var(--muted)] transition-transform duration-300 group-open:-rotate-180">
-                                <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                                  <path d="m6 9 6 6 6-6" />
-                                </svg>
-                              </span>
-                            </summary>
-                            <div className="border-t border-[var(--border-subtle)] p-5">
-                              <UserTools disabled={isCurrentUser} user={user} />
-                            </div>
-                          </details>
-                        </td>
-                      </tr>
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="grid gap-3 lg:hidden">
-            {filteredUsers.map((user) => {
-              const isCurrentUser = user.uid === session.uid;
-
-              return (
-                <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card transition-all duration-300 hover:shadow-card-md" key={user.uid}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <UserAvatar user={user} />
-                      <div className="min-w-0">
-                        <h2 className="truncate text-base font-bold text-[var(--foreground)]">{user.displayName}</h2>
-                        <p className="truncate text-xs text-[var(--muted)]">{user.email}</p>
-                      </div>
-                    </div>
-                    <UserStatus isActive={user.isActive} />
-                  </div>
-                  <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
-                    <RoleBadge role={user.role} />
-                    <span>إنشاء: {formatTimestamp(user.createdAt)}</span>
-                  </div>
-                  <details className="group mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] transition-all duration-300">
-                    <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-bold text-[var(--foreground)]">
-                      إدارة الحساب
-                      <span className="text-[var(--muted)] transition-transform duration-300 group-open:-rotate-180">
-                        <svg aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
-                          <path d="m6 9 6 6 6-6" />
-                        </svg>
-                      </span>
-                    </summary>
-                    <div className="border-t border-[var(--border-subtle)] bg-[var(--surface)] p-4 rounded-b-xl">
-                      <UserTools disabled={isCurrentUser} user={user} />
-                    </div>
-                  </details>
-                </article>
-              );
-            })}
-          </div>
-        </>
+        <div className="space-y-5">
+          {visibleGroups.map((group) => (
+            <RoleSection currentUid={session.uid} group={group} key={group.role} users={group.users} />
+          ))}
+        </div>
       )}
     </DashboardShell>
   );

@@ -44,9 +44,11 @@ function formatApiErrorMessage(payload: ApiErrorResponse): string {
 
 interface LoginFormProps {
   expectedRole?: UserRole;
+  /** من صفحة دخول الإدارة والفريق — لا يُقبل حساب عميل عبر هذا المسار. */
+  staffPortalLogin?: boolean;
 }
 
-export function LoginForm({ expectedRole }: LoginFormProps = {}) {
+export function LoginForm({ expectedRole, staffPortalLogin }: LoginFormProps = {}) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const {
@@ -69,7 +71,7 @@ export function LoginForm({ expectedRole }: LoginFormProps = {}) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ...values, expectedRole }),
+        body: JSON.stringify({ ...values, expectedRole, ...(staffPortalLogin ? { staffPortalLogin: true } : {}) }),
       });
       const payload = (await response.json()) as unknown;
 

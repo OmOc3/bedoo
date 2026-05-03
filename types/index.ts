@@ -215,6 +215,13 @@ export interface ApiErrorResponse {
   code: string;
   debug?: string;
   retryAfterSeconds?: number;
+  supportContact?: SupportContactSettings;
+}
+
+export interface SupportContactSettings {
+  email?: string;
+  hours?: string;
+  phone?: string;
 }
 
 export interface AuthenticatedUserResponse {

@@ -211,6 +211,12 @@ export async function ensureAuthUserColumns(): Promise<void> {
 async function ensureRuntimeSchemaInternal(): Promise<void> {
   await ensureAuthUserColumns();
 
+  await addMissingColumns("app_settings", [
+    { name: "support_phone", sql: "ALTER TABLE `app_settings` ADD `support_phone` text" },
+    { name: "support_email", sql: "ALTER TABLE `app_settings` ADD `support_email` text" },
+    { name: "support_hours", sql: "ALTER TABLE `app_settings` ADD `support_hours` text" },
+  ]);
+
   await addMissingColumns("reports", [
     { name: "station_location", sql: "ALTER TABLE `reports` ADD `station_location` text" },
     { name: "pest_types", sql: "ALTER TABLE `reports` ADD `pest_types` text" },
@@ -226,6 +232,14 @@ async function ensureRuntimeSchemaInternal(): Promise<void> {
     )
   `);
   await execute("CREATE INDEX IF NOT EXISTS client_profiles_updated_at_idx ON client_profiles (updated_at)");
+
+  await execute(`
+    CREATE TABLE IF NOT EXISTS client_signup_devices (
+      device_hash text PRIMARY KEY NOT NULL,
+      client_uid text REFERENCES user(id) ON DELETE restrict,
+      created_at integer NOT NULL
+    )
+  `);
 
   await execute(`
     CREATE TABLE IF NOT EXISTS client_station_access (

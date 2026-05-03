@@ -52,7 +52,7 @@ export default async function LoginPage() {
                 <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">{i18n.auth.loginTitle}</h1>
                 <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{i18n.auth.loginSubtitle}</p>
               </div>
-              <LoginForm />
+              <LoginForm staffPortalLogin />
               <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-sm text-[var(--muted)]">
                 لو حسابك عميل، استخدم{" "}
                 <Link className="font-semibold text-teal-700 hover:underline" href="/client/login">

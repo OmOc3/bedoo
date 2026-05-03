@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getClientIp } from "@/lib/auth/client-ip";
 import { auth } from "@/lib/auth/better-auth";
 import { ensureAuthUserSchema } from "@/lib/auth/ensure-auth-schema";
 import { toAuthenticatedUserResponse } from "@/lib/auth/public-user";
@@ -22,19 +23,6 @@ const validRoles = new Set<UserRole>(["client", "technician", "supervisor", "man
 interface AuthClassification {
   blocked: boolean;
   profile: AppUser | null;
-}
-
-// Vercel appends the real client IP as the last x-forwarded-for entry, while attackers may prepend spoofed values.
-function getClientIp(request: NextRequest): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-
-  if (forwardedFor) {
-    const ips = forwardedFor.split(",").map((ip) => ip.trim()).filter(Boolean);
-    // Use the last IP - on Vercel this is the real client IP appended by the edge
-    return ips[ips.length - 1] ?? "unknown";
-  }
-
-  return request.headers.get("x-real-ip") ?? "unknown";
 }
 
 function unauthorizedResponse(): NextResponse<ApiErrorResponse> {
@@ -143,6 +131,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorR
       isRecord(body) && typeof body.expectedRole === "string" && validRoles.has(body.expectedRole as UserRole)
         ? body.expectedRole
         : undefined;
+    const staffPortalLogin = isRecord(body) && body.staffPortalLogin === true;
     const parsed = loginFormSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -201,6 +190,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiErrorR
       }
 
       if (expectedRole && authClassification.profile.role !== expectedRole) {
+        await recordFailedLogin(email, ipAddress);
+        return roleMismatchResponse(request);
+      }
+
+      if (staffPortalLogin && authClassification.profile.role === "client") {
         await recordFailedLogin(email, ipAddress);
         return roleMismatchResponse(request);
       }

@@ -14,10 +14,13 @@ const a4Width = 595.28;
 const a4Height = 841.89;
 const pdfScale = 2;
 
-const cairoArabicPath = path.join(process.cwd(), "assets", "fonts", "Cairo-Arabic-700.woff");
-const cairoLatinPath = path.join(process.cwd(), "assets", "fonts", "Cairo-Latin-700.woff");
+/** خط TTF كامل لتحسين التشكيل العربي أمام سلسلة Satori↔opentype (بديلاً عن مجموعة Cairo WOFFF المقسمة). */
+const tajawalBoldPath = path.join(process.cwd(), "assets", "fonts", "Tajawal-Bold.ttf");
 
-let cairoFontBuffers: { arabic: Buffer; latin: Buffer } | undefined;
+const stationPdfFontFamily = "Tajawal";
+const stationPdfFontWeight = 700 as const;
+
+let tajawalBoldBuffer: Buffer | undefined;
 
 function clampText(value: string, maxLength: number): string {
   const normalized = value.trim().replace(/\s+/g, " ");
@@ -29,13 +32,12 @@ function clampText(value: string, maxLength: number): string {
   return `${normalized.slice(0, maxLength - 1)}…`;
 }
 
-async function getCairoFonts(): Promise<{ arabic: Buffer; latin: Buffer }> {
-  if (!cairoFontBuffers) {
-    const [arabic, latin] = await Promise.all([readFile(cairoArabicPath), readFile(cairoLatinPath)]);
-    cairoFontBuffers = { arabic, latin };
+async function getTajawalBold(): Promise<Buffer> {
+  if (!tajawalBoldBuffer) {
+    tajawalBoldBuffer = await readFile(tajawalBoldPath);
   }
 
-  return cairoFontBuffers;
+  return tajawalBoldBuffer;
 }
 
 async function renderTextPng(input: {
@@ -51,7 +53,7 @@ async function renderTextPng(input: {
   /** عرض المربع النصي بالنقاط */
   width: number;
 }): Promise<Buffer> {
-  const { arabic, latin } = await getCairoFonts();
+  const fontData = await getTajawalBold();
   const w = Math.ceil(input.width * pdfScale);
   const h = Math.ceil(input.height * pdfScale);
   const fontSizePx = Math.round(input.fontSize * pdfScale);
@@ -61,7 +63,7 @@ async function renderTextPng(input: {
   const justifyContent =
     input.align === "left" ? "flex-start" : input.align === "right" ? "flex-end" : "center";
 
-  const fontWeightCss = input.fontWeight ?? 700;
+  const fontWeightCss = input.fontWeight ?? stationPdfFontWeight;
 
   const element = createElement(
     "div",
@@ -85,7 +87,7 @@ async function renderTextPng(input: {
           display: "flex",
           flex: 1,
           flexDirection: "column",
-          fontFamily: "Cairo",
+          fontFamily: stationPdfFontFamily,
           fontSize: `${fontSizePx}px`,
           fontWeight: fontWeightCss,
           justifyContent: "center",
@@ -101,10 +103,7 @@ async function renderTextPng(input: {
   );
 
   const svg = await satori(element, {
-    fonts: [
-      { data: latin, name: "Cairo", style: "normal", weight: 700 },
-      { data: arabic, name: "Cairo", style: "normal", weight: 700 },
-    ],
+    fonts: [{ data: fontData, name: stationPdfFontFamily, style: "normal", weight: stationPdfFontWeight }],
     height: h,
     width: w,
   });
