@@ -5,17 +5,15 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/layout/page-header";
 import { ReportMobileCard } from "@/components/reports/report-mobile-card";
 import { ReportPhotoLinks } from "@/components/reports/report-photo-links";
-import {
-  buildReportsListingHref,
-  ReportsFilterForm,
-  type ReportsFilterValues,
-} from "@/components/reports/reports-filter-form";
-import { EditSubmittedReportForm, editableSubmittedReportFields } from "@/components/reports/edit-submitted-report-form";
+import { ReportsFilterForm } from "@/components/reports/reports-filter-form";
+import { EditSubmittedReportForm } from "@/components/reports/edit-submitted-report-form";
+import { editableSubmittedReportFields } from "@/lib/reports/editable-submitted-fields";
 import { ReviewReportForm } from "@/components/reports/review-report-form";
 import { StatusPills } from "@/components/reports/status-pills";
 import { requireRole } from "@/lib/auth/server-session";
 import { formatDateTimeRome } from "@/lib/datetime";
 import { formatPestTypesLine } from "@/lib/reports/report-display";
+import { buildReportsListingHref, type ReportsFilterValues } from "@/lib/reports/report-filters";
 import { listReports, listStations } from "@/lib/db/repositories";
 import { decodeReportCursor, encodeReportCursor } from "@/lib/pagination/report-cursor";
 import type { AppTimestamp, Report, UserRole } from "@/types";

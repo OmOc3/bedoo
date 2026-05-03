@@ -704,6 +704,34 @@ export async function writeAuditLogRecord(entry: {
   });
 }
 
+function auditLogsWhereClause(input: {
+  action?: string;
+  actorUid?: string;
+  dateFrom?: Date | null;
+  dateTo?: Date | null;
+  entityType?: string;
+}): SQL | undefined {
+  const conditions = [
+    input.action ? eq(auditLogs.action, input.action) : undefined,
+    input.entityType ? eq(auditLogs.entityType, input.entityType) : undefined,
+    input.actorUid ? eq(auditLogs.actorUid, input.actorUid) : undefined,
+    input.dateFrom ? gte(auditLogs.createdAt, input.dateFrom) : undefined,
+    input.dateTo ? lte(auditLogs.createdAt, input.dateTo) : undefined,
+  ].filter((condition): condition is SQL => condition !== undefined);
+
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
+export async function countAuditLogs(input: {
+  action?: string;
+  actorUid?: string;
+  dateFrom?: Date | null;
+  dateTo?: Date | null;
+  entityType?: string;
+}): Promise<number> {
+  return countRows("auditLogs", auditLogsWhereClause(input));
+}
+
 export async function listAuditLogs(input: {
   action?: string;
   actorUid?: string;
@@ -711,21 +739,19 @@ export async function listAuditLogs(input: {
   dateTo?: Date | null;
   entityType?: string;
   limit: number;
+  offset?: number;
 }): Promise<AuditLog[]> {
-  const conditions = [
-    input.action ? eq(auditLogs.action, input.action) : undefined,
-    input.entityType ? eq(auditLogs.entityType, input.entityType) : undefined,
-    input.actorUid ? eq(auditLogs.actorUid, input.actorUid) : undefined,
-    input.dateFrom ? gte(auditLogs.createdAt, input.dateFrom) : undefined,
-    input.dateTo ? lte(auditLogs.createdAt, input.dateTo) : undefined,
-  ].filter((condition) => condition !== undefined);
+  const where = auditLogsWhereClause(input);
 
-  const rows = await db
+  const base = db
     .select()
     .from(auditLogs)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .where(where)
     .orderBy(desc(auditLogs.createdAt))
     .limit(input.limit);
+
+  const rows =
+    input.offset !== undefined && input.offset > 0 ? await base.offset(input.offset) : await base;
 
   return rows.map(auditLogFromRow);
 }

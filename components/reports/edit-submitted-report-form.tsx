@@ -7,24 +7,12 @@ import { useForm } from "react-hook-form";
 import { editSubmittedReportAction, type EditSubmittedReportActionResult } from "@/app/actions/reports";
 import { Button } from "@/components/ui/button";
 import { pestTypeLabels, statusOptionLabels } from "@/lib/i18n";
+import type { EditableSubmittedReportFields } from "@/lib/reports/editable-submitted-fields";
 import { editSubmittedReportSchema, type EditSubmittedReportValues } from "@/lib/validation/reports";
-import type { Report, StatusOption } from "@/types";
+import type { StatusOption } from "@/types";
 import { pestTypeOptions } from "@ecopest/shared/constants";
 
 const statusOptions = Object.keys(statusOptionLabels) as StatusOption[];
-
-/** Serializable subset for passage from Server → Client Components (no AppTimestamp/functions). */
-export type EditableSubmittedReportFields = Pick<Report, "reportId" | "notes" | "pestTypes" | "status">;
-
-/** Use when rendering from a server page so only JSON-serializable fields cross the client boundary. */
-export function editableSubmittedReportFields(report: Report): EditableSubmittedReportFields {
-  return {
-    reportId: report.reportId,
-    notes: report.notes,
-    pestTypes: report.pestTypes,
-    status: report.status,
-  };
-}
 
 interface EditSubmittedReportFormProps {
   canEdit: boolean;

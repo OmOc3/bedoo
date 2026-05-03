@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { DashboardShell } from "@/components/layout/dashboard-page";
 import { PageHeader } from "@/components/layout/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { requireRole } from "@/lib/auth/server-session";
-import { listAuditLogs } from "@/lib/db/repositories";
+import { countAuditLogs, listAuditLogs } from "@/lib/db/repositories";
 import { APP_TIME_ZONE } from "@/lib/datetime";
 import type { AppTimestamp } from "@/types";
 
@@ -14,6 +15,7 @@ interface AuditPageProps {
     dateFrom?: string;
     dateTo?: string;
     entityType?: string;
+    page?: string;
   }>;
 }
 
@@ -64,20 +66,79 @@ function metadataSummary(metadata: Record<string, unknown> | undefined): string 
     .join("، ");
 }
 
+function buildAuditListHref(
+  params: {
+    action?: string;
+    actorUid?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    entityType?: string;
+  },
+  page: number,
+): string {
+  const search = new URLSearchParams();
+
+  if (params.action) {
+    search.set("action", params.action);
+  }
+
+  if (params.entityType) {
+    search.set("entityType", params.entityType);
+  }
+
+  if (params.actorUid) {
+    search.set("actorUid", params.actorUid);
+  }
+
+  if (params.dateFrom) {
+    search.set("dateFrom", params.dateFrom);
+  }
+
+  if (params.dateTo) {
+    search.set("dateTo", params.dateTo);
+  }
+
+  if (page > 1) {
+    search.set("page", String(page));
+  }
+
+  const query = search.toString();
+
+  return query.length > 0 ? `?${query}` : "";
+}
+
 export default async function ManagerAuditPage({ searchParams }: AuditPageProps) {
   const params = await searchParams;
   await requireRole(["manager"]);
 
   const dateFrom = parseDate(params.dateFrom);
   const dateTo = parseDate(params.dateTo, true);
-  const logs = await listAuditLogs({
+
+  const filterInput = {
     action: params.action,
     actorUid: params.actorUid,
     entityType: params.entityType,
     dateFrom,
     dateTo,
+  };
+
+  const totalCount = await countAuditLogs(filterInput);
+  const totalPages = totalCount === 0 ? 0 : Math.ceil(totalCount / pageSize);
+
+  const parsedPage = Number.parseInt(params.page ?? "1", 10);
+  const safePage =
+    totalPages === 0
+      ? 1
+      : Math.min(Math.max(1, Number.isFinite(parsedPage) ? parsedPage : 1), totalPages);
+
+  const logs = await listAuditLogs({
+    ...filterInput,
     limit: pageSize,
+    offset: (safePage - 1) * pageSize,
   });
+
+  const rangeFrom = totalCount === 0 ? 0 : (safePage - 1) * pageSize + 1;
+  const rangeTo = totalCount === 0 ? 0 : Math.min(safePage * pageSize, totalCount);
 
   return (
     <DashboardShell role="manager">
@@ -87,7 +148,8 @@ export default async function ManagerAuditPage({ searchParams }: AuditPageProps)
           title="سجل العمليات"
         />
 
-        <form className="grid gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-control sm:grid-cols-2 sm:p-6 xl:grid-cols-5" dir="rtl">
+        <form className="grid gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-control sm:grid-cols-2 sm:p-6 xl:grid-cols-5" dir="rtl" method="get">
+          <input className="hidden" name="page" type="hidden" value="1" />
           <div className="space-y-1.5 sm:col-span-2 xl:col-span-1">
             <label className="block text-sm font-medium text-[var(--foreground)]" htmlFor="audit-action">
               الإجراء
@@ -160,6 +222,12 @@ export default async function ManagerAuditPage({ searchParams }: AuditPageProps)
             <EmptyState description="لا توجد عمليات مطابقة للفلاتر الحالية." title="لا توجد سجلات" />
           </div>
         ) : (
+          <div className="space-y-3">
+            <p className="text-center text-sm text-[var(--muted)]" dir="rtl">
+              عرض {rangeFrom.toLocaleString("ar-EG")}–{rangeTo.toLocaleString("ar-EG")} من{" "}
+              {totalCount.toLocaleString("ar-EG")} سجل — الصفحة {safePage.toLocaleString("ar-EG")} من{" "}
+              {totalPages.toLocaleString("ar-EG")}
+            </p>
           <div className="-mx-4 overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-control sm:mx-0">
             <table className="w-full min-w-[980px]">
               <thead className="border-b border-[var(--border)] bg-[var(--surface-subtle)]">
@@ -187,6 +255,12 @@ export default async function ManagerAuditPage({ searchParams }: AuditPageProps)
                 ))}
               </tbody>
             </table>
+          </div>
+          <PaginationBar
+            buildHref={(page) => buildAuditListHref(params, page)}
+            currentPage={safePage}
+            totalPages={totalPages}
+          />
           </div>
         )}
     </DashboardShell>
