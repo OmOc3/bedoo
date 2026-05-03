@@ -3,7 +3,7 @@ import { mobileApiErrorResponse } from "@/lib/api/mobile";
 import { mobileStationResponse, type MobileStationResponse } from "@/lib/api/mobile-serializers";
 import { writeAuditLog } from "@/lib/audit";
 import { requireBearerRole } from "@/lib/auth/bearer-session";
-import { getStationById, toggleStationStatusRecord, updateStationRecord } from "@/lib/db/repositories";
+import { deleteStationIfSafe, getStationById, toggleStationStatusRecord, updateStationRecord } from "@/lib/db/repositories";
 import { AppError } from "@/lib/errors";
 import { buildStationReportUrl } from "@/lib/url/base-url";
 import { updateStationSchema } from "@/lib/validation/stations";
@@ -34,7 +34,7 @@ export async function GET(
   { params }: MobileStationRouteContext,
 ): Promise<NextResponse<MobileStationResponse | { code: string; message: string }>> {
   try {
-    await requireBearerRole(request, ["technician", "manager"]);
+    await requireBearerRole(request, ["technician", "supervisor", "manager"]);
     const { stationId } = await params;
     const station = await getStationById(stationId);
 
@@ -129,6 +129,26 @@ export async function PATCH(
         updatedBy: session.uid,
       }),
     );
+  } catch (error: unknown) {
+    return mobileApiErrorResponse(error);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: MobileStationRouteContext,
+): Promise<NextResponse<{ success: true } | { code: string; message: string }>> {
+  try {
+    const session = await requireBearerRole(request, ["manager"]);
+    const { stationId } = await params;
+
+    await deleteStationIfSafe({
+      actorRole: session.role,
+      actorUid: session.uid,
+      stationId,
+    });
+
+    return NextResponse.json({ success: true });
   } catch (error: unknown) {
     return mobileApiErrorResponse(error);
   }

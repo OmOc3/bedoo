@@ -6,7 +6,6 @@ import { BrandLockup } from "@/components/layout/brand";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { CopyrightFooter } from "@/components/legal/copyright-footer";
 import { WebQrScanner } from "@/components/station/web-qr-scanner";
-import { NearbyStations } from "@/components/station/nearby-stations";
 import { ShiftClockPanel } from "@/components/shifts/shift-clock-panel";
 import { getCurrentSession } from "@/lib/auth/server-session";
 import {
@@ -275,12 +274,8 @@ export default async function ScanPage() {
             {/* If shift IS active → show full technician dashboard */}
             {isShiftActive && (
               <div className="space-y-8">
-                {/* QR + Nearby */}
-                <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
-                  <div className="space-y-4">
-                    <h2 className="text-xl font-black text-[var(--foreground)]">المحطات القريبة</h2>
-                    <NearbyStations />
-                  </div>
+                <div className="mx-auto max-w-lg space-y-4">
+                  <p className="text-center text-sm leading-6 text-[var(--muted)]">{i18n.scan.technicianQrOnlyNote}</p>
                   <div className="overflow-hidden rounded-[2rem] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-2xl">
                     <h3 className="mb-4 text-lg font-bold text-[var(--foreground)]">الماسح الضوئي</h3>
                     <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-black">

@@ -1,9 +1,69 @@
-import type { SharedReviewStatus, SharedStatusOption, SharedUserRole } from '@ecopest/shared/constants';
+import type {
+  MobileAdminAnalytics as SharedMobileAdminAnalytics,
+  MobileAdminOverview as SharedMobileAdminOverview,
+  MobileAdminTasks as SharedMobileAdminTasks,
+  MobileAppSettings as SharedMobileAppSettings,
+  MobileAppUser as SharedMobileAppUser,
+  MobileAuditLog as SharedMobileAuditLog,
+  MobileClientAccountDetail as SharedMobileClientAccountDetail,
+  MobileClientDirectoryEntry as SharedMobileClientDirectoryEntry,
+  MobileClientOrder as SharedMobileClientOrder,
+  MobileClientOrdersResponse as SharedMobileClientOrdersResponse,
+  MobileClientOrderStatus,
+  MobileClientProfile as SharedMobileClientProfile,
+  MobileClientStationAccess as SharedMobileClientStationAccess,
+  MobileCoordinates,
+  MobileDailyReportPhoto as SharedMobileDailyReportPhoto,
+  MobileDailyWorkReport as SharedMobileDailyWorkReport,
+  MobileManagerDashboardStats as SharedMobileManagerDashboardStats,
+  MobileReport as SharedMobileReport,
+  MobileReportPhotoPaths,
+  MobileReviewStatus,
+  MobileShiftListResponse as SharedMobileShiftListResponse,
+  MobileShiftMutationResponse as SharedMobileShiftMutationResponse,
+  MobileStation as SharedMobileStation,
+  MobileStatusOption,
+  MobileSupervisorDashboardStats as SharedMobileSupervisorDashboardStats,
+  MobileTechnicianShift as SharedMobileTechnicianShift,
+  MobileTechnicianWorkSchedule as SharedMobileTechnicianWorkSchedule,
+  MobileUserRole,
+} from '@ecopest/shared/mobile';
 
-export type UserRole = SharedUserRole;
-export type StatusOption = SharedStatusOption;
-export type ReviewStatus = SharedReviewStatus;
-export type ClientOrderStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type UserRole = MobileUserRole;
+export type StatusOption = MobileStatusOption;
+export type ReviewStatus = MobileReviewStatus;
+export type ClientOrderStatus = MobileClientOrderStatus;
+export type Coordinates = MobileCoordinates;
+export type ReportPhotoPaths = MobileReportPhotoPaths;
+export type AppUser = SharedMobileAppUser;
+export type MobileAppUser = SharedMobileAppUser;
+export type Station = SharedMobileStation;
+export type Report = SharedMobileReport;
+export type MobileReviewReport = SharedMobileReport;
+export type AuditLog = SharedMobileAuditLog;
+export type AttendanceLocation = import('@ecopest/shared/mobile').MobileAttendanceLocation;
+export type AttendanceSession = import('@ecopest/shared/mobile').MobileAttendanceSession;
+export type OpenAttendanceResponse = {
+  openSession: AttendanceSession | null;
+};
+export type MobileClientOrder = SharedMobileClientOrder;
+export type MobileClientOrdersResponse = SharedMobileClientOrdersResponse;
+export type MobileAdminTasks = SharedMobileAdminTasks;
+export type MobileAdminAnalytics = SharedMobileAdminAnalytics;
+export type MobileManagerDashboardStats = SharedMobileManagerDashboardStats;
+export type MobileSupervisorDashboardStats = SharedMobileSupervisorDashboardStats;
+export type MobileAdminOverview = SharedMobileAdminOverview;
+export type MobileTechnicianShift = SharedMobileTechnicianShift;
+export type MobileShiftListResponse = SharedMobileShiftListResponse;
+export type MobileShiftMutationResponse = SharedMobileShiftMutationResponse;
+export type MobileTechnicianWorkSchedule = SharedMobileTechnicianWorkSchedule;
+export type MobileDailyWorkReport = SharedMobileDailyWorkReport;
+export type MobileDailyReportPhoto = SharedMobileDailyReportPhoto;
+export type MobileAppSettings = SharedMobileAppSettings;
+export type MobileClientProfile = SharedMobileClientProfile;
+export type MobileClientStationAccess = SharedMobileClientStationAccess;
+export type MobileClientDirectoryEntry = SharedMobileClientDirectoryEntry;
+export type MobileClientAccountDetail = SharedMobileClientAccountDetail;
 
 export interface AppTimestamp {
   seconds: number;
@@ -11,230 +71,24 @@ export interface AppTimestamp {
   toDate: () => Date;
 }
 
-export interface Coordinates {
-  lat: number;
-  lng: number;
-}
-
-export interface ReportPhotoPaths {
-  after?: string;
-  before?: string;
-  station?: string;
-}
-
-export interface AppUser {
-  uid: string;
-  email: string;
-  displayName: string;
-  role: UserRole;
-  createdAt: AppTimestamp;
-  isActive: boolean;
-  image?: string | null;
-}
-
-export interface MobileAppUser {
-  uid: string;
-  email: string;
-  displayName: string;
-  role: UserRole;
-  isActive: boolean;
-  image?: string | null;
-  createdAt?: string;
-}
-
-export interface MobileReviewReport {
-  clientReportId?: string;
-  notes?: string;
-  photoCount?: number;
-  reportId: string;
-  reviewNotes?: string;
-  reviewStatus: ReviewStatus;
-  stationId: string;
-  stationLabel: string;
-  status: StatusOption[];
-  submittedAt?: string;
-  technicianName: string;
-  technicianUid: string;
-}
-
-export interface Station {
-  stationId: string;
-  label: string;
-  location: string;
-  description?: string;
-  distanceMeters?: number;
-  zone?: string;
-  photoUrls?: string[];
-  coordinates?: Coordinates;
-  qrCodeValue?: string;
-  isActive: boolean;
-  requiresImmediateSupervision?: boolean;
-  createdAt?: string;
-  createdBy?: string;
-  updatedAt?: string;
-  updatedBy?: string;
-  lastVisitedAt?: string;
-  lastVisitedBy?: string;
-  totalReports: number;
-}
-
-export interface Report {
-  reportId: string;
-  stationId: string;
-  stationLabel: string;
-  technicianUid?: string;
-  technicianName?: string;
-  status: StatusOption[];
-  clientReportId?: string;
-  notes?: string;
-  photoPaths?: ReportPhotoPaths;
-  submittedAt?: string;
-  reviewStatus: ReviewStatus;
-  editedAt?: string;
-  editedBy?: string;
-  reviewedAt?: string;
-  reviewedBy?: string;
-  reviewNotes?: string;
-}
-
-export interface AuditLog {
-  logId: string;
-  actorUid: string;
-  actorRole: UserRole;
-  action: string;
-  entityType: string;
-  entityId: string;
-  createdAt?: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface AttendanceLocation {
-  accuracyMeters?: number;
-  clientName?: string;
-  clientUid?: string;
-  coordinates: Coordinates;
-  distanceMeters: number;
-  stationId: string;
-  stationLabel: string;
-}
-
-export interface AttendanceSession {
-  attendanceId: string;
-  clockInAt?: string;
-  clockInLocation?: AttendanceLocation;
-  clockOutAt?: string;
-  clockOutLocation?: AttendanceLocation;
-  notes?: string;
-  technicianName: string;
-  technicianUid: string;
-}
-
-export interface OpenAttendanceResponse {
-  openSession: AttendanceSession | null;
-}
-
-export interface MobileClientOrder {
-  clientName: string;
-  clientUid: string;
-  createdAt?: string;
-  decisionNote?: string;
-  note?: string;
-  orderId: string;
-  photoUrl?: string;
-  proposalDescription?: string;
-  proposalLat?: number;
-  proposalLng?: number;
-  proposalLocation?: string;
-  reviewedAt?: string;
-  reviewedBy?: string;
-  stationId?: string;
-  stationLabel: string;
-  stationLocation?: string;
-  status: ClientOrderStatus;
-}
-
-export interface MobileClientOrdersResponse {
-  orders: MobileClientOrder[];
-  reports?: MobileReviewReport[];
-  stations?: Station[];
-}
-
-export interface MobileAdminTasks {
-  inactiveStations: Station[];
-  pendingReports: MobileReviewReport[];
-  staleStations: Station[];
-  totals: {
-    inactiveStations: number;
-    pendingReports: number;
-    staleStations: number;
-  };
-  truncatedStationScan: boolean;
-}
-
-export interface MobileAdminAnalytics {
-  rangeDays: number;
-  reportsTruncated: boolean;
-  stationsTruncated: boolean;
-  statusSummary: {
-    count: number;
-    status: StatusOption;
-  }[];
-  technicians: {
-    pending: number;
-    reports: number;
-    technicianName: string;
-    technicianUid: string;
-  }[];
-  zones: {
-    activeStations: number;
-    reports: number;
-    stations: number;
-    zone: string;
-  }[];
-}
-
-export interface MobileManagerDashboardStats {
-  activeStations: number;
-  pendingReviewReports: number;
-  reportsThisWeek: number;
-  technicians: number;
-  totalReports: number;
-  totalStations: number;
-}
-
-export interface MobileSupervisorDashboardStats {
-  activeStations: number;
-  pendingReviewReports: number;
-  reportsToday: number;
-  totalReports: number;
-}
-
-export interface MobileAdminOverview {
-  analytics?: MobileAdminAnalytics;
-  latestReports: MobileReviewReport[];
-  role: "manager" | "supervisor";
-  stats: MobileManagerDashboardStats | MobileSupervisorDashboardStats;
-  tasks: MobileAdminTasks;
-}
-
 export interface ApiErrorResponse {
-  message: string;
   code: string;
+  message: string;
   retryAfterSeconds?: number;
 }
 
 export interface AuthenticatedUserResponse {
-  uid: string;
-  email: string;
   displayName: string;
-  role: UserRole;
-  isActive: boolean;
+  email: string;
   image?: string | null;
+  isActive: boolean;
+  role: UserRole;
+  uid: string;
 }
 
 export interface LoginSuccessResponse {
-  user: AuthenticatedUserResponse;
   redirectTo: string;
+  user: AuthenticatedUserResponse;
 }
 
 export interface SessionSuccessResponse {
@@ -248,11 +102,11 @@ export interface MobileWebSessionResponse {
 }
 
 export interface AiInsightsResult {
-  summary: string;
   alerts: string[];
-  recommendations: string[];
   generatedAt: string;
-  source: "gemini" | "fallback";
   model?: string;
   note?: string;
+  recommendations: string[];
+  source: 'fallback' | 'gemini';
+  summary: string;
 }

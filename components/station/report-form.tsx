@@ -7,11 +7,13 @@ import { useForm } from "react-hook-form";
 import { submitStationReportAction, type SubmitReportActionResult } from "@/app/actions/reports";
 import { Button } from "@/components/ui/button";
 import { pestTypeLabels, statusOptionLabels } from "@/lib/i18n";
+import { maxReportImageSizeBytes } from "@/lib/reports/image-constraints";
 import { submitReportSchema, type SubmitReportValues } from "@/lib/validation/reports";
 import type { PestTypeOption, StatusOption } from "@/types";
 import { pestTypeOptions } from "@ecopest/shared/constants";
 
 const statusOptions = Object.keys(statusOptionLabels) as StatusOption[];
+const maxReportImagePayloadBytes = 11 * 1024 * 1024;
 
 interface ReportFormProps {
   blockedReason?: string;
@@ -65,6 +67,33 @@ function getFieldError(
   return actionResult?.fieldErrors?.[fieldName]?.[0];
 }
 
+function selectedReportFiles(values: SubmitReportValues): File[] {
+  return [
+    values.beforePhoto,
+    values.afterPhoto,
+    values.stationPhoto,
+    ...(values.duringPhotos ?? []),
+    ...(values.otherPhotos ?? []),
+  ].filter((file): file is File => file instanceof File && file.size > 0);
+}
+
+function imageSizeError(values: SubmitReportValues): string | null {
+  const files = selectedReportFiles(values);
+  const oversizedFile = files.find((file) => file.size > maxReportImageSizeBytes);
+
+  if (oversizedFile) {
+    return `حجم الصورة ${oversizedFile.name} يجب ألا يتجاوز 5 ميجابايت.`;
+  }
+
+  const totalBytes = files.reduce((total, file) => total + file.size, 0);
+
+  if (totalBytes > maxReportImagePayloadBytes) {
+    return "إجمالي صور التقرير كبير جدًا. قلل عدد الصور أو حجمها ثم حاول مرة أخرى.";
+  }
+
+  return null;
+}
+
 export function ReportForm({ blockedReason, canSubmit = true, stationId, stationLabel }: ReportFormProps) {
   const [actionResult, setActionResult] = useState<SubmitReportActionResult | null>(null);
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
@@ -80,6 +109,13 @@ export function ReportForm({ blockedReason, canSubmit = true, stationId, station
 
   async function onSubmit(values: SubmitReportValues): Promise<void> {
     setActionResult(null);
+    const fileError = imageSizeError(values);
+
+    if (fileError) {
+      setActionResult({ error: fileError });
+      return;
+    }
+
     const result = await submitStationReportAction(stationId, toFormData(values));
 
     if (result.success) {

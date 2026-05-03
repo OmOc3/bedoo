@@ -85,6 +85,8 @@ const ar = {
     subtitle: "افتح رابط المحطة من رمز QR للانتقال إلى نموذج الفحص.",
     loginCta: "تسجيل دخول الفني",
     phaseNotice: "سيتم تفعيل نموذج الفحص في المرحلة الثالثة.",
+    technicianQrOnlyNote:
+      "لتسجيل زيارة صحيحة، امسح رمز QR المثبت على المحطة. لا تُعرض محطات «قريبة» عمدًا حتى لا يُفتح تقرير لمحطة بلا مسح.",
   },
   theme: {
     dark: "الوضع الداكن",
@@ -173,6 +175,8 @@ const en = {
     subtitle: "Open the station link from the QR code to continue to the inspection form.",
     loginCta: "Technician sign in",
     phaseNotice: "The inspection form will be enabled in phase three.",
+    technicianQrOnlyNote:
+      "To record a valid visit, scan the QR code on the station. Nearby station lists are hidden on purpose to avoid reports without a scan.",
   },
   theme: {
     dark: "Dark mode",

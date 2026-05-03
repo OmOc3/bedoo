@@ -39,7 +39,8 @@ function optionalNumber(params: URLSearchParams, key: string): number | undefine
 
 export async function GET(request: NextRequest): Promise<NextResponse<{ error: string } | NearbyStationResponse[]>> {
   try {
-    await requireRole(["technician", "manager"]);
+    // Nearby list is for staff only; technicians must open stations via QR scan.
+    await requireRole(["manager", "supervisor"]);
     const params = request.nextUrl.searchParams;
     const accuracyMeters = optionalNumber(params, "accuracyMeters");
 

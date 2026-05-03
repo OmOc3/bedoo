@@ -1,4 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { pestTypeOptions } from '@ecopest/shared/constants';
+import type { MobilePestTypeOption } from '@ecopest/shared/mobile';
+
 import { apiPost } from '@/lib/sync/api-client';
 import { StatusOptions } from '@/lib/sync/status-options';
 import type { StatusOption } from '@/lib/sync/types';
@@ -12,6 +15,7 @@ export interface DraftReport {
   inspectionPhotoType?: 'image/jpeg' | 'image/png' | 'image/webp';
   inspectionPhotoUri?: string;
   notes: string;
+  pestTypes?: MobilePestTypeOption[];
   serverReportId?: string;
   stationId: string;
   stationLabel?: string;
@@ -30,7 +34,13 @@ const workingDraftPrefix = 'working-report-';
 
 type DraftInput = Pick<
   DraftReport,
-  'inspectionPhotoName' | 'inspectionPhotoType' | 'inspectionPhotoUri' | 'notes' | 'stationId' | 'status'
+  | 'inspectionPhotoName'
+  | 'inspectionPhotoType'
+  | 'inspectionPhotoUri'
+  | 'notes'
+  | 'pestTypes'
+  | 'stationId'
+  | 'status'
 >;
 type ReportSyncBody = FormData | Record<string, unknown>;
 
@@ -53,14 +63,22 @@ function isReportSyncStatus(value: unknown): value is ReportSyncStatus {
   return value === 'draft' || value === 'failed' || value === 'queued' || value === 'submitted' || value === 'syncing';
 }
 
+function isPestTypeOption(value: unknown): value is MobilePestTypeOption {
+  return typeof value === 'string' && (pestTypeOptions as readonly string[]).includes(value);
+}
+
 function isDraftReport(value: unknown): value is DraftReport {
   if (!value || typeof value !== 'object') {
     return false;
   }
 
   const draft = value as Record<string, unknown>;
+  const pestTypesOk =
+    draft.pestTypes === undefined ||
+    (Array.isArray(draft.pestTypes) && draft.pestTypes.every(isPestTypeOption));
 
   return (
+    pestTypesOk &&
     typeof draft.id === 'string' &&
     typeof draft.createdAt === 'string' &&
     typeof draft.stationId === 'string' &&
@@ -84,12 +102,18 @@ function isDraftReport(value: unknown): value is DraftReport {
   );
 }
 
+function resolvePestTypesForSync(target: DraftReport): MobilePestTypeOption[] {
+  return target.pestTypes && target.pestTypes.length > 0 ? target.pestTypes : ['others'];
+}
+
 function createReportSyncBody(target: DraftReport): ReportSyncBody {
   const notes = target.notes.trim();
+  const pestTypes = resolvePestTypesForSync(target);
 
   if (!target.inspectionPhotoUri) {
     return {
       clientReportId: target.id,
+      pestTypes,
       stationId: target.stationId,
       status: target.status,
       ...(notes.length > 0 ? { notes } : {}),
@@ -106,6 +130,7 @@ function createReportSyncBody(target: DraftReport): ReportSyncBody {
   formData.append('clientReportId', target.id);
   formData.append('stationId', target.stationId);
   formData.append('status', JSON.stringify(target.status));
+  formData.append('pestTypes', JSON.stringify(pestTypes));
 
   if (notes.length > 0) {
     formData.append('notes', notes);
@@ -252,16 +277,16 @@ export async function deleteDraft(id: string): Promise<void> {
   await setStoredReports(reports.filter((draft) => draft.id !== id));
 }
 
-export async function syncDraft(draftId: string, fallbackError = 'Could not sync the draft right now.'): Promise<void> {
+export async function syncDraft(draftId: string, fallbackError = 'Could not sync the draft right now.'): Promise<boolean> {
   const reports = await getStoredReports();
   const target = reports.find((draft) => draft.id === draftId);
 
   if (!target) {
-    return;
+    return false;
   }
 
   if (target.syncStatus !== 'queued' && target.syncStatus !== 'failed') {
-    return;
+    return false;
   }
 
   await setStoredReports(
@@ -305,6 +330,8 @@ export async function syncDraft(draftId: string, fallbackError = 'Could not sync
           : draft,
       ),
     );
+
+    return true;
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : fallbackError;
     const nextReports = await getStoredReports();
@@ -319,8 +346,10 @@ export async function syncDraft(draftId: string, fallbackError = 'Could not sync
               synced: false,
               syncStatus: 'failed',
             }
-          : draft,
+        : draft,
       ),
     );
+
+    return false;
   }
 }

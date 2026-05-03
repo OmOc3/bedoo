@@ -1,7 +1,10 @@
-export const allowedReportImageTypes = ["image/jpeg", "image/png", "image/webp"] as const;
-export type AllowedReportImageType = (typeof allowedReportImageTypes)[number];
+import {
+  maxReportImageSizeBytes,
+  normalizeReportImageType,
+  type AllowedReportImageType,
+} from "@/lib/reports/image-constraints";
 
-export const maxReportImageSizeBytes = 5 * 1024 * 1024;
+export { allowedReportImageTypes, maxReportImageSizeBytes, type AllowedReportImageType } from "@/lib/reports/image-constraints";
 
 export interface ValidReportImage {
   buffer: Buffer;
@@ -44,14 +47,15 @@ export async function validateReportImageFile(file: File): Promise<ValidReportIm
     throw new Error("حجم الصورة يجب ألا يتجاوز 5 ميجابايت.");
   }
 
-  if (!allowedReportImageTypes.includes(file.type as AllowedReportImageType)) {
-    throw new Error("ارفع صورة فقط بصيغة JPG أو PNG أو WebP.");
-  }
-
+  const declaredType = normalizeReportImageType(file.type);
   const buffer = Buffer.from(await file.arrayBuffer());
   const sniffed = sniffImage(buffer);
 
-  if (!sniffed || sniffed.contentType !== file.type) {
+  if (!sniffed) {
+    throw new Error("محتوى الصورة لا يطابق الصيغة المرسلة.");
+  }
+
+  if (declaredType && sniffed.contentType !== declaredType) {
     throw new Error("محتوى الصورة لا يطابق الصيغة المرسلة.");
   }
 

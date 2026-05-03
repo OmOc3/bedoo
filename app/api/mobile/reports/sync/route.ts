@@ -42,6 +42,20 @@ function statusFromFormData(formData: FormData): unknown {
   return values;
 }
 
+function pestTypesFromFormData(formData: FormData): unknown {
+  const value = formData.get("pestTypes");
+
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
 function uploadedFile(formData: FormData, key: string): File | undefined {
   const value = formData.get(key);
 
@@ -63,6 +77,7 @@ async function readMobileReportRequest(request: NextRequest): Promise<MobileRepo
       notes: optionalText(formData, "notes"),
       stationId: optionalText(formData, "stationId"),
       status: statusFromFormData(formData),
+      pestTypes: pestTypesFromFormData(formData),
     },
     inspectionPhoto: uploadedFile(formData, "inspectionPhoto"),
   };

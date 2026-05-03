@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Logo } from '@/components/brand/logo';
 import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
-import { PrimaryButton, ScreenShell, useToast } from '@/components/ecopest-ui';
+import { PrimaryButton, ScreenShell, SecondaryButton, useToast } from '@/components/ecopest-ui';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Fonts, Radius, Shadow, Spacing, TouchTarget, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
@@ -173,6 +173,9 @@ export default function LoginScreen() {
                 <PrimaryButton disabled={isSigningIn} icon="login" loading={isSigningIn} onPress={() => void submitLogin()}>
                   {isSigningIn ? strings.auth.signingIn : strings.actions.login}
                 </PrimaryButton>
+                <SecondaryButton icon="user" onPress={() => router.push('/client-signup')}>
+                  إنشاء حساب عميل
+                </SecondaryButton>
               </View>
 
               <View style={[styles.loginFooter, { borderTopColor: theme.border }]}>

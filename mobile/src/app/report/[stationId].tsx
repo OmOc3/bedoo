@@ -1,3 +1,5 @@
+import { pestTypeLabels, pestTypeLabelsEnglish, pestTypeOptions } from '@ecopest/shared/constants';
+import type { MobilePestTypeOption } from '@ecopest/shared/mobile';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { Directory, File, Paths } from 'expo-file-system';
@@ -29,6 +31,9 @@ function getParamValue(value: string | string[] | undefined): string {
 }
 
 type InspectionPhotoType = 'image/jpeg' | 'image/png' | 'image/webp';
+
+const reportCameraPictureSize = '1280x720';
+const reportCameraQuality = 0.55;
 
 interface InspectionPhoto {
   name: string;
@@ -148,7 +153,7 @@ function PhotoCapturePanel({
     setIsCapturing(true);
 
     try {
-      const captured = await cameraRef.current.takePictureAsync({ quality: 0.72 });
+      const captured = await cameraRef.current.takePictureAsync({ maxDownsampling: 2, quality: reportCameraQuality });
       const name = `report-${safeFilePart(stationId)}-${Date.now()}.jpg`;
       const uri = persistCapturedPhoto(captured.uri, name);
 
@@ -166,7 +171,7 @@ function PhotoCapturePanel({
   if (isCameraOpen) {
     return (
       <View style={[styles.cameraBox, { backgroundColor: theme.surfaceCardDark, borderColor: theme.border }]}>
-        <CameraView ref={cameraRef} facing="back" style={StyleSheet.absoluteFill} />
+        <CameraView ref={cameraRef} facing="back" pictureSize={reportCameraPictureSize} style={StyleSheet.absoluteFill} />
         <View style={[styles.cameraActions, { flexDirection: 'row' }]}>
           <SecondaryButton disabled={isCapturing} onPress={() => setIsCameraOpen(false)}>
             {strings.actions.cancel}
@@ -222,6 +227,7 @@ export default function StationReportScreen() {
   const params = useLocalSearchParams();
   const stationId = useMemo(() => decodeURIComponent(getParamValue(params.stationId)), [params.stationId]);
   const [notes, setNotes] = useState('');
+  const [pestTypes, setPestTypes] = useState<MobilePestTypeOption[]>([]);
   const [status, setStatus] = useState<StatusOption[]>([]);
   const [inspectionPhotoName, setInspectionPhotoName] = useState<string | undefined>();
   const [inspectionPhotoType, setInspectionPhotoType] = useState<InspectionPhotoType | undefined>();
@@ -232,7 +238,11 @@ export default function StationReportScreen() {
   const [attendanceNotes, setAttendanceNotes] = useState('');
   const [attendanceSession, setAttendanceSession] = useState<AttendanceSession | null>(null);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
-  const { statusOptionLabels, strings } = useLanguage();
+  const { language, statusOptionLabels, strings } = useLanguage();
+  const pestOptionLabels = useMemo(
+    () => (language === 'ar' ? pestTypeLabels : pestTypeLabelsEnglish),
+    [language],
+  );
   const { error: stationError, loading: stationLoading, station } = useStation(stationId, strings.errors.loadStation);
   const theme = useTheme();
   const { showToast } = useToast();
@@ -242,6 +252,7 @@ export default function StationReportScreen() {
   const hasOtherOpenAttendance = Boolean(attendanceSession && !hasStationAttendance);
   const stationPhotoUrl = station?.photoUrls?.[0];
   const notesRef = useRef(notes);
+  const pestTypesRef = useRef(pestTypes);
   const statusRef = useRef(status);
   const inspectionPhotoNameRef = useRef(inspectionPhotoName);
   const inspectionPhotoTypeRef = useRef(inspectionPhotoType);
@@ -250,11 +261,12 @@ export default function StationReportScreen() {
 
   useEffect(() => {
     notesRef.current = notes;
+    pestTypesRef.current = pestTypes;
     statusRef.current = status;
     inspectionPhotoNameRef.current = inspectionPhotoName;
     inspectionPhotoTypeRef.current = inspectionPhotoType;
     inspectionPhotoUriRef.current = inspectionPhotoUri;
-  }, [inspectionPhotoName, inspectionPhotoType, inspectionPhotoUri, notes, status]);
+  }, [inspectionPhotoName, inspectionPhotoType, inspectionPhotoUri, notes, pestTypes, status]);
 
   useEffect(() => {
     let isMounted = true;
@@ -264,6 +276,7 @@ export default function StationReportScreen() {
 
       if (isMounted && draft) {
         setNotes(draft.notes);
+        setPestTypes(draft.pestTypes ?? []);
         setStatus(draft.status);
         setInspectionPhotoName(draft.inspectionPhotoName);
         setInspectionPhotoType(draft.inspectionPhotoType);
@@ -271,6 +284,7 @@ export default function StationReportScreen() {
         lastAutoSavedSignature.current = JSON.stringify({
           inspectionPhotoUri: draft.inspectionPhotoUri ?? null,
           notes: draft.notes,
+          pestTypes: draft.pestTypes ?? [],
           status: draft.status,
         });
       }
@@ -285,6 +299,12 @@ export default function StationReportScreen() {
 
   function toggleStatus(value: StatusOption): void {
     setStatus((current) => (current.includes(value) ? current.filter((item) => item !== value) : [...current, value]));
+  }
+
+  function togglePestType(value: MobilePestTypeOption): void {
+    setPestTypes((current) =>
+      current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
+    );
   }
 
   function handlePhotoCaptured(photo: InspectionPhoto): void {
@@ -405,6 +425,12 @@ export default function StationReportScreen() {
       return false;
     }
 
+    if (pestTypes.length === 0) {
+      setError(strings.validation.pestTypesRequired);
+      void warningHaptic();
+      return false;
+    }
+
     if (isTechnician && !hasStationAttendance) {
       setError('يجب تسجيل الحضور في هذه المحطة قبل إرسال التقرير.');
       void warningHaptic();
@@ -418,14 +444,26 @@ export default function StationReportScreen() {
     async (showFeedback: boolean): Promise<void> => {
       const cleanStationId = stationId.trim();
       const currentNotes = notesRef.current.trim();
+      const currentPestTypes = pestTypesRef.current;
       const currentStatus = statusRef.current;
       const currentPhotoUri = inspectionPhotoUriRef.current;
 
-      if (!cleanStationId || (currentNotes.length === 0 && currentStatus.length === 0 && !currentPhotoUri)) {
+      if (
+        !cleanStationId ||
+        (currentNotes.length === 0 &&
+          currentStatus.length === 0 &&
+          !currentPhotoUri &&
+          currentPestTypes.length === 0)
+      ) {
         return;
       }
 
-      const signature = JSON.stringify({ inspectionPhotoUri: currentPhotoUri, notes: currentNotes, status: currentStatus });
+      const signature = JSON.stringify({
+        inspectionPhotoUri: currentPhotoUri,
+        notes: currentNotes,
+        pestTypes: currentPestTypes,
+        status: currentStatus,
+      });
 
       if (signature === lastAutoSavedSignature.current) {
         return;
@@ -437,6 +475,7 @@ export default function StationReportScreen() {
           inspectionPhotoType: inspectionPhotoTypeRef.current,
           inspectionPhotoUri: currentPhotoUri ?? undefined,
           notes: currentNotes,
+          pestTypes: currentPestTypes,
           stationId: cleanStationId,
           status: currentStatus,
         });
@@ -488,10 +527,16 @@ export default function StationReportScreen() {
         inspectionPhotoType,
         inspectionPhotoUri: inspectionPhotoUri ?? undefined,
         notes: notes.trim(),
+        pestTypes,
         stationId: stationId.trim(),
         status,
       });
-      lastAutoSavedSignature.current = JSON.stringify({ inspectionPhotoUri, notes: notes.trim(), status });
+      lastAutoSavedSignature.current = JSON.stringify({
+        inspectionPhotoUri,
+        notes: notes.trim(),
+        pestTypes,
+        status,
+      });
       showToast(strings.report.draftSaved, 'success');
       await successHaptic();
     } catch {
@@ -516,16 +561,18 @@ export default function StationReportScreen() {
         inspectionPhotoName,
         inspectionPhotoType,
         inspectionPhotoUri: inspectionPhotoUri ?? undefined,
+        pestTypes,
         stationId: stationId.trim(),
         stationLabel: station?.label,
         status,
       });
 
       await clearWorkingDraft(stationId.trim());
-      await syncDraft(queuedReport.id, strings.errors.syncDraft);
-      showToast(strings.report.queued, 'success');
+      const syncedNow = await syncDraft(queuedReport.id, strings.errors.syncDraft);
+      showToast(syncedNow ? strings.report.submitted : strings.report.queued, syncedNow ? 'success' : 'info');
       await successHaptic();
       setNotes('');
+      setPestTypes([]);
       setStatus([]);
       setInspectionPhotoName(undefined);
       setInspectionPhotoType(undefined);
@@ -722,6 +769,22 @@ export default function StationReportScreen() {
                     label={statusOptionLabels[option.value]}
                     onPress={() => toggleStatus(option.value)}
                     selected={status.includes(option.value)}
+                  />
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <ThemedText type="title" style={styles.sectionTitle}>
+                {strings.report.executionProgramTitle}
+              </ThemedText>
+              <View style={styles.statusList}>
+                {pestTypeOptions.map((option) => (
+                  <StatusOptionRow
+                    key={option}
+                    label={pestOptionLabels[option]}
+                    onPress={() => togglePestType(option)}
+                    selected={pestTypes.includes(option)}
                   />
                 ))}
               </View>

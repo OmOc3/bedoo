@@ -15,7 +15,9 @@ const tabIcons: Record<string, EcoPestIconName> = {
   history: 'file-text',
   index: 'dashboard',
   insights: 'brain',
+  management: 'sliders',
   orders: 'clipboard-check',
+  operations: 'radio-tower',
   scan: 'qr-code',
   settings: 'settings',
   team: 'user',
@@ -29,7 +31,10 @@ export default function AppTabs() {
   const role = currentUser?.profile.role;
   const isAdminUser = currentUser ? isMobileAdminRole(currentUser.profile.role) : false;
   const isClient = role === 'client';
+  const isManager = role === 'manager';
   const isTechnician = role === 'technician';
+  const managementTitle = language === 'ar' ? 'إدارة' : 'Manage';
+  const operationsTitle = language === 'ar' ? 'التشغيل' : 'Ops';
   const ordersTitle = language === 'ar' ? 'الطلبات' : 'Orders';
 
   return (
@@ -78,11 +83,13 @@ export default function AppTabs() {
       })}>
       <Tabs.Screen name="index" options={{ title: tabs.home }} />
       <Tabs.Screen name="scan" options={{ href: isTechnician ? '/(tabs)/scan' : null, title: tabs.scan }} />
+      <Tabs.Screen name="operations" options={{ href: isTechnician || isManager ? '/(tabs)/operations' : null, title: operationsTitle }} />
       <Tabs.Screen name="orders" options={{ href: isClient ? undefined : null, title: ordersTitle }} />
       <Tabs.Screen name="drafts" options={{ href: isClient ? null : '/(tabs)/drafts', title: tabs.drafts }} />
       <Tabs.Screen name="history" options={{ href: isClient ? null : '/(tabs)/history', title: tabs.history }} />
       <Tabs.Screen name="insights" options={{ href: isAdminUser ? '/(tabs)/insights' : null, title: strings.insights.title }} />
       <Tabs.Screen name="admin" options={{ href: isAdminUser ? '/(tabs)/admin' : null, title: tabs.admin }} />
+      <Tabs.Screen name="management" options={{ href: isAdminUser ? '/(tabs)/management' : null, title: managementTitle }} />
       <Tabs.Screen name="team" options={{ href: null, title: strings.team.title }} />
       <Tabs.Screen name="settings" options={{ title: tabs.settings }} />
     </Tabs>

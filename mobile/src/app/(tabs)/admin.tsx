@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
@@ -26,7 +26,7 @@ import { useReviewReports } from '@/hooks/use-review-reports';
 import { useTeamUsers } from '@/hooks/use-team-users';
 import { useCurrentUser } from '@/lib/auth';
 import { isMobileAdminRole } from '@/lib/auth-routes';
-import { errorHaptic, successHaptic } from '@/lib/haptics';
+import { errorHaptic, successHaptic, warningHaptic } from '@/lib/haptics';
 import { apiGet, apiPatch, apiPost } from '@/lib/sync/api-client';
 import { pickAndUploadImage } from '@/lib/upload-image';
 import type {
@@ -864,6 +864,42 @@ export default function AdminScreen() {
     }
   }
 
+  async function openStationMap(station: Station): Promise<void> {
+    if (!station.coordinates) {
+      showToast('لا توجد إحداثيات مسجلة لهذه المحطة.', 'warning');
+      await warningHaptic();
+      return;
+    }
+
+    const { lat, lng } = station.coordinates;
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${lat},${lng}`)}`;
+
+    try {
+      await Linking.openURL(url);
+    } catch {
+      showToast('تعذر فتح الخرائط على هذا الجهاز.', 'error');
+      await errorHaptic();
+    }
+  }
+
+  async function shareStationQr(station: Station): Promise<void> {
+    if (!station.qrCodeValue) {
+      showToast('لا يوجد QR مسجل لهذه المحطة.', 'warning');
+      await warningHaptic();
+      return;
+    }
+
+    try {
+      await Share.share({
+        message: `${station.label}\n${station.qrCodeValue}`,
+        title: station.label,
+      });
+    } catch {
+      showToast('تعذر مشاركة QR المحطة.', 'error');
+      await errorHaptic();
+    }
+  }
+
   async function submitUser(): Promise<void> {
     if (!userForm.displayName.trim() || !userForm.email.trim() || !userForm.password.trim()) {
       showToast(strings.errors.unexpected, 'error');
@@ -1257,6 +1293,12 @@ export default function AdminScreen() {
                   </SecondaryButton>
                   <SecondaryButton icon={station.isActive ? 'alert-circle' : 'check'} onPress={() => void toggleStation(station)}>
                     {station.isActive ? strings.settings.disabled : strings.settings.enabled}
+                  </SecondaryButton>
+                  <SecondaryButton disabled={!station.coordinates} icon="map-pin" onPress={() => void openStationMap(station)}>
+                    فتح الخريطة
+                  </SecondaryButton>
+                  <SecondaryButton disabled={!station.qrCodeValue} icon="qr-code" onPress={() => void shareStationQr(station)}>
+                    مشاركة QR
                   </SecondaryButton>
                 </View>
               </Card>

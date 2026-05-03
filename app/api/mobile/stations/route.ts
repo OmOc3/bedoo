@@ -3,9 +3,7 @@ import { mobileApiErrorResponse } from "@/lib/api/mobile";
 import { mobileStationResponse, type MobileStationResponse } from "@/lib/api/mobile-serializers";
 import { requireBearerRole } from "@/lib/auth/bearer-session";
 import { writeAuditLog } from "@/lib/audit";
-import { createStationRecord, generateNextStationId, listNearbyStations, listStations } from "@/lib/db/repositories";
-import { AppError } from "@/lib/errors";
-import { maxLocationAccuracyMeters } from "@/lib/geo";
+import { createStationRecord, generateNextStationId, listStations } from "@/lib/db/repositories";
 import { buildStationReportUrl } from "@/lib/url/base-url";
 import { createStationSchema } from "@/lib/validation/stations";
 
@@ -29,62 +27,16 @@ interface MobileCreateStationResponse {
   stationId: string;
 }
 
-function requiredNumber(searchParams: URLSearchParams, key: string): number {
-  const value = Number(searchParams.get(key));
-
-  if (!Number.isFinite(value)) {
-    throw new AppError("بيانات الموقع غير صالحة.", "LOCATION_INVALID", 400);
-  }
-
-  return value;
-}
-
-function optionalNumber(searchParams: URLSearchParams, key: string): number | undefined {
-  const raw = searchParams.get(key);
-
-  if (!raw) {
-    return undefined;
-  }
-
-  const value = Number(raw);
-
-  if (!Number.isFinite(value)) {
-    throw new AppError("بيانات الموقع غير صالحة.", "LOCATION_INVALID", 400);
-  }
-
-  return value;
-}
-
 export async function GET(
   request: NextRequest,
 ): Promise<NextResponse<MobileStationResponse[] | { code: string; message: string }>> {
   try {
-    const session = await requireBearerRole(request, ["technician", "manager"]);
+    const session = await requireBearerRole(request, ["technician", "supervisor", "manager"]);
     const { searchParams } = new URL(request.url);
 
+    // Technicians use QR to open a station; do not return a nearby list without a scan.
     if (session.role === "technician") {
-      const accuracyMeters = optionalNumber(searchParams, "accuracyMeters");
-
-      if (typeof accuracyMeters === "number" && accuracyMeters > maxLocationAccuracyMeters) {
-        return NextResponse.json(
-          {
-            code: "LOCATION_ACCURACY_LOW",
-            message: "دقة الموقع ضعيفة. اقترب من المحطات ثم حاول مرة أخرى.",
-          },
-          { status: 400 },
-        );
-      }
-
-      const nearbyStations = await listNearbyStations({
-        lat: requiredNumber(searchParams, "lat"),
-        lng: requiredNumber(searchParams, "lng"),
-      });
-
-      return NextResponse.json(
-        nearbyStations.map((entry) =>
-          mobileStationResponse(entry.station.stationId, entry.station, entry.distanceMeters),
-        ),
-      );
+      return NextResponse.json([]);
     }
 
     const query = searchParams.get("q") ?? undefined;

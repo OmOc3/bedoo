@@ -33,7 +33,7 @@ export async function POST(
     });
 
     if (!cookieBackedSession || cookieBackedSession.user.id !== session.uid) {
-      throw new AppError("Ø³Ø¬Ù„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù‚Ø¨Ù„ ÙØªØ­ Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©.", "AUTH_REQUIRED", 401);
+      throw new AppError("سجل الدخول قبل فتح بوابة الإدارة.", "AUTH_REQUIRED", 401);
     }
 
     const expiresAtMs = Date.now() + MOBILE_WEB_SESSION_TTL_MS;

@@ -1,6 +1,19 @@
 import "server-only";
 
-import type { AppTimestamp, AppUser, AuditLog, ClientOrder, Report, Station } from "@/types";
+import type {
+  AppTimestamp,
+  AppUser,
+  AuditLog,
+  ClientOrder,
+  ClientProfile,
+  ClientStationAccess,
+  DailyWorkReport,
+  Report,
+  Station,
+  TechnicianShift,
+  TechnicianWorkSchedule,
+} from "@/types";
+import type { AppSettingsRecord, ClientAccountDetail, ClientDirectoryEntry } from "@/lib/db/repositories";
 
 export interface MobileStationResponse {
   coordinates?: {
@@ -84,6 +97,121 @@ export interface MobileUserResponse {
   image?: string;
 }
 
+export interface MobileTechnicianShiftResponse {
+  baseSalary?: number;
+  createdAt?: string;
+  earlyExit: boolean;
+  endLat?: number;
+  endLng?: number;
+  endStationId?: string;
+  endStationLabel?: string;
+  endedAt?: string;
+  expectedDurationMinutes?: number;
+  notes?: string;
+  salaryAmount?: number;
+  salaryStatus: TechnicianShift["salaryStatus"];
+  scheduleId?: string;
+  shiftId: string;
+  startLat?: number;
+  startLng?: number;
+  startStationId?: string;
+  startStationLabel?: string;
+  startedAt?: string;
+  status: TechnicianShift["status"];
+  technicianName: string;
+  technicianUid: string;
+  totalMinutes?: number;
+  updatedAt?: string;
+}
+
+export interface MobileTechnicianWorkScheduleResponse {
+  createdAt?: string;
+  createdBy: string;
+  expectedDurationMinutes: number;
+  hourlyRate?: number;
+  isActive: boolean;
+  notes?: string;
+  scheduleId: string;
+  shiftEndTime: string;
+  shiftStartTime: string;
+  technicianUid: string;
+  updatedAt?: string;
+  workDays: number[];
+}
+
+export interface MobileDailyWorkReportResponse {
+  createdAt?: string;
+  dailyReportId: string;
+  notes?: string;
+  photos?: {
+    dailyReportId: string;
+    photoId: string;
+    sortOrder: number;
+    uploadedAt?: string;
+    uploadedBy: string;
+    url: string;
+  }[];
+  reportDate?: string;
+  stationIds: string[];
+  stationLabels: string[];
+  summary: string;
+  technicianName: string;
+  technicianUid: string;
+  updatedAt?: string;
+}
+
+export interface MobileClientProfileResponse {
+  addresses: string[];
+  clientUid: string;
+  createdAt?: string;
+  phone?: string;
+  updatedAt?: string;
+}
+
+export interface MobileClientStationAccessResponse {
+  accessId: string;
+  clientName?: string;
+  clientUid: string;
+  createdAt?: string;
+  createdBy: string;
+  stationId: string;
+  stationLabel?: string;
+}
+
+export interface MobileClientDirectoryEntryResponse {
+  cancelledOrders: number;
+  client: MobileUserResponse;
+  completedOrders: number;
+  inProgressOrders: number;
+  latestOrderAt?: string;
+  latestStationLocation?: string;
+  pendingOrders: number;
+  profile?: MobileClientProfileResponse;
+  stationCount: number;
+  totalOrders: number;
+}
+
+export interface MobileClientAccountDetailResponse {
+  access: MobileClientStationAccessResponse[];
+  client: MobileUserResponse;
+  dailyReports: MobileDailyWorkReportResponse[];
+  orders: MobileClientOrderResponse[];
+  profile?: MobileClientProfileResponse;
+  reports: MobileReportResponse[];
+  stations: MobileStationResponse[];
+}
+
+export interface MobileAppSettingsResponse {
+  clientDailyStationOrderLimit: number;
+  maintenanceEnabled: boolean;
+  maintenanceMessage?: string;
+  supportContact?: {
+    email?: string;
+    hours?: string;
+    phone?: string;
+  };
+}
+
 export function timestampToIso(value: unknown): string | undefined {
   const timestamp = value as Partial<AppTimestamp>;
 
@@ -140,6 +268,7 @@ export function mobileReportResponse(report: Report): MobileReportResponse {
     ...(report.clientReportId ? { clientReportId: report.clientReportId } : {}),
     ...(report.notes ? { notes: report.notes } : {}),
     ...(report.reviewNotes ? { reviewNotes: report.reviewNotes } : {}),
+    ...(report.photoPaths ? { photoPaths: report.photoPaths } : {}),
     ...(report.stationLocation ? { stationLocation: report.stationLocation } : {}),
     ...(report.pestTypes?.length ? { pestTypes: report.pestTypes } : {}),
     ...(timestampToIso(report.submittedAt) ? { submittedAt: timestampToIso(report.submittedAt) } : {}),
@@ -195,5 +324,136 @@ export function mobileUserResponse(user: AppUser): MobileUserResponse {
     isActive: user.isActive,
     ...(user.image ? { image: user.image } : {}),
     ...(timestampToIso(user.createdAt) ? { createdAt: timestampToIso(user.createdAt) } : {}),
+  };
+}
+
+export function mobileShiftResponse(shift: TechnicianShift): MobileTechnicianShiftResponse {
+  return {
+    shiftId: shift.shiftId,
+    technicianUid: shift.technicianUid,
+    technicianName: shift.technicianName,
+    status: shift.status,
+    earlyExit: shift.earlyExit,
+    salaryStatus: shift.salaryStatus,
+    ...(shift.scheduleId ? { scheduleId: shift.scheduleId } : {}),
+    ...(timestampToIso(shift.startedAt) ? { startedAt: timestampToIso(shift.startedAt) } : {}),
+    ...(typeof shift.startLat === "number" ? { startLat: shift.startLat } : {}),
+    ...(typeof shift.startLng === "number" ? { startLng: shift.startLng } : {}),
+    ...(shift.startStationId ? { startStationId: shift.startStationId } : {}),
+    ...(shift.startStationLabel ? { startStationLabel: shift.startStationLabel } : {}),
+    ...(timestampToIso(shift.endedAt) ? { endedAt: timestampToIso(shift.endedAt) } : {}),
+    ...(typeof shift.endLat === "number" ? { endLat: shift.endLat } : {}),
+    ...(typeof shift.endLng === "number" ? { endLng: shift.endLng } : {}),
+    ...(shift.endStationId ? { endStationId: shift.endStationId } : {}),
+    ...(shift.endStationLabel ? { endStationLabel: shift.endStationLabel } : {}),
+    ...(typeof shift.totalMinutes === "number" ? { totalMinutes: shift.totalMinutes } : {}),
+    ...(typeof shift.expectedDurationMinutes === "number" ? { expectedDurationMinutes: shift.expectedDurationMinutes } : {}),
+    ...(typeof shift.baseSalary === "number" ? { baseSalary: shift.baseSalary } : {}),
+    ...(typeof shift.salaryAmount === "number" ? { salaryAmount: shift.salaryAmount } : {}),
+    ...(shift.notes ? { notes: shift.notes } : {}),
+    ...(timestampToIso(shift.createdAt) ? { createdAt: timestampToIso(shift.createdAt) } : {}),
+    ...(timestampToIso(shift.updatedAt) ? { updatedAt: timestampToIso(shift.updatedAt) } : {}),
+  };
+}
+
+export function mobileWorkScheduleResponse(schedule: TechnicianWorkSchedule): MobileTechnicianWorkScheduleResponse {
+  return {
+    scheduleId: schedule.scheduleId,
+    technicianUid: schedule.technicianUid,
+    workDays: schedule.workDays,
+    shiftStartTime: schedule.shiftStartTime,
+    shiftEndTime: schedule.shiftEndTime,
+    expectedDurationMinutes: schedule.expectedDurationMinutes,
+    isActive: schedule.isActive,
+    createdBy: schedule.createdBy,
+    ...(typeof schedule.hourlyRate === "number" ? { hourlyRate: schedule.hourlyRate } : {}),
+    ...(schedule.notes ? { notes: schedule.notes } : {}),
+    ...(timestampToIso(schedule.createdAt) ? { createdAt: timestampToIso(schedule.createdAt) } : {}),
+    ...(timestampToIso(schedule.updatedAt) ? { updatedAt: timestampToIso(schedule.updatedAt) } : {}),
+  };
+}
+
+export function mobileDailyWorkReportResponse(report: DailyWorkReport): MobileDailyWorkReportResponse {
+  return {
+    dailyReportId: report.dailyReportId,
+    technicianUid: report.technicianUid,
+    technicianName: report.technicianName,
+    summary: report.summary,
+    stationIds: report.stationIds,
+    stationLabels: report.stationLabels,
+    ...(report.notes ? { notes: report.notes } : {}),
+    ...(report.photos?.length
+      ? {
+          photos: report.photos.map((photo) => ({
+            dailyReportId: photo.dailyReportId,
+            photoId: photo.photoId,
+            sortOrder: photo.sortOrder,
+            uploadedBy: photo.uploadedBy,
+            url: photo.url,
+            ...(timestampToIso(photo.uploadedAt) ? { uploadedAt: timestampToIso(photo.uploadedAt) } : {}),
+          })),
+        }
+      : {}),
+    ...(timestampToIso(report.reportDate) ? { reportDate: timestampToIso(report.reportDate) } : {}),
+    ...(timestampToIso(report.createdAt) ? { createdAt: timestampToIso(report.createdAt) } : {}),
+    ...(timestampToIso(report.updatedAt) ? { updatedAt: timestampToIso(report.updatedAt) } : {}),
+  };
+}
+
+export function mobileClientProfileResponse(profile: ClientProfile): MobileClientProfileResponse {
+  return {
+    clientUid: profile.clientUid,
+    addresses: profile.addresses,
+    ...(profile.phone ? { phone: profile.phone } : {}),
+    ...(timestampToIso(profile.createdAt) ? { createdAt: timestampToIso(profile.createdAt) } : {}),
+    ...(timestampToIso(profile.updatedAt) ? { updatedAt: timestampToIso(profile.updatedAt) } : {}),
+  };
+}
+
+export function mobileClientStationAccessResponse(access: ClientStationAccess): MobileClientStationAccessResponse {
+  return {
+    accessId: access.accessId,
+    clientUid: access.clientUid,
+    createdBy: access.createdBy,
+    stationId: access.stationId,
+    ...(access.clientName ? { clientName: access.clientName } : {}),
+    ...(access.stationLabel ? { stationLabel: access.stationLabel } : {}),
+    ...(timestampToIso(access.createdAt) ? { createdAt: timestampToIso(access.createdAt) } : {}),
+  };
+}
+
+export function mobileClientDirectoryEntryResponse(entry: ClientDirectoryEntry): MobileClientDirectoryEntryResponse {
+  return {
+    client: mobileUserResponse(entry.client),
+    totalOrders: entry.totalOrders,
+    pendingOrders: entry.pendingOrders,
+    inProgressOrders: entry.inProgressOrders,
+    completedOrders: entry.completedOrders,
+    cancelledOrders: entry.cancelledOrders,
+    stationCount: entry.stationCount,
+    ...(entry.profile ? { profile: mobileClientProfileResponse(entry.profile) } : {}),
+    ...(entry.latestStationLocation ? { latestStationLocation: entry.latestStationLocation } : {}),
+    ...(timestampToIso(entry.latestOrderAt) ? { latestOrderAt: timestampToIso(entry.latestOrderAt) } : {}),
+  };
+}
+
+export function mobileClientAccountDetailResponse(detail: ClientAccountDetail): MobileClientAccountDetailResponse {
+  return {
+    client: mobileUserResponse(detail.client),
+    access: detail.access.map(mobileClientStationAccessResponse),
+    dailyReports: detail.dailyReports.map(mobileDailyWorkReportResponse),
+    orders: detail.orders.map((order) => mobileClientOrderResponse(order, order.station?.location)),
+    reports: detail.reports.map(mobileReportResponse),
+    stations: detail.stations.map((station) => mobileStationResponse(station.stationId, station)),
+    ...(detail.profile ? { profile: mobileClientProfileResponse(detail.profile) } : {}),
+  };
+}
+
+export function mobileAppSettingsResponse(settings: AppSettingsRecord): MobileAppSettingsResponse {
+  return {
+    maintenanceEnabled: settings.maintenanceEnabled,
+    clientDailyStationOrderLimit: settings.clientDailyStationOrderLimit,
+    ...(settings.maintenanceMessage ? { maintenanceMessage: settings.maintenanceMessage } : {}),
+    ...(settings.supportContact ? { supportContact: settings.supportContact } : {}),
   };
 }

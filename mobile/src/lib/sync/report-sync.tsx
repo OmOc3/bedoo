@@ -5,6 +5,7 @@ import { createContext, type ReactNode, useCallback, useContext, useEffect, useM
 import { useLanguage } from '@/contexts/language-context';
 import { hasStoredAuthCookie } from '@/lib/auth-client';
 import { getQueuedDrafts, syncDraft, type DraftReport } from '@/lib/drafts';
+import { getPendingOperationsCount, processOperationQueue } from '@/lib/operation-queue';
 
 interface SyncStatusState {
   isSyncing: boolean;
@@ -13,6 +14,7 @@ interface SyncStatusState {
 }
 
 interface SyncContextValue extends SyncStatusState {
+  refreshPendingCount: () => Promise<void>;
   syncAllDrafts: () => Promise<void>;
 }
 
@@ -31,8 +33,8 @@ function useSyncQueueController() {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   const refreshPendingCount = useCallback(async () => {
-    const drafts = await getQueuedDrafts();
-    setPendingCount(drafts.length);
+    const [drafts, operations] = await Promise.all([getQueuedDrafts(), getPendingOperationsCount()]);
+    setPendingCount(drafts.length + operations);
   }, []);
 
   const syncAllDrafts = useCallback(async () => {
@@ -45,15 +47,14 @@ function useSyncQueueController() {
 
     const drafts = await getQueuedDrafts();
 
-    if (drafts.length === 0) {
-      setPendingCount(0);
-      return;
-    }
-
     setIsSyncing(true);
 
     try {
-      await syncPendingDrafts(drafts, strings.errors.syncDraft);
+      if (drafts.length > 0) {
+        await syncPendingDrafts(drafts, strings.errors.syncDraft);
+      }
+
+      await processOperationQueue(strings.errors.syncDraft);
       setLastSyncedAt(new Date().toISOString());
     } finally {
       setIsSyncing(false);
@@ -80,7 +81,7 @@ function useSyncQueueController() {
     };
   }, [syncAllDrafts]);
 
-  return { isSyncing, lastSyncedAt, pendingCount, syncAllDrafts };
+  return { isSyncing, lastSyncedAt, pendingCount, refreshPendingCount, syncAllDrafts };
 }
 
 export function SyncProvider({ children }: { children: ReactNode }) {
@@ -112,8 +113,9 @@ export function useSyncActions() {
 
   return useMemo(
     () => ({
+      refreshPendingCount: value.refreshPendingCount,
       syncAllDrafts: value.syncAllDrafts,
     }),
-    [value.syncAllDrafts],
+    [value.refreshPendingCount, value.syncAllDrafts],
   );
 }

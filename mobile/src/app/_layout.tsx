@@ -32,10 +32,10 @@ export default function TabLayout() {
 function EcoPestLayout() {
   const { resolvedTheme } = useThemeMode();
   const [fontsLoaded, fontError] = useFonts({
-    Tajawal: require('../../assets/fonts/Tajawal-Regular.ttf'),
-    'Tajawal-Medium': require('../../assets/fonts/Tajawal-Medium.ttf'),
-    'Tajawal-Bold': require('../../assets/fonts/Tajawal-Bold.ttf'),
-    'Tajawal-ExtraBold': require('../../assets/fonts/Tajawal-ExtraBold.ttf'),
+    Cairo: require('../../assets/fonts/Cairo-Regular.ttf'),
+    'Cairo-Medium': require('../../assets/fonts/Cairo-Medium.ttf'),
+    'Cairo-Bold': require('../../assets/fonts/Cairo-Bold.ttf'),
+    'Cairo-ExtraBold': require('../../assets/fonts/Cairo-ExtraBold.ttf'),
   });
 
   return (
@@ -69,7 +69,7 @@ function useAuthRoutes(): void {
     }
 
     const routeRoot = segments[0];
-    const isPublicRoute = routeRoot === 'login' || routeRoot === 'legal';
+    const isPublicRoute = routeRoot === 'login' || routeRoot === 'client-signup' || routeRoot === 'legal';
 
     if (!currentUser && !isPublicRoute) {
       router.replace('/login');
@@ -106,6 +106,7 @@ function AppStack() {
       <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" />
+        <Stack.Screen name="client-signup" />
         <Stack.Screen name="admin-portal" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="report/[stationId]" />

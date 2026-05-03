@@ -68,10 +68,10 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    sans: 'Tajawal',
-    sansMedium: 'Tajawal-Medium',
-    sansBold: 'Tajawal-Bold',
-    sansHeavy: 'Tajawal-ExtraBold',
+    sans: 'Cairo',
+    sansMedium: 'Cairo-Medium',
+    sansBold: 'Cairo-Bold',
+    sansHeavy: 'Cairo-ExtraBold',
     /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
     /** iOS `UIFontDescriptorSystemDesignRounded` */
@@ -80,19 +80,19 @@ export const Fonts = Platform.select({
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'Tajawal',
-    sansMedium: 'Tajawal-Medium',
-    sansBold: 'Tajawal-Bold',
-    sansHeavy: 'Tajawal-ExtraBold',
+    sans: 'Cairo',
+    sansMedium: 'Cairo-Medium',
+    sansBold: 'Cairo-Bold',
+    sansHeavy: 'Cairo-ExtraBold',
     serif: 'serif',
     rounded: 'normal',
     mono: 'monospace',
   },
   web: {
-    sans: 'Tajawal, var(--font-display)',
-    sansMedium: 'Tajawal, var(--font-display)',
-    sansBold: 'Tajawal, var(--font-display)',
-    sansHeavy: 'Tajawal, var(--font-display)',
+    sans: 'Cairo, var(--font-display)',
+    sansMedium: 'Cairo, var(--font-display)',
+    sansBold: 'Cairo, var(--font-display)',
+    sansHeavy: 'Cairo, var(--font-display)',
     serif: 'var(--font-serif)',
     rounded: 'var(--font-rounded)',
     mono: 'var(--font-mono)',
@@ -100,7 +100,7 @@ export const Fonts = Platform.select({
 });
 
 export const Typography = {
-  fontFamily: 'Tajawal',
+  fontFamily: 'Cairo',
   fontSize: {
     xs: 12,
     sm: 14,

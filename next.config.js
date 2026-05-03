@@ -3,6 +3,9 @@ const nextConfig = {
   // Native bindings cannot be bundled by webpack; keep on the Node server runtime.
   serverExternalPackages: ["@resvg/resvg-js"],
   experimental: {
+    serverActions: {
+      bodySizeLimit: "12mb"
+    },
     staticGenerationMaxConcurrency: 1,
     staticGenerationMinPagesPerWorker: 1,
     webpackBuildWorker: false
