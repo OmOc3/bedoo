@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { mobileApiErrorResponse } from "@/lib/api/mobile";
 import {
+  mobileAttendanceSessionResponse,
   mobileClientOrderResponse,
   mobileReportResponse,
   mobileStationResponse,
@@ -13,6 +14,7 @@ import { createClientOrderSchema } from "@/lib/validation/client-orders";
 import {
   createClientOrder,
   getStationLocations,
+  listAttendanceSessionsForClient,
   listClientOrders,
   listClientOrdersForClient,
   listOrderedStationsForClient,
@@ -24,6 +26,7 @@ export const runtime = "nodejs";
 
 interface MobileClientOrdersResponse {
   orders: MobileClientOrderResponse[];
+  attendanceSessions?: ReturnType<typeof mobileAttendanceSessionResponse>[];
   reports?: MobileReportResponse[];
   stations?: MobileStationResponse[];
 }
@@ -47,13 +50,15 @@ export async function GET(
     const session = await requireBearerRole(request, ["client", "manager", "supervisor"]);
 
     if (session.role === "client") {
-      const [orders, stations, reports] = await Promise.all([
+      const [orders, stations, reports, attendanceSessions] = await Promise.all([
         listClientOrdersForClient(session.uid),
         listOrderedStationsForClient(session.uid),
         listReportsForClientOrderedStations(session.uid),
+        listAttendanceSessionsForClient(session.uid),
       ]);
 
       return NextResponse.json({
+        attendanceSessions: attendanceSessions.map(mobileAttendanceSessionResponse),
         orders: await orderResponses(orders),
         stations: stations.map((station) => mobileStationResponse(station.stationId, station)),
         reports: reports.map(mobileReportResponse),

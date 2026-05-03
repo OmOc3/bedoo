@@ -14,6 +14,8 @@ import { useStation } from '@/hooks/use-station';
 import { useCurrentUser } from '@/lib/auth';
 import { errorHaptic, successHaptic, warningHaptic } from '@/lib/haptics';
 import { languageDateLocales } from '@/lib/i18n';
+import { getDistanceMeters } from '@/lib/geo';
+import * as Location from 'expo-location';
 
 function normalizeStationId(value: string): string {
   return value.trim().replace(/^\/+|\/+$/g, '');
@@ -44,6 +46,7 @@ export default function ScanScreen() {
   const [previewStationId, setPreviewStationId] = useState<string | null>(null);
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
   const [isTorchEnabled, setIsTorchEnabled] = useState(false);
+  const [isCheckingLocation, setIsCheckingLocation] = useState(false);
   const theme = useTheme();
   const { language, strings } = useLanguage();
   const t = strings.scan;
@@ -76,13 +79,47 @@ export default function ScanScreen() {
     setIsPreviewVisible(true);
   }
 
-  function openReport(nextStationId = normalizedStationId) {
+  async function openReport(nextStationId = normalizedStationId) {
     const reportStationId = normalizeStationId(nextStationId);
 
     if (!reportStationId) {
       setError(strings.validation.stationIdRequired);
       void warningHaptic();
       return;
+    }
+
+    if (preview.station?.coordinates) {
+      setIsCheckingLocation(true);
+      try {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (!permission.granted) {
+          setError('يجب السماح بقراءة الموقع للتحقق من مسافة المحطة.');
+          void warningHaptic();
+          setIsCheckingLocation(false);
+          return;
+        }
+        
+        const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        const distance = getDistanceMeters(
+          location.coords.latitude,
+          location.coords.longitude,
+          preview.station.coordinates.lat,
+          preview.station.coordinates.lng
+        );
+        
+        if (distance > 100) {
+          setError(`المحطة خارج النطاق المسموح (المسافة: ${Math.round(distance)} متر). لا يمكنك إنشاء تقرير لها.`);
+          void errorHaptic();
+          setIsCheckingLocation(false);
+          return;
+        }
+      } catch {
+        setError('تعذر تحديد موقعك الحالي للتحقق من المسافة.');
+        void errorHaptic();
+        setIsCheckingLocation(false);
+        return;
+      }
+      setIsCheckingLocation(false);
     }
 
     setError(null);
@@ -259,8 +296,10 @@ export default function ScanScreen() {
           ) : null}
 
           <View style={[styles.actions]}>
-            <SecondaryButton onPress={() => setIsPreviewVisible(false)}>{strings.actions.cancel}</SecondaryButton>
-            <PrimaryButton icon="file-text" onPress={() => openReport(previewStationId ?? '')}>
+            <SecondaryButton disabled={isCheckingLocation} onPress={() => setIsPreviewVisible(false)}>
+              {strings.actions.cancel}
+            </SecondaryButton>
+            <PrimaryButton disabled={isCheckingLocation} loading={isCheckingLocation} icon="file-text" onPress={() => void openReport(previewStationId ?? '')}>
               {strings.actions.openReport}
             </PrimaryButton>
           </View>

@@ -16,7 +16,7 @@ import {
   SyncBanner,
   useToast,
 } from '@/components/ecopest-ui';
-import { EcoPestIcon } from '@/components/icons';
+import { EcoPestIcon, type EcoPestIconName } from '@/components/icons';
 import { ThemedText } from '@/components/themed-text';
 import { BottomTabInset, Fonts, Radius, Shadow, Spacing, Typography } from '@/constants/theme';
 import { useLanguage } from '@/contexts/language-context';
@@ -25,7 +25,14 @@ import { useCurrentUser } from '@/lib/auth';
 import { errorHaptic, successHaptic, warningHaptic } from '@/lib/haptics';
 import { languageDateLocales, type Language } from '@/lib/i18n';
 import { apiGet, apiPatch, apiPost } from '@/lib/sync/api-client';
-import type { ClientOrderStatus, MobileClientOrder, MobileClientOrdersResponse, MobileReviewReport, Station } from '@/lib/sync/types';
+import type {
+  AttendanceSession,
+  ClientOrderStatus,
+  MobileClientOrder,
+  MobileClientOrdersResponse,
+  MobileReviewReport,
+  Station,
+} from '@/lib/sync/types';
 
 type OrderTone = 'danger' | 'info' | 'neutral' | 'success' | 'warning';
 
@@ -79,6 +86,14 @@ const copy = {
     totalReports: 'تقارير الفحص',
     totalStations: 'محطات مطلوبة',
     validation: 'أدخل اسم المحطة وموقعها قبل الإرسال.',
+    attendanceClockIn: 'حضور',
+    attendanceClockOut: 'انصراف',
+    attendanceCompleted: 'مكتمل',
+    attendanceInProgress: 'قيد العمل',
+    attendanceUnknownStation: 'محطة غير محددة',
+    technicianAttendance: 'آخر حضور الفنيين',
+    technicianAttendanceBody: 'عند تسجيل حضور فني في إحدى محطاتك سيظهر السجل هنا.',
+    totalAttendance: 'زيارات الفنيين',
   },
   en: {
     accessDeniedBody: 'This screen is for client accounts that track inspection requests.',
@@ -114,6 +129,14 @@ const copy = {
     totalReports: 'Inspection reports',
     totalStations: 'Requested stations',
     validation: 'Enter the station name and location before sending.',
+    attendanceClockIn: 'Clock-in',
+    attendanceClockOut: 'Clock-out',
+    attendanceCompleted: 'Completed',
+    attendanceInProgress: 'In progress',
+    attendanceUnknownStation: 'Station not set',
+    technicianAttendance: 'Technician visits',
+    technicianAttendanceBody: 'When a technician clocks in at your stations, visits appear here.',
+    totalAttendance: 'Technician visits',
   },
 } as const;
 
@@ -166,7 +189,7 @@ function formatDate(value: string | undefined, locale: string, fallback: string)
   return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
-function MetricCard({ icon, label, value }: { icon: 'clipboard-check' | 'file-text' | 'target'; label: string; value: string }) {
+function MetricCard({ icon, label, value }: { icon: EcoPestIconName; label: string; value: string }) {
   const theme = useTheme();
 
   return (
@@ -260,6 +283,50 @@ function OrderCard({
   );
 }
 
+type OrdersTabCopy = (typeof copy)[keyof typeof copy];
+
+function AttendanceSessionCard({ locale, session, text }: { locale: string; session: AttendanceSession; text: OrdersTabCopy }) {
+  const open = !session.clockOutAt;
+
+  function formatIso(iso: string | undefined): string {
+    if (!iso) {
+      return '';
+    }
+
+    const date = new Date(iso);
+
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  }
+
+  const stationTitle = session.clockInLocation?.stationLabel ?? text.attendanceUnknownStation;
+
+  return (
+    <Card>
+      <View style={[styles.cardHeader, { flexDirection: 'row' }]}>
+        <View style={styles.cardCopy}>
+          <ThemedText type="title">{session.technicianName}</ThemedText>
+          <ThemedText selectable type="small" themeColor="textSecondary">
+            {stationTitle}
+          </ThemedText>
+        </View>
+        <StatusChip label={open ? text.attendanceInProgress : text.attendanceCompleted} tone={open ? 'warning' : 'success'} />
+      </View>
+      <View style={{ gap: 4 }}>
+        <ThemedText type="small" themeColor="textSecondary">
+          {text.attendanceClockIn}: {formatIso(session.clockInAt) || '—'}
+        </ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {text.attendanceClockOut}: {formatIso(session.clockOutAt) || (open ? text.attendanceInProgress : '—')}
+        </ThemedText>
+      </View>
+    </Card>
+  );
+}
+
 function StationCard({ locale, station }: { locale: string; station: Station }) {
   const { strings } = useLanguage();
 
@@ -297,6 +364,7 @@ export default function ClientOrdersScreen() {
   const [orders, setOrders] = useState<MobileClientOrder[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
   const [reports, setReports] = useState<MobileReviewReport[]>([]);
+  const [attendanceSessions, setAttendanceSessions] = useState<AttendanceSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
@@ -316,6 +384,17 @@ export default function ClientOrdersScreen() {
     [reports],
   );
 
+  const sortedAttendanceSessions = useMemo(
+    () =>
+      [...attendanceSessions].sort((first, second) => {
+        const firstTime = first.clockInAt ? new Date(first.clockInAt).getTime() : 0;
+        const secondTime = second.clockInAt ? new Date(second.clockInAt).getTime() : 0;
+
+        return secondTime - firstTime;
+      }),
+    [attendanceSessions],
+  );
+
   const loadOrders = useCallback(async (): Promise<void> => {
     setLoading(true);
 
@@ -329,6 +408,7 @@ export default function ClientOrdersScreen() {
       setOrders(data.orders);
       setStations(data.stations ?? []);
       setReports(data.reports ?? []);
+      setAttendanceSessions(data.attendanceSessions ?? []);
       setError(null);
     } catch (loadError: unknown) {
       setError(loadError instanceof Error ? loadError.message : t.loadError);
@@ -448,6 +528,7 @@ export default function ClientOrdersScreen() {
                 <MetricCard icon="clipboard-check" label={t.totalOrders} value={String(orders.length)} />
                 <MetricCard icon="target" label={t.totalStations} value={String(stations.length)} />
                 <MetricCard icon="file-text" label={t.totalReports} value={String(reports.length)} />
+                {isClient ? <MetricCard icon="map-pin" label={t.totalAttendance} value={String(attendanceSessions.length)} /> : null}
               </View>
             </View>
 
@@ -542,6 +623,21 @@ export default function ClientOrdersScreen() {
                       stationLabel={`${report.stationLabel} · ${report.technicianName}`}
                       status={report.status}
                     />
+                  ))}
+                </View>
+
+                <View style={styles.sectionStack}>
+                  <ThemedText type="title">{t.technicianAttendance}</ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {t.technicianAttendanceBody}
+                  </ThemedText>
+                  {sortedAttendanceSessions.length === 0 && !loading ? (
+                    <View style={[styles.emptyCard, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
+                      <EmptyState subtitle={t.technicianAttendanceBody} title={t.technicianAttendance} />
+                    </View>
+                  ) : null}
+                  {sortedAttendanceSessions.map((session) => (
+                    <AttendanceSessionCard key={session.attendanceId} locale={locale} session={session} text={t} />
                   ))}
                 </View>
               </>

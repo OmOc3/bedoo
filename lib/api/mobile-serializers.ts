@@ -1,8 +1,12 @@
 import "server-only";
 
+import type { MobileAttendanceSession } from "@ecopest/shared/mobile";
+
 import type {
   AppTimestamp,
   AppUser,
+  AttendanceLocation,
+  AttendanceSession,
   AuditLog,
   ClientOrder,
   ClientProfile,
@@ -246,6 +250,39 @@ export function mobileStationResponse(
     ...(timestampToIso(data.createdAt) ? { createdAt: timestampToIso(data.createdAt) } : {}),
     ...(timestampToIso(data.lastVisitedAt) ? { lastVisitedAt: timestampToIso(data.lastVisitedAt) } : {}),
     ...(timestampToIso(data.updatedAt) ? { updatedAt: timestampToIso(data.updatedAt) } : {}),
+  };
+}
+
+function mobileAttendanceLocationPayload(location?: AttendanceLocation): MobileAttendanceSession["clockInLocation"] {
+  if (!location) {
+    return undefined;
+  }
+
+  return {
+    coordinates: location.coordinates,
+    distanceMeters: location.distanceMeters,
+    stationId: location.stationId,
+    stationLabel: location.stationLabel,
+    ...(typeof location.accuracyMeters === "number" ? { accuracyMeters: location.accuracyMeters } : {}),
+    ...(location.clientName ? { clientName: location.clientName } : {}),
+    ...(location.clientUid ? { clientUid: location.clientUid } : {}),
+  };
+}
+
+export function mobileAttendanceSessionResponse(session: AttendanceSession): MobileAttendanceSession {
+  const clockInLocation = mobileAttendanceLocationPayload(session.clockInLocation);
+  const clockOutLocation = mobileAttendanceLocationPayload(session.clockOutLocation);
+
+  return {
+    attendanceId: session.attendanceId,
+    technicianName: session.technicianName,
+    technicianUid: session.technicianUid,
+    ...(session.shiftId ? { shiftId: session.shiftId } : {}),
+    ...(session.notes ? { notes: session.notes } : {}),
+    ...(timestampToIso(session.clockInAt) ? { clockInAt: timestampToIso(session.clockInAt) } : {}),
+    ...(timestampToIso(session.clockOutAt) ? { clockOutAt: timestampToIso(session.clockOutAt) } : {}),
+    ...(clockInLocation ? { clockInLocation } : {}),
+    ...(clockOutLocation ? { clockOutLocation } : {}),
   };
 }
 

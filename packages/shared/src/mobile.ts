@@ -257,6 +257,7 @@ export interface MobileAppSettings {
 
 export interface MobileClientOrdersResponse {
   orders: MobileClientOrder[];
+  attendanceSessions?: MobileAttendanceSession[];
   reports?: MobileReport[];
   stations?: MobileStation[];
 }
