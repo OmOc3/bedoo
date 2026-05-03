@@ -13,9 +13,11 @@ import { technicianScanUrl, type StationQrExportItem } from "@/lib/stations/qr-e
 const a4Width = 595.28;
 const a4Height = 841.89;
 const pdfScale = 2;
-const fontPath = path.join(process.cwd(), "assets", "fonts", "Tajawal-Bold.ttf");
 
-let tajawalBoldBuffer: Buffer | undefined;
+const cairoArabicPath = path.join(process.cwd(), "assets", "fonts", "Cairo-Arabic-700.woff");
+const cairoLatinPath = path.join(process.cwd(), "assets", "fonts", "Cairo-Latin-700.woff");
+
+let cairoFontBuffers: { arabic: Buffer; latin: Buffer } | undefined;
 
 function clampText(value: string, maxLength: number): string {
   const normalized = value.trim().replace(/\s+/g, " ");
@@ -27,67 +29,81 @@ function clampText(value: string, maxLength: number): string {
   return `${normalized.slice(0, maxLength - 1)}…`;
 }
 
-async function getTajawalBold(): Promise<Buffer> {
-  if (!tajawalBoldBuffer) {
-    tajawalBoldBuffer = await readFile(fontPath);
+async function getCairoFonts(): Promise<{ arabic: Buffer; latin: Buffer }> {
+  if (!cairoFontBuffers) {
+    const [arabic, latin] = await Promise.all([readFile(cairoArabicPath), readFile(cairoLatinPath)]);
+    cairoFontBuffers = { arabic, latin };
   }
 
-  return tajawalBoldBuffer;
+  return cairoFontBuffers;
 }
 
 async function renderTextPng(input: {
   align?: "center" | "left" | "right";
   color?: string;
   direction?: "ltr" | "rtl";
+  /** حجم خط النقطة على الصفحة (قبل ضرب الدقة الداخلية) */
   fontSize: number;
-  fontWeight?: 700 | 800;
+  fontWeight?: 700;
+  /** ارتفاع المربع النصي بالنقاط */
   height: number;
   text: string;
+  /** عرض المربع النصي بالنقاط */
   width: number;
 }): Promise<Buffer> {
-  const fontData = await getTajawalBold();
+  const { arabic, latin } = await getCairoFonts();
   const w = Math.ceil(input.width * pdfScale);
   const h = Math.ceil(input.height * pdfScale);
   const fontSizePx = Math.round(input.fontSize * pdfScale);
   const direction = input.direction ?? "rtl";
+  const textAlign =
+    input.align === "left" ? "left" : input.align === "right" ? "right" : ("center" as const);
   const justifyContent =
     input.align === "left" ? "flex-start" : input.align === "right" ? "flex-end" : "center";
 
-  const fontWeightCss = input.fontWeight === 800 ? 800 : 700;
+  const fontWeightCss = input.fontWeight ?? 700;
 
   const element = createElement(
     "div",
     {
       style: {
-        alignItems: "center",
+        alignItems: "stretch",
         color: input.color ?? "#111827",
         direction,
         display: "flex",
-        fontFamily: "Tajawal",
-        fontSize: `${fontSizePx}px`,
-        fontWeight: fontWeightCss,
         height: `${h}px`,
         justifyContent,
         width: `${w}px`,
       },
     },
-    input.text,
+    createElement(
+      "div",
+      {
+        style: {
+          color: input.color ?? "#111827",
+          direction,
+          display: "flex",
+          flex: 1,
+          flexDirection: "column",
+          fontFamily: "Cairo",
+          fontSize: `${fontSizePx}px`,
+          fontWeight: fontWeightCss,
+          justifyContent: "center",
+          lineHeight: 1.35,
+          paddingLeft: `${Math.round(12 * pdfScale)}px`,
+          paddingRight: `${Math.round(12 * pdfScale)}px`,
+          textAlign,
+          whiteSpace: "pre-wrap",
+        },
+      },
+      input.text,
+    ),
   );
 
   const svg = await satori(element, {
     fonts: [
-      {
-        data: fontData,
-        name: "Tajawal",
-        style: "normal",
-        weight: 700,
-      },
-      {
-        data: fontData,
-        name: "Tajawal",
-        style: "normal",
-        weight: 800,
-      },
+      { data: latin, name: "Cairo", style: "normal", weight: 700 },
+      { data: arabic, name: "Cairo", style: "normal", weight: 700 },
     ],
     height: h,
     width: w,
@@ -104,8 +120,8 @@ async function drawTextImage(
   const pngBytes = await renderTextPng(input);
   const image = await pdfDoc.embedPng(pngBytes);
   page.drawImage(image, {
-    height: input.height / pdfScale,
-    width: input.width / pdfScale,
+    height: input.height,
+    width: input.width,
     x: input.x,
     y: input.y,
   });
@@ -120,6 +136,9 @@ function pngBytesFromDataUrl(dataUrl: string): Buffer {
 
   return Buffer.from(base64, "base64");
 }
+
+/** رأس الصفحة: عربي، اتجاه يمين، حجم بارز لسهولة القراءة */
+const scanHintAr = "امسح الرمز ضوئيًا";
 
 export async function createStationQrExportPdf(items: readonly StationQrExportItem[]): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
@@ -143,16 +162,20 @@ export async function createStationQrExportPdf(items: readonly StationQrExportIt
       y: 48,
     });
 
+    const titleWidthPt = a4Width - 96;
+    const titleX = 48;
+
     await drawTextImage(pdfDoc, page, {
+      align: "center",
       color: "#0f172a",
-      direction: "ltr",
-      fontSize: 58,
-      fontWeight: 800,
-      height: 86,
-      text: "SCAN ME",
-      width: 520,
-      x: 37.5,
-      y: 688,
+      direction: "rtl",
+      fontSize: 56,
+      fontWeight: 700,
+      height: 120,
+      text: scanHintAr,
+      width: titleWidthPt,
+      x: titleX,
+      y: 672,
     });
 
     const qrDataUrl = await QRCode.toDataURL(item.qrCodeValue, {
@@ -169,46 +192,56 @@ export async function createStationQrExportPdf(items: readonly StationQrExportIt
       y: 330,
     });
 
+    const textBlockPt = a4Width - 96;
+    const textX = 48;
+
     await drawTextImage(pdfDoc, page, {
+      align: "center",
       color: "#0f172a",
       direction: "rtl",
-      fontSize: 34,
-      fontWeight: 800,
-      height: 54,
-      text: clampText(item.label, 48),
-      width: 760,
-      x: (a4Width - 380) / 2,
-      y: 265,
+      fontSize: 44,
+      fontWeight: 700,
+      height: 80,
+      text: clampText(item.label, 56),
+      width: textBlockPt,
+      x: textX,
+      y: 240,
     });
     await drawTextImage(pdfDoc, page, {
+      align: "center",
       color: "#334155",
       direction: "rtl",
-      fontSize: 24,
-      height: 42,
-      text: `العميل: ${clampText(item.clientName, 52)}`,
-      width: 760,
-      x: (a4Width - 380) / 2,
-      y: 223,
-    });
-    await drawTextImage(pdfDoc, page, {
-      color: "#475569",
-      direction: "rtl",
-      fontSize: 22,
-      height: 38,
-      text: `تاريخ الإنشاء: ${formatDateRome(item.createdAt, { locale: "ar-EG" })}`,
-      width: 760,
-      x: (a4Width - 380) / 2,
+      fontSize: 32,
+      fontWeight: 700,
+      height: 58,
+      text: `العميل: ${clampText(item.clientName, 60)}`,
+      width: textBlockPt,
+      x: textX,
       y: 188,
     });
     await drawTextImage(pdfDoc, page, {
+      align: "center",
+      color: "#475569",
+      direction: "rtl",
+      fontSize: 28,
+      fontWeight: 700,
+      height: 52,
+      text: `تاريخ الإنشاء: ${formatDateRome(item.createdAt, { locale: "ar-EG" })}`,
+      width: textBlockPt,
+      x: textX,
+      y: 142,
+    });
+    await drawTextImage(pdfDoc, page, {
+      align: "center",
       color: "#64748b",
       direction: "ltr",
-      fontSize: 18,
-      height: 34,
+      fontSize: 22,
+      fontWeight: 700,
+      height: 44,
       text: technicianScanUrl,
-      width: 800,
-      x: (a4Width - 400) / 2,
-      y: 92,
+      width: textBlockPt,
+      x: textX,
+      y: 78,
     });
   }
 
