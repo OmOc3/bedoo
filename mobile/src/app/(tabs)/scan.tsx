@@ -18,6 +18,21 @@ import { languageDateLocales } from '@/lib/i18n';
 import { getDistanceMeters, maxLocationAccuracyMeters, stationAccessRadiusMeters } from '@/lib/geo';
 import * as Location from 'expo-location';
 
+const scanValidationCopy = {
+  ar: {
+    locationPermission: 'يجب السماح بقراءة الموقع للتحقق من مسافة المحطة.',
+    lowAccuracy: 'دقة الموقع ضعيفة. فعّل GPS واقترب من المحطة ثم حاول مرة أخرى.',
+    locationUnavailable: 'تعذر تحديد موقعك الحالي للتحقق من المسافة.',
+    outOfRange: (distance: number) => `المحطة خارج النطاق المسموح (المسافة: ${distance} متر). لا يمكنك إنشاء تقرير لها.`,
+  },
+  en: {
+    locationPermission: 'Allow location access to verify your distance from the station.',
+    lowAccuracy: 'Location accuracy is low. Turn on GPS, move closer to the station, then try again.',
+    locationUnavailable: 'Could not read your current location to verify the distance.',
+    outOfRange: (distance: number) => `The station is outside the allowed range (distance: ${distance} m). You cannot create a report for it.`,
+  },
+} as const;
+
 function normalizeStationId(value: string): string {
   const fromQr = extractStationIdFromQrValue(value);
 
@@ -47,6 +62,7 @@ export default function ScanScreen() {
   const theme = useTheme();
   const { language, strings } = useLanguage();
   const t = strings.scan;
+  const validationCopy = scanValidationCopy[language];
   const normalizedStationId = normalizeStationId(stationId);
   const preview = useStation(previewStationId ?? '', strings.errors.loadStation);
   const { showToast } = useToast();
@@ -90,7 +106,7 @@ export default function ScanScreen() {
       try {
         const permission = await Location.requestForegroundPermissionsAsync();
         if (!permission.granted) {
-          setError('يجب السماح بقراءة الموقع للتحقق من مسافة المحطة.');
+          setError(validationCopy.locationPermission);
           void warningHaptic();
           setIsCheckingLocation(false);
           return;
@@ -102,7 +118,7 @@ export default function ScanScreen() {
           Number.isFinite(location.coords.accuracy) &&
           location.coords.accuracy > maxLocationAccuracyMeters
         ) {
-          setError('دقة الموقع ضعيفة. فعّل GPS واقترب من المحطة ثم حاول مرة أخرى.');
+          setError(validationCopy.lowAccuracy);
           void warningHaptic();
           setIsCheckingLocation(false);
           return;
@@ -116,13 +132,13 @@ export default function ScanScreen() {
         );
         
         if (distance > stationAccessRadiusMeters) {
-          setError(`المحطة خارج النطاق المسموح (المسافة: ${Math.round(distance)} متر). لا يمكنك إنشاء تقرير لها.`);
+          setError(validationCopy.outOfRange(Math.round(distance)));
           void errorHaptic();
           setIsCheckingLocation(false);
           return;
         }
       } catch {
-        setError('تعذر تحديد موقعك الحالي للتحقق من المسافة.');
+        setError(validationCopy.locationUnavailable);
         void errorHaptic();
         setIsCheckingLocation(false);
         return;

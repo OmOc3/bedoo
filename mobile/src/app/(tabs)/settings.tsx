@@ -137,7 +137,7 @@ export default function SettingsScreen() {
         body: JSON.stringify({ displayName }),
       });
       if (res.ok) {
-        showToast("تم تحديث البيانات بنجاح", 'success');
+        showToast(t.profileUpdated, 'success');
         await successHaptic();
         setIsEditing(false);
         await reloadCurrentUser();
@@ -145,7 +145,7 @@ export default function SettingsScreen() {
         throw new Error('Update failed');
       }
     } catch {
-      showToast("تعذر التحديث", 'error');
+      showToast(t.profileUpdateFailed, 'error');
       await errorHaptic();
     } finally {
       setIsSaving(false);
@@ -173,7 +173,7 @@ export default function SettingsScreen() {
           },
           body: JSON.stringify({ image: url }),
         });
-        showToast('تم تحديث الصورة بنجاح', 'success');
+        showToast(t.imageUpdated, 'success');
         await successHaptic();
         await reloadCurrentUser();
         // Keep the latest image visible instantly until profile refresh settles.
@@ -181,12 +181,12 @@ export default function SettingsScreen() {
       } else {
         // Upload failed — revert preview
         setLocalImageUri(null);
-        showToast('تعذر رفع الصورة', 'error');
+        showToast(t.imageUploadFailed, 'error');
         await errorHaptic();
       }
     } catch {
       setLocalImageUri(null);
-      showToast('تعذر رفع الصورة', 'error');
+      showToast(t.imageUploadFailed, 'error');
       await errorHaptic();
     } finally {
       setUploadingImage(false);
@@ -236,10 +236,10 @@ export default function SettingsScreen() {
 
              {isEditing ? (
                <View style={styles.editForm}>
-                  <InputField label="الاسم" value={displayName} onChangeText={setDisplayName} />
+                  <InputField label={t.displayNameLabel} value={displayName} onChangeText={setDisplayName} />
                   <View style={[styles.editActions, { flexDirection: 'row' }]}>
-                    <PrimaryButton loading={isSaving} onPress={() => void handleUpdateProfile()} icon="check">حفظ</PrimaryButton>
-                    <SecondaryButton onPress={() => setIsEditing(false)}>إلغاء</SecondaryButton>
+                    <PrimaryButton loading={isSaving} onPress={() => void handleUpdateProfile()} icon="check">{t.profileSave}</PrimaryButton>
+                    <SecondaryButton onPress={() => setIsEditing(false)}>{t.profileCancel}</SecondaryButton>
                   </View>
                </View>
              ) : (
@@ -247,7 +247,7 @@ export default function SettingsScreen() {
                  <ThemedText type="subtitle" style={{ textAlign: 'center' }}>{profile?.displayName ?? t.defaultUserName}</ThemedText>
                  <ThemedText themeColor="textSecondary" style={{ textAlign: 'center' }}>{profile ? roleLabels[profile.role] : t.defaultUserRole}</ThemedText>
                  <Pressable onPress={() => setIsEditing(true)} style={[styles.editProfileBtn, { backgroundColor: theme.surfaceCardDark }]}>
-                    <ThemedText type="smallBold" themeColor="primary">تعديل الملف الشخصي</ThemedText>
+                    <ThemedText type="smallBold" themeColor="primary">{t.editProfile}</ThemedText>
                  </Pressable>
                </View>
              )}
@@ -330,7 +330,7 @@ export default function SettingsScreen() {
           </SettingsSection>
 
           <SettingsSection title={t.accountSecurityTitle}>
-            <SettingsItem icon="shield" title="معلومات الأمان" subtitle={t.securityBody} />
+            <SettingsItem icon="shield" title={t.securityInfo} subtitle={t.securityBody} />
           </SettingsSection>
 
           <View style={styles.footerActions}>

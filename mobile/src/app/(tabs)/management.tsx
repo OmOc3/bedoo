@@ -72,6 +72,161 @@ const emptyScheduleForm: ScheduleForm = {
   workDaysText: '0,1,2,3,4',
 };
 
+const managementCopy = {
+  ar: {
+    active: 'نشط',
+    clients: 'العملاء',
+    clientsDirectory: 'دليل العملاء',
+    completed: 'مكتمل',
+    daily: 'اليومية',
+    dailyReports: 'التقارير اليومية',
+    dateUnavailable: 'غير متاح',
+    earlyCheckout: 'انصراف مبكر',
+    editSettingsError: 'تعذر حفظ الإعدادات.',
+    editScheduleError: 'تعذر حفظ جدول الفني.',
+    fullManagement: 'إدارة كاملة',
+    heroManager: 'أدوات المدير',
+    heroSupervisor: 'أدوات المشرف',
+    heroBody: 'شاشات Native للخصائص التي كانت ناقصة من الموبايل: الشيفتات، اليومية، الإعدادات، والعملاء.',
+    inactive: 'غير نشط',
+    loadClientsError: 'تعذر تحميل العملاء.',
+    loadDailyReportsError: 'تعذر تحميل التقارير اليومية.',
+    loadManagementError: 'تعذر تحميل بيانات الإدارة.',
+    loadScheduleError: 'تعذر تحميل جدول الفني.',
+    loadSettingsError: 'تعذر تحميل الإعدادات.',
+    loadShiftsError: 'تعذر تحميل الشيفتات.',
+    loadTechniciansError: 'تعذر تحميل الفنيين.',
+    maintenance: 'صيانة',
+    maintenanceDisabled: 'إلغاء الصيانة',
+    maintenanceEnabled: 'صيانة مفعلة',
+    maintenanceMessage: 'رسالة الصيانة',
+    maintenanceNormal: 'تشغيل عادي',
+    maintenanceToggle: 'تفعيل الصيانة',
+    manageSchedule: 'إدارة الجدول',
+    minutes: 'دقيقة',
+    noClientsBody: 'لا توجد حسابات عملاء.',
+    noClientsTitle: 'لا توجد عملاء',
+    noDailyReportsBody: 'لا توجد تقارير يومية.',
+    noDailyReportsTitle: 'لا توجد تقارير',
+    noScheduleBody: 'لا توجد حسابات فنيين متاحة.',
+    noScheduleTitle: 'لا توجد جداول',
+    noShiftsBody: 'لا توجد شيفتات مطابقة.',
+    noShiftsTitle: 'لا توجد شيفتات',
+    openOrders: 'مفتوحة',
+    orders: 'طلبات',
+    salary: 'الراتب',
+    salaryPaid: 'مدفوع',
+    salaryPending: 'معلق',
+    salaryUnpaid: 'غير مدفوع',
+    saveSchedule: 'حفظ جدول الفني',
+    saveSettings: 'حفظ الإعدادات',
+    scheduleCreated: 'سيتم إنشاء جدول جديد لهذا الفني.',
+    scheduleDays: 'أيام',
+    scheduleSaved: 'تم حفظ جدول الفني.',
+    scheduleTitlePrefix: 'جدول',
+    scheduleUpdatedPrefix: 'آخر تحديث:',
+    schedules: 'جداول الفنيين',
+    selectWorkDay: 'حدد يوم عمل واحد على الأقل.',
+    settings: 'الإعدادات',
+    settingsSaved: 'تم حفظ الإعدادات.',
+    settingsTitle: 'إعدادات النظام',
+    shiftDurationMinutes: 'مدة الشيفت بالدقائق',
+    shiftEnd: 'نهاية الشيفت',
+    shiftStart: 'بداية الشيفت',
+    shifts: 'الشيفتات',
+    shiftsAndPayroll: 'الشيفتات والرواتب',
+    station: 'محطة',
+    stations: 'محطات',
+    supportEmail: 'بريد الدعم',
+    supportHours: 'مواعيد الدعم',
+    supportPhone: 'هاتف الدعم',
+    syncErrorTitle: 'تعذر التحديث',
+    updateSalaryError: 'تعذر تحديث الراتب.',
+    updateSalarySaved: 'تم تحديث الراتب.',
+    workDays: 'أيام العمل',
+    hourlyRate: 'سعر الساعة',
+    notes: 'ملاحظات',
+    clientDailyLimit: 'حد طلبات العميل اليومي',
+  },
+  en: {
+    active: 'Active',
+    clients: 'Clients',
+    clientsDirectory: 'Client directory',
+    completed: 'Completed',
+    daily: 'Daily',
+    dailyReports: 'Daily reports',
+    dateUnavailable: 'Unavailable',
+    earlyCheckout: 'Early checkout',
+    editSettingsError: 'Could not save settings.',
+    editScheduleError: 'Could not save the technician schedule.',
+    fullManagement: 'Management',
+    heroManager: 'Manager tools',
+    heroSupervisor: 'Supervisor tools',
+    heroBody: 'Native screens for mobile management: shifts, daily reports, settings, and clients.',
+    inactive: 'Inactive',
+    loadClientsError: 'Could not load clients.',
+    loadDailyReportsError: 'Could not load daily reports.',
+    loadManagementError: 'Could not load management data.',
+    loadScheduleError: 'Could not load the technician schedule.',
+    loadSettingsError: 'Could not load settings.',
+    loadShiftsError: 'Could not load shifts.',
+    loadTechniciansError: 'Could not load technicians.',
+    maintenance: 'Maintenance',
+    maintenanceDisabled: 'Disable maintenance',
+    maintenanceEnabled: 'Maintenance enabled',
+    maintenanceMessage: 'Maintenance message',
+    maintenanceNormal: 'Normal operation',
+    maintenanceToggle: 'Enable maintenance',
+    manageSchedule: 'Manage schedule',
+    minutes: 'minutes',
+    noClientsBody: 'No client accounts are available.',
+    noClientsTitle: 'No clients',
+    noDailyReportsBody: 'No daily reports are available.',
+    noDailyReportsTitle: 'No reports',
+    noScheduleBody: 'No technician accounts are available.',
+    noScheduleTitle: 'No schedules',
+    noShiftsBody: 'No matching shifts.',
+    noShiftsTitle: 'No shifts',
+    openOrders: 'Open',
+    orders: 'Orders',
+    salary: 'Salary',
+    salaryPaid: 'Paid',
+    salaryPending: 'Pending',
+    salaryUnpaid: 'Unpaid',
+    saveSchedule: 'Save technician schedule',
+    saveSettings: 'Save settings',
+    scheduleCreated: 'A new schedule will be created for this technician.',
+    scheduleDays: 'days',
+    scheduleSaved: 'Technician schedule saved.',
+    scheduleTitlePrefix: 'Schedule',
+    scheduleUpdatedPrefix: 'Last updated:',
+    schedules: 'Technician schedules',
+    selectWorkDay: 'Select at least one work day.',
+    settings: 'Settings',
+    settingsSaved: 'Settings saved.',
+    settingsTitle: 'System settings',
+    shiftDurationMinutes: 'Shift duration in minutes',
+    shiftEnd: 'Shift end',
+    shiftStart: 'Shift start',
+    shifts: 'Shifts',
+    shiftsAndPayroll: 'Shifts and payroll',
+    station: 'station',
+    stations: 'Stations',
+    supportEmail: 'Support email',
+    supportHours: 'Support hours',
+    supportPhone: 'Support phone',
+    syncErrorTitle: 'Could not refresh',
+    updateSalaryError: 'Could not update salary.',
+    updateSalarySaved: 'Salary updated.',
+    workDays: 'Work days',
+    hourlyRate: 'Hourly rate',
+    notes: 'Notes',
+    clientDailyLimit: 'Daily client order limit',
+  },
+} as const;
+
+type ManagementCopy = (typeof managementCopy)[keyof typeof managementCopy];
+
 function settingsFormFromResponse(settings: MobileAppSettings | null): SettingsForm {
   if (!settings) {
     return emptySettingsForm;
@@ -113,7 +268,7 @@ function parseWorkDays(value: string): number[] {
   ).sort((first, second) => first - second);
 }
 
-function formatDate(value: string | undefined, locale: string, fallback = 'غير متاح'): string {
+function formatDate(value: string | undefined, locale: string, fallback: string): string {
   if (!value) {
     return fallback;
   }
@@ -152,11 +307,13 @@ function ShiftAdminCard({
   locale,
   onUpdateSalary,
   shift,
+  text,
   updatingShiftId,
 }: {
   locale: string;
   onUpdateSalary: (shift: MobileTechnicianShift, salaryStatus: 'paid' | 'pending' | 'unpaid') => void;
   shift: MobileTechnicianShift;
+  text: ManagementCopy;
   updatingShiftId: string | null;
 }) {
   const isUpdating = updatingShiftId === shift.shiftId;
@@ -167,25 +324,25 @@ function ShiftAdminCard({
         <View style={styles.cardCopy}>
           <ThemedText type="title">{shift.technicianName}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            {formatDate(shift.startedAt, locale)}
+          {formatDate(shift.startedAt, locale, text.dateUnavailable)}
           </ThemedText>
         </View>
-        <StatusChip label={shift.status === 'active' ? 'نشط' : 'مكتمل'} tone={shift.status === 'active' ? 'warning' : 'success'} />
+        <StatusChip label={shift.status === 'active' ? text.active : text.completed} tone={shift.status === 'active' ? 'warning' : 'success'} />
       </View>
       <View style={[styles.metaRow, { flexDirection: 'row' }]}>
-        <StatusChip label={`الراتب: ${shift.salaryStatus}`} tone={shift.salaryStatus === 'paid' ? 'success' : 'neutral'} />
-        {typeof shift.totalMinutes === 'number' ? <StatusChip label={`${shift.totalMinutes} دقيقة`} tone="info" /> : null}
-        {shift.earlyExit ? <StatusChip label="انصراف مبكر" tone="warning" /> : null}
+        <StatusChip label={`${text.salary}: ${shift.salaryStatus}`} tone={shift.salaryStatus === 'paid' ? 'success' : 'neutral'} />
+        {typeof shift.totalMinutes === 'number' ? <StatusChip label={`${shift.totalMinutes} ${text.minutes}`} tone="info" /> : null}
+        {shift.earlyExit ? <StatusChip label={text.earlyCheckout} tone="warning" /> : null}
       </View>
       <View style={[styles.actionsRow, { flexDirection: 'row' }]}>
         <SecondaryButton loading={isUpdating} onPress={() => onUpdateSalary(shift, 'pending')} selected={shift.salaryStatus === 'pending'} stretch>
-          معلق
+          {text.salaryPending}
         </SecondaryButton>
         <SecondaryButton loading={isUpdating} onPress={() => onUpdateSalary(shift, 'unpaid')} selected={shift.salaryStatus === 'unpaid'} stretch>
-          غير مدفوع
+          {text.salaryUnpaid}
         </SecondaryButton>
         <SecondaryButton loading={isUpdating} onPress={() => onUpdateSalary(shift, 'paid')} selected={shift.salaryStatus === 'paid'} stretch>
-          مدفوع
+          {text.salaryPaid}
         </SecondaryButton>
       </View>
     </Card>
@@ -198,6 +355,7 @@ export default function ManagementScreen() {
   const { language, roleLabels, strings } = useLanguage();
   const { showToast } = useToast();
   const locale = languageDateLocales[language];
+  const t = managementCopy[language];
   const role = currentUser?.profile.role;
   const isAdmin = role ? isMobileAdminRole(role) : false;
   const isManager = role === 'manager';
@@ -221,13 +379,13 @@ export default function ManagementScreen() {
   const sections = useMemo(
     () =>
       [
-        { id: 'settings' as const, label: 'الإعدادات', managerOnly: true },
-        { id: 'schedules' as const, label: 'جداول الفنيين', managerOnly: true },
-        { id: 'shifts' as const, label: 'الشيفتات', managerOnly: false },
-        { id: 'daily' as const, label: 'اليومية', managerOnly: false },
-        { id: 'clients' as const, label: 'العملاء', managerOnly: true },
+        { id: 'settings' as const, label: t.settings, managerOnly: true },
+        { id: 'schedules' as const, label: t.schedules, managerOnly: true },
+        { id: 'shifts' as const, label: t.shifts, managerOnly: false },
+        { id: 'daily' as const, label: t.daily, managerOnly: false },
+        { id: 'clients' as const, label: t.clients, managerOnly: true },
       ].filter((section) => !section.managerOnly || isManager),
-    [isManager],
+    [isManager, t.clients, t.daily, t.schedules, t.settings, t.shifts],
   );
   const resolvedActiveSection = sections.some((section) => section.id === activeSection)
     ? activeSection
@@ -246,13 +404,13 @@ export default function ManagementScreen() {
 
     try {
       const [settingsData, shiftsData, dailyData, clientsData, usersData] = await Promise.all([
-        apiGet<MobileAppSettings>('/api/mobile/settings', { fallbackErrorMessage: 'تعذر تحميل الإعدادات.' }),
-        apiGet<MobileShiftListResponse>('/api/mobile/shifts', { fallbackErrorMessage: 'تعذر تحميل الشيفتات.' }),
-        apiGet<MobileDailyWorkReport[]>('/api/mobile/daily-reports', { fallbackErrorMessage: 'تعذر تحميل التقارير اليومية.' }),
+        apiGet<MobileAppSettings>('/api/mobile/settings', { fallbackErrorMessage: t.loadSettingsError }),
+        apiGet<MobileShiftListResponse>('/api/mobile/shifts', { fallbackErrorMessage: t.loadShiftsError }),
+        apiGet<MobileDailyWorkReport[]>('/api/mobile/daily-reports', { fallbackErrorMessage: t.loadDailyReportsError }),
         isManager
-          ? apiGet<MobileClientDirectoryEntry[]>('/api/mobile/clients', { fallbackErrorMessage: 'تعذر تحميل العملاء.' })
+          ? apiGet<MobileClientDirectoryEntry[]>('/api/mobile/clients', { fallbackErrorMessage: t.loadClientsError })
           : Promise.resolve([]),
-        isManager ? apiGet<MobileAppUser[]>('/api/mobile/users', { fallbackErrorMessage: 'تعذر تحميل الفنيين.' }) : Promise.resolve([]),
+        isManager ? apiGet<MobileAppUser[]>('/api/mobile/users', { fallbackErrorMessage: t.loadTechniciansError }) : Promise.resolve([]),
       ]);
 
       setSettings(settingsData);
@@ -263,11 +421,11 @@ export default function ManagementScreen() {
       setTechnicians(usersData.filter((user) => user.role === 'technician'));
       setError(null);
     } catch (loadError: unknown) {
-      setError(loadError instanceof Error ? loadError.message : 'تعذر تحميل بيانات الإدارة.');
+      setError(loadError instanceof Error ? loadError.message : t.loadManagementError);
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, isManager]);
+  }, [isAdmin, isManager, t.loadClientsError, t.loadDailyReportsError, t.loadManagementError, t.loadSettingsError, t.loadShiftsError, t.loadTechniciansError]);
 
   useFocusEffect(
     useCallback(() => {
@@ -289,15 +447,15 @@ export default function ManagementScreen() {
           supportHours: settingsForm.supportHours,
           supportPhone: settingsForm.supportPhone,
         },
-        { fallbackErrorMessage: 'تعذر حفظ الإعدادات.' },
+        { fallbackErrorMessage: t.editSettingsError },
       );
 
       setSettings(nextSettings);
       setSettingsForm(settingsFormFromResponse(nextSettings));
-      showToast('تم حفظ الإعدادات.', 'success');
+      showToast(t.settingsSaved, 'success');
       await successHaptic();
     } catch (saveError: unknown) {
-      showToast(saveError instanceof Error ? saveError.message : 'تعذر حفظ الإعدادات.', 'error');
+      showToast(saveError instanceof Error ? saveError.message : t.editSettingsError, 'error');
       await errorHaptic();
     } finally {
       setSavingSettings(false);
@@ -311,12 +469,12 @@ export default function ManagementScreen() {
     try {
       const nextSchedule = await apiGet<MobileTechnicianWorkSchedule | null>(
         `/api/mobile/schedules/${encodeURIComponent(technician.uid)}`,
-        { fallbackErrorMessage: 'تعذر تحميل جدول الفني.' },
+        { fallbackErrorMessage: t.loadScheduleError },
       );
       setSchedule(nextSchedule);
       setScheduleForm(scheduleFormFromResponse(nextSchedule));
     } catch (scheduleError: unknown) {
-      showToast(scheduleError instanceof Error ? scheduleError.message : 'تعذر تحميل جدول الفني.', 'error');
+      showToast(scheduleError instanceof Error ? scheduleError.message : t.loadScheduleError, 'error');
       await errorHaptic();
     } finally {
       setScheduleLoading(false);
@@ -332,7 +490,7 @@ export default function ManagementScreen() {
     const workDays = parseWorkDays(scheduleForm.workDaysText);
 
     if (workDays.length === 0) {
-      showToast('حدد يوم عمل واحد على الأقل.', 'warning');
+      showToast(t.selectWorkDay, 'warning');
       await warningHaptic();
       return;
     }
@@ -360,14 +518,14 @@ export default function ManagementScreen() {
           shiftStartTime: scheduleForm.shiftStartTime.trim(),
           workDays,
         },
-        { fallbackErrorMessage: 'تعذر حفظ جدول الفني.' },
+        { fallbackErrorMessage: t.editScheduleError },
       );
       setSchedule(nextSchedule);
       setScheduleForm(scheduleFormFromResponse(nextSchedule));
-      showToast('تم حفظ جدول الفني.', 'success');
+      showToast(t.scheduleSaved, 'success');
       await successHaptic();
     } catch (scheduleError: unknown) {
-      showToast(scheduleError instanceof Error ? scheduleError.message : 'تعذر حفظ جدول الفني.', 'error');
+      showToast(scheduleError instanceof Error ? scheduleError.message : t.editScheduleError, 'error');
       await errorHaptic();
     } finally {
       setSavingSchedule(false);
@@ -389,13 +547,13 @@ export default function ManagementScreen() {
           salaryAmount: salaryStatus === 'paid' ? (shift.salaryAmount ?? shift.baseSalary ?? 0) : undefined,
           salaryStatus,
         },
-        { fallbackErrorMessage: 'تعذر تحديث الراتب.' },
+        { fallbackErrorMessage: t.updateSalaryError },
       );
       await loadData();
-      showToast('تم تحديث الراتب.', 'success');
+      showToast(t.updateSalarySaved, 'success');
       await successHaptic();
     } catch (salaryError: unknown) {
-      showToast(salaryError instanceof Error ? salaryError.message : 'تعذر تحديث الراتب.', 'error');
+      showToast(salaryError instanceof Error ? salaryError.message : t.updateSalaryError, 'error');
       await errorHaptic();
     } finally {
       setUpdatingShiftId(null);
@@ -411,31 +569,31 @@ export default function ManagementScreen() {
       <Card>
         <View style={[styles.cardHeader, { flexDirection: 'row' }]}>
           <View style={styles.cardCopy}>
-            <ThemedText type="title">إعدادات النظام</ThemedText>
+            <ThemedText type="title">{t.settingsTitle}</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              الحالة الحالية: {settings?.maintenanceEnabled ? 'صيانة مفعلة' : 'تشغيل عادي'}
+              {settings?.maintenanceEnabled ? t.maintenanceEnabled : t.maintenanceNormal}
             </ThemedText>
           </View>
-          <StatusChip label={settingsForm.maintenanceEnabled ? 'صيانة' : 'نشط'} tone={settingsForm.maintenanceEnabled ? 'warning' : 'success'} />
+          <StatusChip label={settingsForm.maintenanceEnabled ? t.maintenance : t.active} tone={settingsForm.maintenanceEnabled ? 'warning' : 'success'} />
         </View>
         <SecondaryButton
           icon="sliders"
           selected={settingsForm.maintenanceEnabled}
           onPress={() => setSettingsForm((current) => ({ ...current, maintenanceEnabled: !current.maintenanceEnabled }))}>
-          {settingsForm.maintenanceEnabled ? 'إلغاء الصيانة' : 'تفعيل الصيانة'}
+          {settingsForm.maintenanceEnabled ? t.maintenanceDisabled : t.maintenanceToggle}
         </SecondaryButton>
-        <InputField label="رسالة الصيانة" multiline onChangeText={(value) => setSettingsForm((current) => ({ ...current, maintenanceMessage: value }))} value={settingsForm.maintenanceMessage} />
+        <InputField label={t.maintenanceMessage} multiline onChangeText={(value) => setSettingsForm((current) => ({ ...current, maintenanceMessage: value }))} value={settingsForm.maintenanceMessage} />
         <InputField
           contentDirection="ltr"
-          label="حد طلبات العميل اليومي"
+          label={t.clientDailyLimit}
           onChangeText={(value) => setSettingsForm((current) => ({ ...current, clientDailyStationOrderLimit: value }))}
           value={settingsForm.clientDailyStationOrderLimit}
         />
-        <InputField contentDirection="ltr" label="هاتف الدعم" onChangeText={(value) => setSettingsForm((current) => ({ ...current, supportPhone: value }))} value={settingsForm.supportPhone} />
-        <InputField contentDirection="ltr" label="بريد الدعم" onChangeText={(value) => setSettingsForm((current) => ({ ...current, supportEmail: value }))} value={settingsForm.supportEmail} />
-        <InputField label="مواعيد الدعم" onChangeText={(value) => setSettingsForm((current) => ({ ...current, supportHours: value }))} value={settingsForm.supportHours} />
+        <InputField contentDirection="ltr" label={t.supportPhone} onChangeText={(value) => setSettingsForm((current) => ({ ...current, supportPhone: value }))} value={settingsForm.supportPhone} />
+        <InputField contentDirection="ltr" label={t.supportEmail} onChangeText={(value) => setSettingsForm((current) => ({ ...current, supportEmail: value }))} value={settingsForm.supportEmail} />
+        <InputField label={t.supportHours} onChangeText={(value) => setSettingsForm((current) => ({ ...current, supportHours: value }))} value={settingsForm.supportHours} />
         <PrimaryButton icon="check" loading={savingSettings} onPress={() => void saveSettings()}>
-          حفظ الإعدادات
+          {t.saveSettings}
         </PrimaryButton>
       </Card>
     );
@@ -448,8 +606,8 @@ export default function ManagementScreen() {
 
     return (
       <View style={styles.sectionStack}>
-        <ThemedText type="title">جداول الفنيين</ThemedText>
-        {technicians.length === 0 && !loading ? <EmptyState subtitle="لا توجد حسابات فنيين متاحة." title="لا توجد جداول" /> : null}
+        <ThemedText type="title">{t.schedules}</ThemedText>
+        {technicians.length === 0 && !loading ? <EmptyState subtitle={t.noScheduleBody} title={t.noScheduleTitle} /> : null}
         {technicians.map((technician) => (
           <Card key={technician.uid}>
             <View style={[styles.cardHeader, { flexDirection: 'row' }]}>
@@ -459,14 +617,14 @@ export default function ManagementScreen() {
                   {technician.email}
                 </ThemedText>
               </View>
-              <StatusChip label={technician.isActive ? 'نشط' : 'غير نشط'} tone={technician.isActive ? 'success' : 'neutral'} />
+              <StatusChip label={technician.isActive ? t.active : t.inactive} tone={technician.isActive ? 'success' : 'neutral'} />
             </View>
             <SecondaryButton
               icon="sliders"
               loading={scheduleLoading && selectedTechnicianUid === technician.uid}
               onPress={() => void openSchedule(technician)}
               selected={selectedTechnicianUid === technician.uid}>
-              إدارة الجدول
+              {t.manageSchedule}
             </SecondaryButton>
           </Card>
         ))}
@@ -474,16 +632,16 @@ export default function ManagementScreen() {
           <Card>
             <View style={[styles.cardHeader, { flexDirection: 'row' }]}>
               <View style={styles.cardCopy}>
-                <ThemedText type="title">جدول {selectedTechnician.displayName}</ThemedText>
+                <ThemedText type="title">{t.scheduleTitlePrefix} {selectedTechnician.displayName}</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
-                  {schedule ? `آخر تحديث: ${formatDate(schedule.updatedAt ?? schedule.createdAt, locale)}` : 'سيتم إنشاء جدول جديد لهذا الفني.'}
+                  {schedule ? `${t.scheduleUpdatedPrefix} ${formatDate(schedule.updatedAt ?? schedule.createdAt, locale, t.dateUnavailable)}` : t.scheduleCreated}
                 </ThemedText>
               </View>
-              <StatusChip label={`${parseWorkDays(scheduleForm.workDaysText).length} أيام`} tone="info" />
+              <StatusChip label={`${parseWorkDays(scheduleForm.workDaysText).length} ${t.scheduleDays}`} tone="info" />
             </View>
             <InputField
               contentDirection="ltr"
-              label="أيام العمل"
+              label={t.workDays}
               onChangeText={(value) => setScheduleForm((current) => ({ ...current, workDaysText: value }))}
               placeholder="0,1,2,3,4"
               value={scheduleForm.workDaysText}
@@ -492,7 +650,7 @@ export default function ManagementScreen() {
               <View style={styles.coordinateInput}>
                 <InputField
                   contentDirection="ltr"
-                  label="بداية الشيفت"
+                  label={t.shiftStart}
                   onChangeText={(value) => setScheduleForm((current) => ({ ...current, shiftStartTime: value }))}
                   value={scheduleForm.shiftStartTime}
                 />
@@ -500,7 +658,7 @@ export default function ManagementScreen() {
               <View style={styles.coordinateInput}>
                 <InputField
                   contentDirection="ltr"
-                  label="نهاية الشيفت"
+                  label={t.shiftEnd}
                   onChangeText={(value) => setScheduleForm((current) => ({ ...current, shiftEndTime: value }))}
                   value={scheduleForm.shiftEndTime}
                 />
@@ -508,24 +666,24 @@ export default function ManagementScreen() {
             </View>
             <InputField
               contentDirection="ltr"
-              label="مدة الشيفت بالدقائق"
+              label={t.shiftDurationMinutes}
               onChangeText={(value) => setScheduleForm((current) => ({ ...current, expectedDurationMinutes: value }))}
               value={scheduleForm.expectedDurationMinutes}
             />
             <InputField
               contentDirection="ltr"
-              label="سعر الساعة"
+              label={t.hourlyRate}
               onChangeText={(value) => setScheduleForm((current) => ({ ...current, hourlyRate: value }))}
               value={scheduleForm.hourlyRate}
             />
             <InputField
-              label="ملاحظات"
+              label={t.notes}
               multiline
               onChangeText={(value) => setScheduleForm((current) => ({ ...current, notes: value }))}
               value={scheduleForm.notes}
             />
             <PrimaryButton icon="check" loading={savingSchedule} onPress={() => void saveSchedule()}>
-              حفظ جدول الفني
+              {t.saveSchedule}
             </PrimaryButton>
           </Card>
         ) : null}
@@ -536,10 +694,10 @@ export default function ManagementScreen() {
   function renderShifts() {
     return (
       <View style={styles.sectionStack}>
-        <ThemedText type="title">الشيفتات والرواتب</ThemedText>
-        {shifts.length === 0 && !loading ? <EmptyState subtitle="لا توجد شيفتات مطابقة." title="لا توجد شيفتات" /> : null}
+        <ThemedText type="title">{t.shiftsAndPayroll}</ThemedText>
+        {shifts.length === 0 && !loading ? <EmptyState subtitle={t.noShiftsBody} title={t.noShiftsTitle} /> : null}
         {shifts.map((shift) => (
-          <ShiftAdminCard key={shift.shiftId} locale={locale} onUpdateSalary={(nextShift, status) => void updateSalary(nextShift, status)} shift={shift} updatingShiftId={updatingShiftId} />
+          <ShiftAdminCard key={shift.shiftId} locale={locale} onUpdateSalary={(nextShift, status) => void updateSalary(nextShift, status)} shift={shift} text={t} updatingShiftId={updatingShiftId} />
         ))}
       </View>
     );
@@ -548,18 +706,18 @@ export default function ManagementScreen() {
   function renderDailyReports() {
     return (
       <View style={styles.sectionStack}>
-        <ThemedText type="title">التقارير اليومية</ThemedText>
-        {dailyReports.length === 0 && !loading ? <EmptyState subtitle="لا توجد تقارير يومية." title="لا توجد تقارير" /> : null}
+        <ThemedText type="title">{t.dailyReports}</ThemedText>
+        {dailyReports.length === 0 && !loading ? <EmptyState subtitle={t.noDailyReportsBody} title={t.noDailyReportsTitle} /> : null}
         {dailyReports.map((report) => (
           <Card key={report.dailyReportId}>
             <View style={[styles.cardHeader, { flexDirection: 'row' }]}>
               <View style={styles.cardCopy}>
                 <ThemedText type="title">{report.summary}</ThemedText>
                 <ThemedText type="small" themeColor="textSecondary">
-                  {report.technicianName} · {formatDate(report.reportDate, locale)}
+                  {report.technicianName} · {formatDate(report.reportDate, locale, t.dateUnavailable)}
                 </ThemedText>
               </View>
-              <StatusChip label={`${report.stationIds.length} محطة`} tone="info" />
+              <StatusChip label={`${report.stationIds.length} ${t.station}`} tone="info" />
             </View>
           </Card>
         ))}
@@ -574,8 +732,8 @@ export default function ManagementScreen() {
 
     return (
       <View style={styles.sectionStack}>
-        <ThemedText type="title">دليل العملاء</ThemedText>
-        {clients.length === 0 && !loading ? <EmptyState subtitle="لا توجد حسابات عملاء." title="لا توجد عملاء" /> : null}
+        <ThemedText type="title">{t.clientsDirectory}</ThemedText>
+        {clients.length === 0 && !loading ? <EmptyState subtitle={t.noClientsBody} title={t.noClientsTitle} /> : null}
         {clients.map((entry) => (
           <Card key={entry.client.uid}>
             <View style={[styles.cardHeader, { flexDirection: 'row' }]}>
@@ -585,12 +743,12 @@ export default function ManagementScreen() {
                   {entry.client.email}
                 </ThemedText>
               </View>
-              <StatusChip label={entry.client.isActive ? 'نشط' : 'غير نشط'} tone={entry.client.isActive ? 'success' : 'neutral'} />
+              <StatusChip label={entry.client.isActive ? t.active : t.inactive} tone={entry.client.isActive ? 'success' : 'neutral'} />
             </View>
             <View style={[styles.metaRow, { flexDirection: 'row' }]}>
-              <StatusChip label={`طلبات: ${entry.totalOrders}`} tone="info" />
-              <StatusChip label={`محطات: ${entry.stationCount}`} tone="neutral" />
-              <StatusChip label={`مفتوحة: ${entry.pendingOrders + entry.inProgressOrders}`} tone="warning" />
+              <StatusChip label={`${t.orders}: ${entry.totalOrders}`} tone="info" />
+              <StatusChip label={`${t.stations}: ${entry.stationCount}`} tone="neutral" />
+              <StatusChip label={`${t.openOrders}: ${entry.pendingOrders + entry.inProgressOrders}`} tone="warning" />
             </View>
           </Card>
         ))}
@@ -643,11 +801,11 @@ export default function ManagementScreen() {
             onRightPress={() => void loadData()}
             rightIcon="check-cloud"
             rightLabel={strings.actions.syncNow}
-            title="إدارة كاملة"
+            title={t.fullManagement}
           />
           <View style={[styles.heroCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
-            <ThemedText type="subtitle">{isManager ? 'أدوات المدير' : 'أدوات المشرف'}</ThemedText>
-            <ThemedText themeColor="textSecondary">شاشات Native للخصائص التي كانت ناقصة من الموبايل: الشيفتات، اليومية، الإعدادات، والعملاء.</ThemedText>
+            <ThemedText type="subtitle">{isManager ? t.heroManager : t.heroSupervisor}</ThemedText>
+            <ThemedText themeColor="textSecondary">{t.heroBody}</ThemedText>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={[styles.sectionsRow, { flexDirection: 'row' }]}>
@@ -657,7 +815,7 @@ export default function ManagementScreen() {
             </View>
           </ScrollView>
           {loading ? <ActivityIndicator color={theme.primary} /> : null}
-          {error ? <SyncBanner body={error} title="تعذر التحديث" tone="warning" /> : null}
+          {error ? <SyncBanner body={error} title={t.syncErrorTitle} tone="warning" /> : null}
           {renderActiveSection()}
         </ScrollView>
       </SafeAreaView>

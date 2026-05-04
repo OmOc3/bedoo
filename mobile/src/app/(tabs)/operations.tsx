@@ -52,6 +52,123 @@ const emptyDailyReportForm: DailyReportForm = {
   summary: '',
 };
 
+const operationsCopy = {
+  ar: {
+    addPhotos: 'إضافة صور من المعرض',
+    dailyReport: 'تقرير يومي',
+    dailyReports: 'التقارير اليومية',
+    dailyReportSaved: 'تم حفظ التقرير اليومي.',
+    dailyReportQueued: 'تم حفظ التقرير في قائمة الإرسال عند عودة الاتصال.',
+    dailyPhotosHintPrefix: 'حتى',
+    dailyPhotosHintSuffix: 'صور. ترفع مع التقرير كما في لوحة التحكم.',
+    dailyPhotosTitle: 'صور التقرير (اختياري)',
+    dateUnavailable: 'غير متاح',
+    endShift: 'إنهاء الشيفت',
+    endedAt: 'الانتهاء',
+    earlyCheckout: 'انصراف مبكر',
+    loadDailyReportsError: 'تعذر تحميل التقارير اليومية.',
+    loadDailyReportsNetworkError: 'تعذر الاتصال بالخادم لتحميل التقارير اليومية.',
+    loadOperationsError: 'تعذر تحميل بيانات التشغيل.',
+    loadShiftsError: 'تعذر تحميل الشيفتات.',
+    loadShiftsNetworkError: 'تعذر الاتصال بالخادم لتحميل الشيفتات.',
+    maxPhotos: 'يمكنك إرفاق حتى {count} صور كحد أقصى.',
+    minutes: 'دقيقة',
+    noDailyReportsBody: 'ستظهر التقارير اليومية بعد الحفظ.',
+    noDailyReportsTitle: 'لا توجد تقارير يومية',
+    noOpenShift: 'لا يوجد شيفت',
+    noShiftsBody: 'ستظهر الشيفتات بعد تسجيلها.',
+    noShiftsTitle: 'لا توجد شيفتات',
+    openShift: 'شيفت مفتوح',
+    photoPermission: 'اسمح بالوصول إلى الصور لإرفاقها بالتقرير.',
+    recentShifts: 'آخر الشيفتات',
+    removePhoto: 'إزالة الصورة',
+    reportDate: 'تاريخ التقرير',
+    salary: 'الراتب',
+    saveDailyReport: 'حفظ التقرير اليومي',
+    saveDailyReportError: 'تعذر حفظ التقرير اليومي.',
+    saveDailyReportNetworkError: 'تعذر الاتصال بالخادم لحفظ التقرير اليومي.',
+    shiftCompleted: 'مكتمل',
+    shiftLocationPermission: 'اسمح للتطبيق بقراءة الموقع لتسجيل الشيفت.',
+    shiftOpen: 'شيفت مفتوح',
+    shiftQueueSaved: 'تم حفظ طلب الشيفت وسيتم الإرسال عند عودة الاتصال.',
+    shiftSaveError: 'تعذر تحديث الشيفت.',
+    shiftStartError: 'تعذر بدء الشيفت.',
+    shiftEndError: 'تعذر إنهاء الشيفت.',
+    shiftNetworkError: 'تعذر الاتصال بالخادم. سيتم الاحتفاظ بتقارير الفني في قائمة المزامنة إن وجدت.',
+    shiftStarted: 'تم بدء الشيفت.',
+    shiftEnded: 'تم إنهاء الشيفت.',
+    startShift: 'بدء الشيفت',
+    stationIds: 'أرقام المحطات',
+    stationIdsPlaceholder: 'مثال: 1001, 1002',
+    stationCount: 'محطة',
+    summaryMinLength: 'اكتب ملخصا لا يقل عن 10 أحرف.',
+    summary: 'ملخص العمل',
+    syncErrorTitle: 'تعذر التحديث',
+    technicianOperations: 'تشغيل الفني',
+    title: 'الشيفت والحضور اليومي',
+    notes: 'ملاحظات',
+    body: 'ابدأ الشيفت من موقع قريب من محطة، ثم أرسل التقارير اليومية من نفس بيانات الويب.',
+  },
+  en: {
+    addPhotos: 'Add photos from gallery',
+    dailyReport: 'Daily report',
+    dailyReports: 'Daily reports',
+    dailyReportSaved: 'Daily report saved.',
+    dailyReportQueued: 'Daily report queued and will be sent when the connection returns.',
+    dailyPhotosHintPrefix: 'Up to',
+    dailyPhotosHintSuffix: 'photos. They upload with the report, like in the web dashboard.',
+    dailyPhotosTitle: 'Report photos (optional)',
+    dateUnavailable: 'Unavailable',
+    endShift: 'End shift',
+    endedAt: 'Ended',
+    earlyCheckout: 'Early checkout',
+    loadDailyReportsError: 'Could not load daily reports.',
+    loadDailyReportsNetworkError: 'Could not reach the server to load daily reports.',
+    loadOperationsError: 'Could not load operations data.',
+    loadShiftsError: 'Could not load shifts.',
+    loadShiftsNetworkError: 'Could not reach the server to load shifts.',
+    maxPhotos: 'You can attach up to {count} photos.',
+    minutes: 'minutes',
+    noDailyReportsBody: 'Daily reports appear after they are saved.',
+    noDailyReportsTitle: 'No daily reports',
+    noOpenShift: 'No open shift',
+    noShiftsBody: 'Shifts appear after you record them.',
+    noShiftsTitle: 'No shifts',
+    openShift: 'Open shift',
+    photoPermission: 'Allow photo access to attach images to the report.',
+    recentShifts: 'Recent shifts',
+    removePhoto: 'Remove photo',
+    reportDate: 'Report date',
+    salary: 'Salary',
+    saveDailyReport: 'Save daily report',
+    saveDailyReportError: 'Could not save the daily report.',
+    saveDailyReportNetworkError: 'Could not reach the server to save the daily report.',
+    shiftCompleted: 'Completed',
+    shiftLocationPermission: 'Allow location access to record the shift.',
+    shiftOpen: 'Open shift',
+    shiftQueueSaved: 'Shift request saved and will be sent when the connection returns.',
+    shiftSaveError: 'Could not update the shift.',
+    shiftStartError: 'Could not start the shift.',
+    shiftEndError: 'Could not end the shift.',
+    shiftNetworkError: 'Could not reach the server. Technician reports will stay in the sync queue when available.',
+    shiftStarted: 'Shift started.',
+    shiftEnded: 'Shift ended.',
+    startShift: 'Start shift',
+    stationIds: 'Station numbers',
+    stationIdsPlaceholder: 'Example: 1001, 1002',
+    stationCount: 'station',
+    summaryMinLength: 'Write a summary of at least 10 characters.',
+    summary: 'Work summary',
+    syncErrorTitle: 'Could not refresh',
+    technicianOperations: 'Technician operations',
+    title: 'Shift and daily attendance',
+    notes: 'Notes',
+    body: 'Start the shift near a station, then submit daily reports using the same web data.',
+  },
+} as const;
+
+type OperationsCopy = (typeof operationsCopy)[keyof typeof operationsCopy];
+
 function parseStationIds(value: string): string[] {
   return value
     .split(/[\s,،]+/)
@@ -81,8 +198,8 @@ function shiftStatusTone(shift: MobileTechnicianShift): 'info' | 'success' | 'wa
   return shift.earlyExit ? 'info' : 'success';
 }
 
-function ShiftCard({ locale, shift }: { locale: string; shift: MobileTechnicianShift }) {
-  const label = shift.status === 'active' ? 'شيفت مفتوح' : shift.earlyExit ? 'انصراف مبكر' : 'مكتمل';
+function ShiftCard({ locale, shift, text }: { locale: string; shift: MobileTechnicianShift; text: OperationsCopy }) {
+  const label = shift.status === 'active' ? text.shiftOpen : shift.earlyExit ? text.earlyCheckout : text.shiftCompleted;
 
   return (
     <Card>
@@ -90,39 +207,39 @@ function ShiftCard({ locale, shift }: { locale: string; shift: MobileTechnicianS
         <View style={styles.cardCopy}>
           <ThemedText type="title">{shift.startStationLabel ?? shift.technicianName}</ThemedText>
           <ThemedText selectable type="small" themeColor="textSecondary">
-            {formatDate(shift.startedAt, locale, 'غير متاح')}
+            {formatDate(shift.startedAt, locale, text.dateUnavailable)}
           </ThemedText>
         </View>
         <StatusChip label={label} tone={shiftStatusTone(shift)} />
       </View>
       {shift.endedAt ? (
         <ThemedText type="small" themeColor="textSecondary">
-          الانتهاء: {formatDate(shift.endedAt, locale, 'غير متاح')} · {shift.totalMinutes ?? 0} دقيقة
+          {text.endedAt}: {formatDate(shift.endedAt, locale, text.dateUnavailable)} · {shift.totalMinutes ?? 0} {text.minutes}
         </ThemedText>
       ) : null}
       <View style={[styles.metaRow, { flexDirection: 'row' }]}>
-        <StatusChip label={`الراتب: ${shift.salaryStatus}`} tone={shift.salaryStatus === 'paid' ? 'success' : 'neutral'} />
+        <StatusChip label={`${text.salary}: ${shift.salaryStatus}`} tone={shift.salaryStatus === 'paid' ? 'success' : 'neutral'} />
         {typeof shift.salaryAmount === 'number' ? <StatusChip label={`${shift.salaryAmount}`} tone="info" /> : null}
       </View>
     </Card>
   );
 }
 
-function DailyReportCard({ locale, report }: { locale: string; report: MobileDailyWorkReport }) {
+function DailyReportCard({ locale, report, text }: { locale: string; report: MobileDailyWorkReport; text: OperationsCopy }) {
   return (
     <Card>
       <View style={[styles.cardHeader, { flexDirection: 'row' }]}>
         <View style={styles.cardCopy}>
           <ThemedText type="title">{report.summary}</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            {formatDate(report.reportDate, locale, 'غير متاح')}
+            {formatDate(report.reportDate, locale, text.dateUnavailable)}
           </ThemedText>
         </View>
-        <StatusChip label={`${report.stationIds.length} محطة`} tone="info" />
+        <StatusChip label={`${report.stationIds.length} ${text.stationCount}`} tone="info" />
       </View>
       {report.stationLabels.length > 0 ? (
         <ThemedText type="small" themeColor="textSecondary">
-          {report.stationLabels.join('، ')}
+          {report.stationLabels.join(', ')}
         </ThemedText>
       ) : null}
       {report.notes ? (
@@ -141,6 +258,7 @@ export default function OperationsScreen() {
   const { showToast } = useToast();
   const { refreshPendingCount, syncAllDrafts } = useSyncActions();
   const locale = languageDateLocales[language];
+  const t = operationsCopy[language];
   const [openShift, setOpenShift] = useState<MobileTechnicianShift | null>(null);
   const [shifts, setShifts] = useState<MobileTechnicianShift[]>([]);
   const [dailyReports, setDailyReports] = useState<MobileDailyWorkReport[]>([]);
@@ -166,12 +284,12 @@ export default function OperationsScreen() {
     try {
       const [shiftData, reportData] = await Promise.all([
         apiGet<MobileShiftListResponse>('/api/mobile/shifts', {
-          fallbackErrorMessage: 'تعذر تحميل الشيفتات.',
-          networkErrorMessage: 'تعذر الاتصال بالخادم لتحميل الشيفتات.',
+          fallbackErrorMessage: t.loadShiftsError,
+          networkErrorMessage: t.loadShiftsNetworkError,
         }),
         apiGet<MobileDailyWorkReport[]>('/api/mobile/daily-reports', {
-          fallbackErrorMessage: 'تعذر تحميل التقارير اليومية.',
-          networkErrorMessage: 'تعذر الاتصال بالخادم لتحميل التقارير اليومية.',
+          fallbackErrorMessage: t.loadDailyReportsError,
+          networkErrorMessage: t.loadDailyReportsNetworkError,
         }),
       ]);
 
@@ -180,11 +298,11 @@ export default function OperationsScreen() {
       setDailyReports(reportData);
       setError(null);
     } catch (loadError: unknown) {
-      setError(loadError instanceof Error ? loadError.message : 'تعذر تحميل بيانات التشغيل.');
+      setError(loadError instanceof Error ? loadError.message : t.loadOperationsError);
     } finally {
       setLoading(false);
     }
-  }, [canUseOperations]);
+  }, [canUseOperations, t.loadDailyReportsError, t.loadDailyReportsNetworkError, t.loadOperationsError, t.loadShiftsError, t.loadShiftsNetworkError]);
 
   const syncQueueAndLoad = useCallback(async (): Promise<void> => {
     await syncAllDrafts();
@@ -201,7 +319,7 @@ export default function OperationsScreen() {
     const permission = await Location.requestForegroundPermissionsAsync();
 
     if (!permission.granted) {
-      throw new Error('اسمح للتطبيق بقراءة الموقع لتسجيل الشيفت.');
+      throw new Error(t.shiftLocationPermission);
     }
 
     const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
@@ -227,14 +345,14 @@ export default function OperationsScreen() {
             ...location,
           },
           {
-            fallbackErrorMessage: action === 'start' ? 'تعذر بدء الشيفت.' : 'تعذر إنهاء الشيفت.',
-            networkErrorMessage: 'تعذر الاتصال بالخادم. سيتم الاحتفاظ بتقارير الفني في قائمة المزامنة إن وُجدت.',
+            fallbackErrorMessage: action === 'start' ? t.shiftStartError : t.shiftEndError,
+            networkErrorMessage: t.shiftNetworkError,
           },
         );
 
         setOpenShift(result.shift.status === 'active' ? result.shift : null);
         await loadData();
-        showToast(action === 'start' ? 'تم بدء الشيفت.' : 'تم إنهاء الشيفت.', 'success');
+        showToast(action === 'start' ? t.shiftStarted : t.shiftEnded, 'success');
         await successHaptic();
       } catch (requestError: unknown) {
         if (isNetworkFailure(requestError)) {
@@ -244,7 +362,7 @@ export default function OperationsScreen() {
             lng: location.lng,
           });
           void refreshPendingCount();
-          showToast('تم حفظ طلب الشيفت وسيتم الإرسال عند عودة الاتصال.', 'info');
+          showToast(t.shiftQueueSaved, 'info');
           await warningHaptic();
           return;
         }
@@ -252,7 +370,7 @@ export default function OperationsScreen() {
         throw requestError;
       }
     } catch (shiftError: unknown) {
-      const message = shiftError instanceof Error ? shiftError.message : 'تعذر تحديث الشيفت.';
+      const message = shiftError instanceof Error ? shiftError.message : t.shiftSaveError;
       showToast(message, 'error');
       await warningHaptic();
     } finally {
@@ -264,7 +382,7 @@ export default function OperationsScreen() {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
-      showToast('اسمح بالوصول إلى الصور لإرفاقها بالتقرير.', 'warning');
+      showToast(t.photoPermission, 'warning');
       await warningHaptic();
       return;
     }
@@ -272,7 +390,7 @@ export default function OperationsScreen() {
     const remaining = MAX_DAILY_PHOTOS - dailyPhotos.length;
 
     if (remaining <= 0) {
-      showToast(`يمكنك إرفاق حتى ${MAX_DAILY_PHOTOS} صور كحد أقصى.`, 'warning');
+      showToast(t.maxPhotos.replace('{count}', String(MAX_DAILY_PHOTOS)), 'warning');
       await warningHaptic();
       return;
     }
@@ -307,7 +425,7 @@ export default function OperationsScreen() {
 
   async function submitDailyReport(): Promise<void> {
     if (dailyForm.summary.trim().length < 10) {
-      showToast('اكتب ملخصاً لا يقل عن 10 أحرف.', 'warning');
+      showToast(t.summaryMinLength, 'warning');
       await warningHaptic();
       return;
     }
@@ -338,8 +456,8 @@ export default function OperationsScreen() {
         }
 
         await apiPost<MobileDailyWorkReport, FormData>('/api/mobile/daily-reports', formData, {
-          fallbackErrorMessage: 'تعذر حفظ التقرير اليومي.',
-          networkErrorMessage: 'تعذر الاتصال بالخادم لحفظ التقرير اليومي.',
+          fallbackErrorMessage: t.saveDailyReportError,
+          networkErrorMessage: t.saveDailyReportNetworkError,
         });
       } else {
         await apiPost<MobileDailyWorkReport, { notes?: string; reportDate: string; stationIds: string[]; summary: string }>(
@@ -351,8 +469,8 @@ export default function OperationsScreen() {
             summary: summaryTrimmed,
           },
           {
-            fallbackErrorMessage: 'تعذر حفظ التقرير اليومي.',
-            networkErrorMessage: 'تعذر الاتصال بالخادم لحفظ التقرير اليومي.',
+            fallbackErrorMessage: t.saveDailyReportError,
+            networkErrorMessage: t.saveDailyReportNetworkError,
           },
         );
       }
@@ -360,7 +478,7 @@ export default function OperationsScreen() {
       setDailyForm(emptyDailyReportForm);
       setDailyPhotos([]);
       await loadData();
-      showToast('تم حفظ التقرير اليومي.', 'success');
+      showToast(t.dailyReportSaved, 'success');
       await successHaptic();
     } catch (dailyError: unknown) {
       if (isNetworkFailure(dailyError)) {
@@ -372,12 +490,12 @@ export default function OperationsScreen() {
           summary: summaryTrimmed,
         });
         void refreshPendingCount();
-        showToast('تم حفظ التقرير في قائمة الإرسال عند عودة الاتصال.', 'info');
+        showToast(t.dailyReportQueued, 'info');
         await warningHaptic();
         return;
       }
 
-      showToast(dailyError instanceof Error ? dailyError.message : 'تعذر حفظ التقرير اليومي.', 'error');
+      showToast(dailyError instanceof Error ? dailyError.message : t.saveDailyReportError, 'error');
       await errorHaptic();
     } finally {
       setSavingDaily(false);
@@ -409,50 +527,50 @@ export default function OperationsScreen() {
             onRightPress={() => void syncQueueAndLoad()}
             rightIcon="check-cloud"
             rightLabel={strings.actions.syncNow}
-            title="تشغيل الفني"
+            title={t.technicianOperations}
           />
 
           <View style={[styles.heroCard, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
             <View style={[styles.cardHeader, { flexDirection: 'row' }]}>
               <View style={styles.cardCopy}>
-                <ThemedText type="subtitle">الشيفت والحضور اليومي</ThemedText>
-                <ThemedText themeColor="textSecondary">ابدأ الشيفت من موقع قريب من محطة، ثم أرسل التقارير اليومية من نفس بيانات الويب.</ThemedText>
+                <ThemedText type="subtitle">{t.title}</ThemedText>
+                <ThemedText themeColor="textSecondary">{t.body}</ThemedText>
               </View>
-              {openShift ? <StatusChip label="شيفت مفتوح" tone="warning" /> : <StatusChip label="لا يوجد شيفت" tone="neutral" />}
+              {openShift ? <StatusChip label={t.openShift} tone="warning" /> : <StatusChip label={t.noOpenShift} tone="neutral" />}
             </View>
             <View style={[styles.actionsRow, { flexDirection: 'row' }]}>
               <PrimaryButton disabled={Boolean(openShift)} icon="login" loading={savingShift} onPress={() => void submitShift('start')}>
-                بدء الشيفت
+                {t.startShift}
               </PrimaryButton>
               <SecondaryButton disabled={!openShift} icon="logout" loading={savingShift} onPress={() => void submitShift('end')}>
-                إنهاء الشيفت
+                {t.endShift}
               </SecondaryButton>
             </View>
           </View>
 
           {loading ? <ActivityIndicator color={theme.primary} /> : null}
-          {error ? <SyncBanner body={error} title="تعذر التحديث" tone="warning" /> : null}
+          {error ? <SyncBanner body={error} title={t.syncErrorTitle} tone="warning" /> : null}
 
           <Card>
-            <ThemedText type="title">تقرير يومي</ThemedText>
-            <InputField contentDirection="ltr" label="تاريخ التقرير" onChangeText={(value) => setDailyForm((current) => ({ ...current, reportDate: value }))} value={dailyForm.reportDate} />
-            <InputField label="ملخص العمل" multiline onChangeText={(value) => setDailyForm((current) => ({ ...current, summary: value }))} value={dailyForm.summary} />
+            <ThemedText type="title">{t.dailyReport}</ThemedText>
+            <InputField contentDirection="ltr" label={t.reportDate} onChangeText={(value) => setDailyForm((current) => ({ ...current, reportDate: value }))} value={dailyForm.reportDate} />
+            <InputField label={t.summary} multiline onChangeText={(value) => setDailyForm((current) => ({ ...current, summary: value }))} value={dailyForm.summary} />
             <InputField
               contentDirection="ltr"
-              label="أرقام المحطات"
+              label={t.stationIds}
               onChangeText={(value) => setDailyForm((current) => ({ ...current, stationIdsText: value }))}
-              placeholder="مثال: 1001, 1002"
+              placeholder={t.stationIdsPlaceholder}
               value={dailyForm.stationIdsText}
             />
-            <InputField label="ملاحظات" multiline onChangeText={(value) => setDailyForm((current) => ({ ...current, notes: value }))} value={dailyForm.notes} />
+            <InputField label={t.notes} multiline onChangeText={(value) => setDailyForm((current) => ({ ...current, notes: value }))} value={dailyForm.notes} />
 
             <View style={styles.dailyPhotosSection}>
-              <ThemedText type="smallBold">صور التقرير (اختياري)</ThemedText>
+              <ThemedText type="smallBold">{t.dailyPhotosTitle}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                حتى {MAX_DAILY_PHOTOS} صور — تُرفع مع التقرير كما في لوحة التحكم.
+                {t.dailyPhotosHintPrefix} {MAX_DAILY_PHOTOS} {t.dailyPhotosHintSuffix}
               </ThemedText>
               <SecondaryButton icon="camera" onPress={() => void addDailyPhotos()}>
-                إضافة صور من المعرض
+                {t.addPhotos}
               </SecondaryButton>
               {dailyPhotos.length > 0 ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dailyPhotoRow}>
@@ -460,7 +578,7 @@ export default function OperationsScreen() {
                     <View key={`${photo.uri}-${index}`} style={styles.dailyPhotoTile}>
                       <Image contentFit="cover" source={{ uri: photo.uri }} style={styles.dailyPhotoImage} />
                       <Pressable
-                        accessibilityLabel="إزالة الصورة"
+                        accessibilityLabel={t.removePhoto}
                         onPress={() => removeDailyPhoto(index)}
                         style={({ pressed }) => [
                           styles.dailyPhotoRemove,
@@ -477,23 +595,23 @@ export default function OperationsScreen() {
             </View>
 
             <PrimaryButton icon="send" loading={savingDaily} onPress={() => void submitDailyReport()}>
-              حفظ التقرير اليومي
+              {t.saveDailyReport}
             </PrimaryButton>
           </Card>
 
           <View style={styles.sectionStack}>
-            <ThemedText type="title">آخر الشيفتات</ThemedText>
-            {shifts.length === 0 && !loading ? <EmptyState subtitle="ستظهر الشيفتات بعد تسجيلها." title="لا توجد شيفتات" /> : null}
+            <ThemedText type="title">{t.recentShifts}</ThemedText>
+            {shifts.length === 0 && !loading ? <EmptyState subtitle={t.noShiftsBody} title={t.noShiftsTitle} /> : null}
             {shifts.map((shift) => (
-              <ShiftCard key={shift.shiftId} locale={locale} shift={shift} />
+              <ShiftCard key={shift.shiftId} locale={locale} shift={shift} text={t} />
             ))}
           </View>
 
           <View style={styles.sectionStack}>
-            <ThemedText type="title">التقارير اليومية</ThemedText>
-            {dailyReports.length === 0 && !loading ? <EmptyState subtitle="ستظهر التقارير اليومية بعد الحفظ." title="لا توجد تقارير يومية" /> : null}
+            <ThemedText type="title">{t.dailyReports}</ThemedText>
+            {dailyReports.length === 0 && !loading ? <EmptyState subtitle={t.noDailyReportsBody} title={t.noDailyReportsTitle} /> : null}
             {dailyReports.map((report) => (
-              <DailyReportCard key={report.dailyReportId} locale={locale} report={report} />
+              <DailyReportCard key={report.dailyReportId} locale={locale} report={report} text={t} />
             ))}
           </View>
         </ScrollView>

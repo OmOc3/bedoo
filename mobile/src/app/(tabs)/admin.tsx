@@ -120,6 +120,8 @@ const adminCopy = {
     noAudit: 'لا توجد عمليات مطابقة.',
     noReports: 'لا توجد تقارير مطابقة.',
     noStations: 'لا توجد محطات مطابقة.',
+    noStationCoordinates: 'لا توجد إحداثيات مسجلة لهذه المحطة.',
+    noStationQr: 'لا يوجد QR مسجل لهذه المحطة.',
     noTasks: 'لا توجد مهام حالية.',
     overview: 'نظرة عامة',
     pendingReports: 'تقارير بانتظار المراجعة',
@@ -132,10 +134,26 @@ const adminCopy = {
     reviewNotes: 'ملاحظات المراجعة',
     reviewSaved: 'تم حفظ المراجعة.',
     roleSaved: 'تم تحديث الدور.',
+    openMap: 'فتح الخريطة',
+    shareQr: 'مشاركة QR',
+    imageSelected: 'تم اختيار صورة',
+    addOptionalImage: 'إضافة صورة (اختياري)',
+    imageUpdated: 'تم تحديث الصورة بنجاح',
+    updateImage: 'تحديث الصورة',
+    name: 'الاسم',
+    nameUpdated: 'تم تحديث الاسم',
+    updateName: 'تحديث الاسم',
+    mapOpenError: 'تعذر فتح الخرائط على هذا الجهاز.',
+    qrShareError: 'تعذر مشاركة QR المحطة.',
     saveChanges: 'حفظ التعديلات',
     search: 'بحث',
     smartBrief: 'موجز تشغيلي',
     staleStations: 'محطات تحتاج متابعة',
+    stationInactiveHealth: 'غير نشطة',
+    stationNeverVisited: 'لم تزر بعد',
+    stationOverdue: 'متأخرة',
+    stationNeedsFollowUp: 'تحتاج متابعة',
+    stationStable: 'مستقرة',
     stationSaved: 'تم حفظ المحطة.',
     stations: 'المحطات',
     tasks: 'مهام اليوم',
@@ -181,6 +199,8 @@ const adminCopy = {
     noAudit: 'No matching operations.',
     noReports: 'No matching reports.',
     noStations: 'No matching stations.',
+    noStationCoordinates: 'No coordinates are saved for this station.',
+    noStationQr: 'No QR code is saved for this station.',
     noTasks: 'No current tasks.',
     overview: 'Overview',
     pendingReports: 'Reports pending review',
@@ -193,10 +213,26 @@ const adminCopy = {
     reviewNotes: 'Review notes',
     reviewSaved: 'Review saved.',
     roleSaved: 'Role updated.',
+    openMap: 'Open map',
+    shareQr: 'Share QR',
+    imageSelected: 'Image selected',
+    addOptionalImage: 'Add image (optional)',
+    imageUpdated: 'Image updated successfully',
+    updateImage: 'Update image',
+    name: 'Name',
+    nameUpdated: 'Name updated',
+    updateName: 'Update name',
+    mapOpenError: 'Could not open maps on this device.',
+    qrShareError: 'Could not share the station QR code.',
     saveChanges: 'Save changes',
     search: 'Search',
     smartBrief: 'Operations brief',
     staleStations: 'Stations needing follow-up',
+    stationInactiveHealth: 'Inactive',
+    stationNeverVisited: 'Never visited',
+    stationOverdue: 'Overdue',
+    stationNeedsFollowUp: 'Needs follow-up',
+    stationStable: 'Stable',
     stationSaved: 'Station saved.',
     stations: 'Stations',
     tasks: 'Today tasks',
@@ -284,29 +320,29 @@ function metadataSummary(metadata: Record<string, unknown> | undefined): string 
   return Object.entries(metadata)
     .slice(0, 3)
     .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : String(value)}`)
-    .join('، ');
+    .join(', ');
 }
 
-function stationHealth(station: Station): { label: string; tone: 'danger' | 'neutral' | 'success' | 'warning' } {
+function stationHealth(station: Station, text: (typeof adminCopy)[keyof typeof adminCopy]): { label: string; tone: 'danger' | 'neutral' | 'success' | 'warning' } {
   if (!station.isActive) {
-    return { label: 'غير نشطة', tone: 'neutral' };
+    return { label: text.stationInactiveHealth, tone: 'neutral' };
   }
 
   if (!station.lastVisitedAt) {
-    return { label: 'لم تزر بعد', tone: 'warning' };
+    return { label: text.stationNeverVisited, tone: 'warning' };
   }
 
   const ageDays = Math.floor((Date.now() - new Date(station.lastVisitedAt).getTime()) / 86400000);
 
   if (ageDays >= 30) {
-    return { label: 'متأخرة', tone: 'danger' };
+    return { label: text.stationOverdue, tone: 'danger' };
   }
 
   if (ageDays >= 14) {
-    return { label: 'تحتاج متابعة', tone: 'warning' };
+    return { label: text.stationNeedsFollowUp, tone: 'warning' };
   }
 
-  return { label: 'مستقرة', tone: 'success' };
+  return { label: text.stationStable, tone: 'success' };
 }
 
 function orderNeedsAdminApproval(order: MobileClientOrder): boolean {
@@ -866,7 +902,7 @@ export default function AdminScreen() {
 
   async function openStationMap(station: Station): Promise<void> {
     if (!station.coordinates) {
-      showToast('لا توجد إحداثيات مسجلة لهذه المحطة.', 'warning');
+      showToast(t.noStationCoordinates, 'warning');
       await warningHaptic();
       return;
     }
@@ -877,14 +913,14 @@ export default function AdminScreen() {
     try {
       await Linking.openURL(url);
     } catch {
-      showToast('تعذر فتح الخرائط على هذا الجهاز.', 'error');
+      showToast(t.mapOpenError, 'error');
       await errorHaptic();
     }
   }
 
   async function shareStationQr(station: Station): Promise<void> {
     if (!station.qrCodeValue) {
-      showToast('لا يوجد QR مسجل لهذه المحطة.', 'warning');
+      showToast(t.noStationQr, 'warning');
       await warningHaptic();
       return;
     }
@@ -895,7 +931,7 @@ export default function AdminScreen() {
         title: station.label,
       });
     } catch {
-      showToast('تعذر مشاركة QR المحطة.', 'error');
+      showToast(t.qrShareError, 'error');
       await errorHaptic();
     }
   }
@@ -1021,7 +1057,7 @@ export default function AdminScreen() {
             </View>
             <ThemedText type="title">{t.smartBrief}</ThemedText>
             <ThemedText themeColor="textSecondary">
-              {`${t.totalStations}: ${isManagerStats(stats) ? stats.totalStations : 0}، ${t.pendingReviews}: ${reviewCounts.pending}`}
+              {`${t.totalStations}: ${isManagerStats(stats) ? stats.totalStations : 0}, ${t.pendingReviews}: ${reviewCounts.pending}`}
             </ThemedText>
             {analytics.zones[0] ? (
               <ThemedText type="small" themeColor="textSecondary">
@@ -1261,7 +1297,7 @@ export default function AdminScreen() {
         ) : null}
         <View style={styles.cardList}>
           {visibleStations.map((station) => {
-            const health = stationHealth(station);
+            const health = stationHealth(station, t);
 
             return (
               <Card key={station.stationId}>
@@ -1295,10 +1331,10 @@ export default function AdminScreen() {
                     {station.isActive ? strings.settings.disabled : strings.settings.enabled}
                   </SecondaryButton>
                   <SecondaryButton disabled={!station.coordinates} icon="map-pin" onPress={() => void openStationMap(station)}>
-                    فتح الخريطة
+                    {t.openMap}
                   </SecondaryButton>
                   <SecondaryButton disabled={!station.qrCodeValue} icon="qr-code" onPress={() => void shareStationQr(station)}>
-                    مشاركة QR
+                    {t.shareQr}
                   </SecondaryButton>
                 </View>
               </Card>
@@ -1325,6 +1361,7 @@ export default function AdminScreen() {
           <>
             <TaskGroup
               reports={tasks.pendingReports}
+              reviewLabel={t.review}
               title={`${t.pendingReports} (${tasks.totals.pendingReports})`}
               onReview={(report) => {
                 setActiveSection('reports');
@@ -1332,8 +1369,8 @@ export default function AdminScreen() {
                 setReviewNotes(report.reviewNotes ?? '');
               }}
             />
-            <StationTaskGroup stations={tasks.staleStations} title={`${t.staleStations} (${tasks.totals.staleStations})`} />
-            <StationTaskGroup stations={tasks.inactiveStations} title={`${t.inactiveStations} (${tasks.totals.inactiveStations})`} />
+            <StationTaskGroup stations={tasks.staleStations} text={t} title={`${t.staleStations} (${tasks.totals.staleStations})`} />
+            <StationTaskGroup stations={tasks.inactiveStations} text={t} title={`${t.inactiveStations} (${tasks.totals.inactiveStations})`} />
           </>
         ) : null}
       </View>
@@ -1624,7 +1661,7 @@ export default function AdminScreen() {
               const url = await pickAndUploadImage();
               if (url) setUserForm(c => ({ ...c, image: url }));
             }}>
-              {userForm.image ? 'تم اختيار صورة' : 'إضافة صورة (اختياري)'}
+              {userForm.image ? t.imageSelected : t.addOptionalImage}
             </SecondaryButton>
             <View style={[styles.filterRow, { flexDirection: 'row' }]}>
             {(['client', 'technician', 'supervisor', 'manager'] as const).map((nextRole) => (
@@ -1669,10 +1706,10 @@ export default function AdminScreen() {
                 onPress={async () => {
                   const url = await pickAndUploadImage(selectedUser.uid);
                   if (url) {
-                     await patchSelectedUser({ image: url }, "تم تحديث الصورة بنجاح");
+                     await patchSelectedUser({ image: url }, t.imageUpdated);
                   }
                 }}>
-                تحديث الصورة
+                {t.updateImage}
               </SecondaryButton>
               <SecondaryButton
                 disabled={selectedUser.uid === currentUser.profile.uid}
@@ -1681,10 +1718,10 @@ export default function AdminScreen() {
                 onPress={async () => {
                   const url = await pickAndUploadImage(selectedUser.uid);
                   if (url) {
-                     await patchSelectedUser({ image: url }, "تم تحديث الصورة بنجاح");
+                     await patchSelectedUser({ image: url }, t.imageUpdated);
                   }
                 }}>
-                تحديث الصورة
+                {t.updateImage}
               </SecondaryButton>
               <SecondaryButton
                 disabled={selectedUser.uid === currentUser.profile.uid}
@@ -1693,12 +1730,12 @@ export default function AdminScreen() {
                 onPress={() => void patchSelectedUser({ role: selectedUserRole }, t.roleSaved)}>
                 {t.roleSaved}
               </SecondaryButton>
-              <InputField label="الاسم" onChangeText={setSelectedUserName} value={selectedUserName} />
+              <InputField label={t.name} onChangeText={setSelectedUserName} value={selectedUserName} />
               <SecondaryButton
                 icon="edit"
                 loading={savingUserAction}
-                onPress={() => void patchSelectedUser({ displayName: selectedUserName }, "تم تحديث الاسم")}>
-                تحديث الاسم
+                onPress={() => void patchSelectedUser({ displayName: selectedUserName }, t.nameUpdated)}>
+                {t.updateName}
               </SecondaryButton>
               <InputField contentDirection="ltr" label={t.accessCode} onChangeText={setSelectedUserCode} placeholder={t.accessCodePlaceholder} value={selectedUserCode} />
               <SecondaryButton
@@ -1736,10 +1773,12 @@ export default function AdminScreen() {
 function TaskGroup({
   onReview,
   reports,
+  reviewLabel,
   title,
 }: {
   onReview: (report: MobileReviewReport) => void;
   reports: MobileReviewReport[];
+  reviewLabel: string;
   title: string;
 }) {
   if (reports.length === 0) {
@@ -1753,7 +1792,7 @@ function TaskGroup({
         <ReportCard
           action={
             <SecondaryButton icon="edit" onPress={() => onReview(report)}>
-              مراجعة
+              {reviewLabel}
             </SecondaryButton>
           }
           createdAt={report.submittedAt}
@@ -1769,7 +1808,7 @@ function TaskGroup({
   );
 }
 
-function StationTaskGroup({ stations, title }: { stations: Station[]; title: string }) {
+function StationTaskGroup({ stations, text, title }: { stations: Station[]; text: (typeof adminCopy)[keyof typeof adminCopy]; title: string }) {
   if (stations.length === 0) {
     return null;
   }
@@ -1778,7 +1817,7 @@ function StationTaskGroup({ stations, title }: { stations: Station[]; title: str
     <View style={styles.sectionStack}>
       <ThemedText type="title">{title}</ThemedText>
       {stations.map((station) => {
-        const health = stationHealth(station);
+        const health = stationHealth(station, text);
 
         return (
           <Card key={station.stationId}>

@@ -18,6 +18,7 @@ import { getApiBaseUrl } from '@/lib/sync/api-client';
 import type { ApiErrorResponse, LoginSuccessResponse } from '@/lib/sync/types';
 
 const deviceIdStorageKey = 'ecopest_client_signup_device_id';
+const arabicTextPattern = /[\u0600-\u06FF]/u;
 
 interface SignupForm {
   accessCode: string;
@@ -36,6 +37,39 @@ const emptyForm: SignupForm = {
   email: '',
   phone: '',
 };
+
+const clientSignupCopy = {
+  ar: {
+    accessCode: 'كود الدخول',
+    accountCreatedNoSession: 'تم إنشاء الحساب لكن تعذر حفظ الجلسة. سجل الدخول من الشاشة الرئيسية.',
+    addresses: 'العناوين',
+    alreadyHaveAccount: 'لدي حساب بالفعل',
+    body: 'حساب واحد لكل جهاز لمتابعة الطلبات والمحطات والتقارير من نفس بيانات الويب.',
+    confirmAccessCode: 'تأكيد كود الدخول',
+    createAccount: 'إنشاء الحساب',
+    createFailed: 'تعذر إنشاء حساب العميل.',
+    customerName: 'اسم العميل',
+    missingFields: 'أكمل الاسم والبريد والهاتف وكود الدخول.',
+    phone: 'رقم الهاتف',
+    title: 'إنشاء حساب عميل',
+    codeMismatch: 'تأكيد كود الدخول لا يطابق الكود الأول.',
+  },
+  en: {
+    accessCode: 'Access code',
+    accountCreatedNoSession: 'The account was created, but the session could not be saved. Sign in from the main screen.',
+    addresses: 'Addresses',
+    alreadyHaveAccount: 'I already have an account',
+    body: 'One account per device to track orders, stations, and reports from the same web data.',
+    confirmAccessCode: 'Confirm access code',
+    createAccount: 'Create account',
+    createFailed: 'Could not create the client account.',
+    customerName: 'Client name',
+    missingFields: 'Enter the name, email, phone, and access code.',
+    phone: 'Phone number',
+    title: 'Create client account',
+    codeMismatch: 'The access code confirmation does not match the first code.',
+  },
+} as const;
 
 function randomDeviceId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -73,18 +107,19 @@ export default function ClientSignupScreen() {
   const [error, setError] = useState<string | null>(null);
   const theme = useTheme();
   const { resolvedTheme } = useThemeMode();
-  const { strings } = useLanguage();
+  const { language, strings } = useLanguage();
+  const t = clientSignupCopy[language];
   const { showToast } = useToast();
 
   async function submit(): Promise<void> {
     if (!form.displayName.trim() || !form.email.trim() || !form.phone.trim() || !form.accessCode.trim()) {
-      setError('أكمل الاسم والبريد والهاتف وكود الدخول.');
+      setError(t.missingFields);
       await warningHaptic();
       return;
     }
 
     if (form.accessCode !== form.confirmAccessCode) {
-      setError('تأكيد كود الدخول لا يطابق الكود الأول.');
+      setError(t.codeMismatch);
       await warningHaptic();
       return;
     }
@@ -108,13 +143,14 @@ export default function ClientSignupScreen() {
       const payload = await parseResponse<LoginSuccessResponse & ApiErrorResponse>(response);
 
       if (!response.ok) {
-        throw new Error(payload?.message ?? 'تعذر إنشاء حساب العميل.');
+        const apiMessage = typeof payload?.message === 'string' ? payload.message : null;
+        throw new Error(apiMessage && !(language === 'en' && arabicTextPattern.test(apiMessage)) ? apiMessage : t.createFailed);
       }
 
       const cookie = response.headers.get('set-cookie');
 
       if (!cookie) {
-        throw new Error('تم إنشاء الحساب لكن تعذر حفظ الجلسة. سجل الدخول من الشاشة الرئيسية.');
+        throw new Error(t.accountCreatedNoSession);
       }
 
       await persistAuthCookie(cookie);
@@ -122,7 +158,7 @@ export default function ClientSignupScreen() {
       await successHaptic();
       router.replace('/(tabs)');
     } catch (signupError: unknown) {
-      const message = signupError instanceof Error ? signupError.message : 'تعذر إنشاء حساب العميل.';
+      const message = signupError instanceof Error ? signupError.message : t.createFailed;
       setError(message);
       showToast(message, 'error');
       await errorHaptic();
@@ -139,28 +175,28 @@ export default function ClientSignupScreen() {
             <View style={[styles.card, Shadow.sm, { backgroundColor: theme.backgroundElement, borderColor: theme.border }]}>
               <View style={[styles.hero, { backgroundColor: theme.surfaceCard }]}>
                 <Logo layout="stacked" size={122} theme={resolvedTheme} variant="full" />
-                <ThemedText type="subtitle">إنشاء حساب عميل</ThemedText>
+                <ThemedText type="subtitle">{t.title}</ThemedText>
                 <ThemedText themeColor="textSecondary" style={styles.centerText}>
-                  حساب واحد لكل جهاز لمتابعة الطلبات والمحطات والتقارير من نفس بيانات الويب.
+                  {t.body}
                 </ThemedText>
               </View>
               <View style={styles.formStack}>
-                <InputField label="اسم العميل" onChangeText={(value) => setForm((current) => ({ ...current, displayName: value }))} value={form.displayName} />
+                <InputField label={t.customerName} onChangeText={(value) => setForm((current) => ({ ...current, displayName: value }))} value={form.displayName} />
                 <InputField contentDirection="ltr" label={strings.auth.email} onChangeText={(value) => setForm((current) => ({ ...current, email: value }))} value={form.email} />
-                <InputField contentDirection="ltr" label="رقم الهاتف" onChangeText={(value) => setForm((current) => ({ ...current, phone: value }))} value={form.phone} />
-                <InputField contentDirection="ltr" label="كود الدخول" onChangeText={(value) => setForm((current) => ({ ...current, accessCode: value }))} secureTextEntry value={form.accessCode} />
-                <InputField contentDirection="ltr" label="تأكيد كود الدخول" onChangeText={(value) => setForm((current) => ({ ...current, confirmAccessCode: value }))} secureTextEntry value={form.confirmAccessCode} />
-                <InputField label="العناوين" multiline onChangeText={(value) => setForm((current) => ({ ...current, addressesText: value }))} value={form.addressesText} />
+                <InputField contentDirection="ltr" label={t.phone} onChangeText={(value) => setForm((current) => ({ ...current, phone: value }))} value={form.phone} />
+                <InputField contentDirection="ltr" label={t.accessCode} onChangeText={(value) => setForm((current) => ({ ...current, accessCode: value }))} secureTextEntry value={form.accessCode} />
+                <InputField contentDirection="ltr" label={t.confirmAccessCode} onChangeText={(value) => setForm((current) => ({ ...current, confirmAccessCode: value }))} secureTextEntry value={form.confirmAccessCode} />
+                <InputField label={t.addresses} multiline onChangeText={(value) => setForm((current) => ({ ...current, addressesText: value }))} value={form.addressesText} />
                 {error ? (
                   <ThemedText selectable style={{ color: theme.danger }}>
                     {error}
                   </ThemedText>
                 ) : null}
                 <PrimaryButton icon="user" loading={submitting} onPress={() => void submit()}>
-                  إنشاء الحساب
+                  {t.createAccount}
                 </PrimaryButton>
                 <SecondaryButton icon="login" onPress={() => router.replace('/login')}>
-                  لدي حساب بالفعل
+                  {t.alreadyHaveAccount}
                 </SecondaryButton>
               </View>
             </View>

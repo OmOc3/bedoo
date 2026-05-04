@@ -96,7 +96,7 @@ export default function InsightsScreen() {
             <View style={[styles.card, { backgroundColor: theme.surfaceCard, borderColor: theme.border }]}>
               <View style={styles.cardHeader}>
                 <EcoPestIcon color={theme.primary} name="dashboard" size={20} />
-                <ThemedText style={styles.cardTitle} type="smallBold">نظرة عامة</ThemedText>
+                <ThemedText style={styles.cardTitle} type="smallBold">{t.overview}</ThemedText>
               </View>
               <ThemedText>{insights.summary}</ThemedText>
             </View>

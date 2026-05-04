@@ -330,14 +330,14 @@ const ar = {
 
 const en = {
   appName: BRAND.name,
-  appNameArabic: BRAND.nameArabic,
+  appNameArabic: BRAND.name,
   appTitle: "Bait Station Field Management",
   brandTagline: BRAND.tagline,
   brand: {
     name: BRAND.name,
-    nameArabic: BRAND.nameArabic,
+    nameArabic: BRAND.name,
     tagline: BRAND.tagline,
-    taglineArabic: BRAND.taglineArabic,
+    taglineArabic: BRAND.tagline,
   },
   actions: {
     backToLogin: "Back to login",
@@ -365,7 +365,7 @@ const en = {
     staffClientNoticeLink: "client sign-in page",
     staffClientNoticeTrail: ".",
     portalRoleMismatch:
-      "This account is not allowed to sign in from this page. Your session was ended—sign in with the correct account.",
+      "This account is not allowed to sign in from this page. Your session was ended. Sign in with the correct account.",
   },
   common: {
     language: "Language",
@@ -399,7 +399,7 @@ const en = {
   },
   teamPage: {
     metaTitle: "Team",
-    metaTitleSupervisor: "Team — Supervisor",
+    metaTitleSupervisor: "Supervisor team",
     managerBoardLink: "Manager dashboard",
     supervisorBoardLink: "Supervisor dashboard",
     pageTitle: "Team",
@@ -454,7 +454,7 @@ const en = {
     todayTasks: "Today tasks",
     technicianShifts: "Technician shifts",
     sectionOpsTitle: "Reports and review",
-    sectionOpsLead: "A quick snapshot — click any card to go there.",
+    sectionOpsLead: "A quick snapshot. Click any card to open it.",
     statTotalReports: "Total reports",
     statTodayReports: "Today reports",
     statPendingReview: "Pending review",
@@ -477,12 +477,12 @@ const en = {
     protectedRoute: "Protected route",
     authReady: "Secure sign-in is active",
     securityReady: "Permissions follow the user role",
-    placeholderBody: "This page is ready for permission checks and will receive its tools in the next phases.",
+    placeholderBody: "This protected workspace is ready for role-specific tools and operational checks.",
   },
   insights: {
-    title: "Full Gemini report",
+    title: "Executive report",
     subtitle: "A complete manager report from stations, reports, clients, team data, and audit activity.",
-    generate: "Generate full report",
+    generate: "Generate report",
     generating: "Generating report...",
     generatedAt: "Last updated",
     fullReport: "Executive report",
@@ -495,7 +495,7 @@ const en = {
     sourceFallback: "Local fallback report",
     missingKey: "GEMINI_API_KEY is not configured, so a local report is shown instead of Gemini.",
     dataTruncated: "Data was truncated",
-    fallbackSummary: "The full Gemini report could not be prepared from system data in this attempt.",
+    fallbackSummary: "The executive report could not be prepared from system data in this attempt.",
     fallbackFullReport:
       "The system could not read or prepare the data for the report. Review the technical note and try again.",
     fallbackRecommendation: "Check the database connection and Gemini settings, then regenerate the report.",
@@ -519,7 +519,7 @@ const en = {
     title: "Scan station code",
     subtitle: "Open the station link from the QR code to continue to the inspection form.",
     loginCta: "Technician sign in",
-    phaseNotice: "The inspection form will be enabled in phase three.",
+    phaseNotice: "Open a station QR code to continue to the inspection form.",
     technicianQrOnlyNote:
       "To record a valid visit, scan the QR code on the station. Nearby station lists are hidden on purpose to avoid reports without a scan.",
     cameraHint: "Point the camera at a QR code or enter a station manually.",
@@ -595,9 +595,9 @@ const en = {
     emptyCoordinatesStateTitle: "No stations with saved coordinates",
     emptyCoordinatesStateBody:
       "Add latitude and longitude from the station form so they appear here and can be opened in Google Maps.",
-    coordinatesTableHint: "Use “Open in Google Maps” to view it in the browser or app.",
+    coordinatesTableHint: 'Use "Open in Google Maps" to view it in the browser or app.',
     stationDetailNoGpsBody:
-      "Add them from “Edit station”, then open the location here in Google Maps. Current text location:",
+      'Add coordinates from "Edit station", then open the location here in Google Maps. Current text location:',
     neverVisited: "Not visited",
   },
   ...extraEn,

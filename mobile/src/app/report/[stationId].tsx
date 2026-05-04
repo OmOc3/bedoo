@@ -20,6 +20,7 @@ import { useCurrentUser } from '@/lib/auth';
 import { clearWorkingDraft, getWorkingDraft, saveSubmittedReport, syncDraft, upsertWorkingDraft, type ReportLocation } from '@/lib/drafts';
 import { getDistanceMeters, maxLocationAccuracyMeters, stationAccessRadiusMeters } from '@/lib/geo';
 import { errorHaptic, successHaptic, warningHaptic } from '@/lib/haptics';
+import { languageDateLocales } from '@/lib/i18n';
 import { apiGet, apiPost } from '@/lib/sync/api-client';
 import type { AttendanceSession, OpenAttendanceResponse, StatusOption } from '@/lib/sync/types';
 
@@ -42,6 +43,75 @@ interface InspectionPhoto {
   uri: string;
 }
 
+const attendanceCopy = {
+  ar: {
+    attendanceBody: 'يجب تسجيل حضور داخل نطاق المحطة قبل إرسال التقرير.',
+    attendanceClockInSaved: 'تم تسجيل حضور المحطة.',
+    attendanceClockOutSaved: 'تم تسجيل الانصراف من المحطة.',
+    attendanceRequired: 'يجب تسجيل الحضور في هذه المحطة قبل إرسال التقرير.',
+    attendanceSaved: 'حضور مسجل لهذه المحطة',
+    attendanceTime: 'وقت الحضور',
+    attendanceTitle: 'حضور المحطة',
+    attendanceUpdateError: 'تعذر تحديث الحضور.',
+    clockIn: 'تسجيل حضور المحطة',
+    clockOut: 'تسجيل الانصراف من المحطة',
+    distance: 'المسافة',
+    loadAttendanceError: 'تعذر تحميل حالة الحضور.',
+    loadAttendanceNetworkError: 'تعذر الاتصال بالخادم لتحميل حالة الحضور.',
+    locationPermissionAttendance: 'اسمح للتطبيق بقراءة الموقع لتسجيل الحضور.',
+    locationPermissionReport: 'يجب السماح بقراءة موقعك الحالي قبل حفظ التقرير.',
+    lowAccuracy: 'دقة الموقع ضعيفة. فعّل GPS واقترب من المحطة ثم حاول مرة أخرى.',
+    missingCoords: 'لا توجد إحداثيات مسجلة لهذه المحطة. تواصل مع المدير لتحديث موقع المحطة قبل حفظ التقرير.',
+    notesLabel: 'ملاحظات الحضور اختياري',
+    notesPlaceholder: 'مثال: بداية فحص منطقة المخزن',
+    notRecorded: 'لم يتم تسجيل حضور لهذه المحطة بعد',
+    openAttendanceStation: 'فتح محطة الحضور',
+    otherOpenAttendance: 'لديك حضور مفتوح في محطة أخرى',
+    station: 'محطة',
+    unavailable: 'غير متاح',
+    unspecified: 'غير محدد',
+    verifyBody: 'سيتم التحقق من الموقع ودقة GPS قبل فتح الإرسال.',
+    withinRange: 'داخل النطاق',
+    metersShort: 'م',
+    kilometersShort: 'كم',
+    outOfRange: (distance: number) => `المحطة دي خارج النطاق المسموح (المسافة: ${distance} متر). لا يمكنك حفظ تقرير لهذه المحطة.`,
+  },
+  en: {
+    attendanceBody: 'Clock in within the station range before submitting the report.',
+    attendanceClockInSaved: 'Station attendance recorded.',
+    attendanceClockOutSaved: 'Station checkout recorded.',
+    attendanceRequired: 'Clock in at this station before submitting the report.',
+    attendanceSaved: 'Attendance recorded for this station',
+    attendanceTime: 'Clock-in time',
+    attendanceTitle: 'Station attendance',
+    attendanceUpdateError: 'Could not update attendance.',
+    clockIn: 'Clock in at station',
+    clockOut: 'Clock out from station',
+    distance: 'Distance',
+    loadAttendanceError: 'Could not load attendance status.',
+    loadAttendanceNetworkError: 'Could not reach the server to load attendance status.',
+    locationPermissionAttendance: 'Allow location access to record attendance.',
+    locationPermissionReport: 'Allow current location access before saving the report.',
+    lowAccuracy: 'Location accuracy is low. Turn on GPS, move closer to the station, then try again.',
+    missingCoords: 'No coordinates are saved for this station. Contact the manager to update the station location before saving the report.',
+    notesLabel: 'Attendance notes (optional)',
+    notesPlaceholder: 'Example: Started inspecting the storage area',
+    notRecorded: 'Attendance has not been recorded for this station yet',
+    openAttendanceStation: 'Open attendance station',
+    otherOpenAttendance: 'You have an open attendance session at another station',
+    station: 'Station',
+    unavailable: 'Unavailable',
+    unspecified: 'Unspecified',
+    verifyBody: 'Location and GPS accuracy will be checked before submission opens.',
+    withinRange: 'Within range',
+    metersShort: 'm',
+    kilometersShort: 'km',
+    outOfRange: (distance: number) => `This station is outside the allowed range (distance: ${distance} m). You cannot save a report for this station.`,
+  },
+} as const;
+
+type AttendanceCopy = (typeof attendanceCopy)[keyof typeof attendanceCopy];
+
 function safeFilePart(value: string): string {
   return value.replace(/[^A-Za-z0-9._-]/g, '-').replace(/-+/g, '-').slice(0, 80) || 'station';
 }
@@ -57,26 +127,26 @@ function persistCapturedPhoto(sourceUri: string, fileName: string): string {
   return destination.uri;
 }
 
-function formatAttendanceDistance(value?: number): string {
+function formatAttendanceDistance(value: number | undefined, text: AttendanceCopy): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return 'داخل النطاق';
+    return text.withinRange;
   }
 
-  return value < 1000 ? `${Math.round(value)} م` : `${(value / 1000).toFixed(1)} كم`;
+  return value < 1000 ? `${Math.round(value)} ${text.metersShort}` : `${(value / 1000).toFixed(1)} ${text.kilometersShort}`;
 }
 
-function formatAttendanceTime(value?: string): string {
+function formatAttendanceTime(value: string | undefined, locale: string, text: AttendanceCopy): string {
   if (!value) {
-    return 'غير متاح';
+    return text.unavailable;
   }
 
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return 'غير متاح';
+    return text.unavailable;
   }
 
-  return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
 function StatusOptionRow({ label, onPress, selected }: { label: string; onPress: () => void; selected: boolean }) {
@@ -240,6 +310,8 @@ export default function StationReportScreen() {
   const [attendanceSession, setAttendanceSession] = useState<AttendanceSession | null>(null);
   const [isAttendanceLoading, setIsAttendanceLoading] = useState(false);
   const { language, statusOptionLabels, strings } = useLanguage();
+  const attendanceText = attendanceCopy[language];
+  const locale = languageDateLocales[language];
   const pestOptionLabels = useMemo(
     () => (language === 'ar' ? pestTypeLabels : pestTypeLabelsEnglish),
     [language],
@@ -325,22 +397,22 @@ export default function StationReportScreen() {
   const loadOpenAttendance = useCallback(async (): Promise<void> => {
     try {
       const response = await apiGet<OpenAttendanceResponse>('/api/mobile/attendance', {
-        fallbackErrorMessage: 'تعذر تحميل حالة الحضور.',
-        networkErrorMessage: 'تعذر الاتصال بالخادم لتحميل حالة الحضور.',
+        fallbackErrorMessage: attendanceText.loadAttendanceError,
+        networkErrorMessage: attendanceText.loadAttendanceNetworkError,
       });
 
       setAttendanceSession(response.openSession);
       setAttendanceError(null);
     } catch (loadError: unknown) {
-      setAttendanceError(loadError instanceof Error ? loadError.message : 'تعذر تحميل حالة الحضور.');
+      setAttendanceError(loadError instanceof Error ? loadError.message : attendanceText.loadAttendanceError);
     }
-  }, []);
+  }, [attendanceText.loadAttendanceError, attendanceText.loadAttendanceNetworkError]);
 
   async function readAttendancePosition(): Promise<{ accuracyMeters?: number; lat: number; lng: number }> {
     const permissionResult = await Location.requestForegroundPermissionsAsync();
 
     if (!permissionResult.granted) {
-      throw new Error('اسمح للتطبيق بقراءة الموقع لتسجيل الحضور.');
+      throw new Error(attendanceText.locationPermissionAttendance);
     }
 
     const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
@@ -358,7 +430,7 @@ export default function StationReportScreen() {
     const permissionResult = await Location.requestForegroundPermissionsAsync();
 
     if (!permissionResult.granted) {
-      throw new Error('يجب السماح بقراءة موقعك الحالي قبل حفظ التقرير.');
+      throw new Error(attendanceText.locationPermissionReport);
     }
 
     const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest });
@@ -374,14 +446,14 @@ export default function StationReportScreen() {
 
   function validateCurrentReportLocation(location: ReportLocation): string | null {
     if (!station?.coordinates) {
-      return 'لا توجد إحداثيات مسجلة لهذه المحطة. تواصل مع المدير لتحديث موقع المحطة قبل حفظ التقرير.';
+      return attendanceText.missingCoords;
     }
 
     if (
       typeof location.accuracyMeters === 'number' &&
       (!Number.isFinite(location.accuracyMeters) || location.accuracyMeters > maxLocationAccuracyMeters)
     ) {
-      return 'دقة الموقع ضعيفة. فعّل GPS واقترب من المحطة ثم حاول مرة أخرى.';
+      return attendanceText.lowAccuracy;
     }
 
     const distance = Math.round(
@@ -389,7 +461,7 @@ export default function StationReportScreen() {
     );
 
     if (distance > stationAccessRadiusMeters) {
-      return `المحطة دي خارج النطاق المسموح (المسافة: ${distance} متر). لا يمكنك حفظ تقرير لهذه المحطة.`;
+      return attendanceText.outOfRange(distance);
     }
 
     return null;
@@ -410,14 +482,14 @@ export default function StationReportScreen() {
 
       setAttendanceSession(action === 'clockOut' ? null : response);
       setAttendanceNotes('');
-      showToast(action === 'clockIn' ? 'تم تسجيل حضور المحطة.' : 'تم تسجيل الانصراف من المحطة.', 'success');
+      showToast(action === 'clockIn' ? attendanceText.attendanceClockInSaved : attendanceText.attendanceClockOutSaved, 'success');
       await successHaptic();
 
       if (action === 'clockOut') {
         await loadOpenAttendance();
       }
     } catch (attendanceActionError: unknown) {
-      const message = attendanceActionError instanceof Error ? attendanceActionError.message : 'تعذر تحديث الحضور.';
+      const message = attendanceActionError instanceof Error ? attendanceActionError.message : attendanceText.attendanceUpdateError;
 
       setAttendanceError(message);
       showToast(message, 'error');
@@ -474,7 +546,7 @@ export default function StationReportScreen() {
     }
 
     if (isTechnician && !hasStationAttendance) {
-      setError('يجب تسجيل الحضور في هذه المحطة قبل إرسال التقرير.');
+      setError(attendanceText.attendanceRequired);
       void warningHaptic();
       return false;
     }
@@ -740,10 +812,10 @@ export default function StationReportScreen() {
                 </View>
                 <View style={styles.attendanceCopy}>
                   <ThemedText type="title" style={styles.attendanceTitle}>
-                    حضور المحطة
+                    {attendanceText.attendanceTitle}
                   </ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
-                    يجب تسجيل حضور داخل نطاق المحطة قبل إرسال التقرير.
+                    {attendanceText.attendanceBody}
                   </ThemedText>
                 </View>
               </View>
@@ -751,19 +823,19 @@ export default function StationReportScreen() {
               {hasStationAttendance ? (
                 <View style={[styles.attendanceStatusBox, { borderColor: theme.success, backgroundColor: theme.successSoft }]}>
                   <ThemedText type="smallBold" style={{ color: theme.successStrong }}>
-                    حضور مسجل لهذه المحطة
+                    {attendanceText.attendanceSaved}
                   </ThemedText>
                   <ThemedText type="small" style={{ color: theme.successStrong }}>
-                    وقت الحضور: {formatAttendanceTime(attendanceSession?.clockInAt)} · المسافة: {formatAttendanceDistance(attendanceSession?.clockInLocation?.distanceMeters)}
+                    {attendanceText.attendanceTime}: {formatAttendanceTime(attendanceSession?.clockInAt, locale, attendanceText)} · {attendanceText.distance}: {formatAttendanceDistance(attendanceSession?.clockInLocation?.distanceMeters, attendanceText)}
                   </ThemedText>
                 </View>
               ) : hasOtherOpenAttendance ? (
                 <View style={[styles.attendanceStatusBox, { borderColor: theme.warning, backgroundColor: theme.warningSoft }]}>
                   <ThemedText type="smallBold" style={{ color: theme.warningStrong }}>
-                    لديك حضور مفتوح في محطة أخرى
+                    {attendanceText.otherOpenAttendance}
                   </ThemedText>
                   <ThemedText type="small" style={{ color: theme.warningStrong }}>
-                    محطة #{attendanceSession?.clockInLocation?.stationId ?? '-'} · {attendanceSession?.clockInLocation?.stationLabel ?? 'غير محدد'}
+                    {attendanceText.station} #{attendanceSession?.clockInLocation?.stationId ?? '-'} · {attendanceSession?.clockInLocation?.stationLabel ?? attendanceText.unspecified}
                   </ThemedText>
                   {attendanceSession?.clockInLocation?.stationId ? (
                     <SecondaryButton
@@ -774,24 +846,24 @@ export default function StationReportScreen() {
                           params: { stationId: attendanceSession.clockInLocation?.stationId ?? '' },
                         })
                       }>
-                      فتح محطة الحضور
+                      {attendanceText.openAttendanceStation}
                     </SecondaryButton>
                   ) : null}
                 </View>
               ) : (
                 <View style={[styles.attendanceStatusBox, { borderColor: theme.border, backgroundColor: theme.surfaceCard }]}>
-                  <ThemedText type="smallBold">لم يتم تسجيل حضور لهذه المحطة بعد</ThemedText>
+                  <ThemedText type="smallBold">{attendanceText.notRecorded}</ThemedText>
                   <ThemedText type="small" themeColor="textSecondary">
-                    سيتم التحقق من الموقع ودقة GPS قبل فتح الإرسال.
+                    {attendanceText.verifyBody}
                   </ThemedText>
                 </View>
               )}
 
               <InputField
-                label="ملاحظات الحضور اختياري"
+                label={attendanceText.notesLabel}
                 multiline
                 onChangeText={setAttendanceNotes}
-                placeholder="مثال: بداية فحص منطقة المخزن"
+                placeholder={attendanceText.notesPlaceholder}
                 style={styles.attendanceNotes}
                 value={attendanceNotes}
               />
@@ -800,7 +872,7 @@ export default function StationReportScreen() {
 
               {hasStationAttendance ? (
                 <SecondaryButton disabled={isAttendanceLoading} icon="logout" loading={isAttendanceLoading} onPress={() => void submitAttendance('clockOut')}>
-                  تسجيل الانصراف من المحطة
+                  {attendanceText.clockOut}
                 </SecondaryButton>
               ) : (
                 <PrimaryButton
@@ -808,7 +880,7 @@ export default function StationReportScreen() {
                   icon="map-pin"
                   loading={isAttendanceLoading}
                   onPress={() => void submitAttendance('clockIn')}>
-                  تسجيل حضور المحطة
+                  {attendanceText.clockIn}
                 </PrimaryButton>
               )}
             </View>

@@ -174,7 +174,7 @@ export default function LoginScreen() {
                   {isSigningIn ? strings.auth.signingIn : strings.actions.login}
                 </PrimaryButton>
                 <SecondaryButton icon="user" onPress={() => router.push('/client-signup')}>
-                  إنشاء حساب عميل
+                  {strings.auth.createClientAccount}
                 </SecondaryButton>
               </View>
 

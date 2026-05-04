@@ -60,6 +60,7 @@ const defaultFallbackErrorMessage = 'Could not complete the request. Check your 
 const defaultAuthRequiredMessage = 'Sign in before syncing data.';
 const defaultNetworkErrorMessage = 'Could not reach the server. Check your connection and try again.';
 const androidEmulatorHost = '10.0.2.2';
+const arabicTextPattern = /[\u0600-\u06FF]/u;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -141,6 +142,10 @@ function resolveReachableBaseUrl(baseUrl: string): string {
 
 function errorMessageFromBody(body: unknown, fallbackMessage: string): string {
   if (typeof body === 'object' && body !== null && 'message' in body && typeof body.message === 'string') {
+    if (arabicTextPattern.test(body.message) && !arabicTextPattern.test(fallbackMessage)) {
+      return fallbackMessage;
+    }
+
     return body.message;
   }
 
