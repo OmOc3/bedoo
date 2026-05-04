@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { startTransition } from "react";
 import { setPreferredLocaleAction } from "@/app/actions/locale";
 import { supportedLocales, type Locale } from "@/lib/i18n";
@@ -31,10 +31,16 @@ interface LanguageSwitcherProps {
 }
 
 export function LanguageSwitcher({ className, placement = "floating" }: LanguageSwitcherProps = {}) {
+  const pathname = usePathname();
   const router = useRouter();
   const { direction, locale, messages, setLocale } = useLanguage();
   const isRtl = direction === "rtl";
   const isFloating = placement === "floating";
+  const isDashboardRoute = pathname === "/dashboard" || pathname?.startsWith("/dashboard/");
+
+  if (isFloating && isDashboardRoute) {
+    return null;
+  }
 
   async function handleLocaleChange(nextLocale: Locale): Promise<void> {
     if (nextLocale === locale) {

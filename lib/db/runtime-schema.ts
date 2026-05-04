@@ -351,6 +351,23 @@ export async function ensureAuthUserColumns(): Promise<void> {
 async function ensureRuntimeSchemaInternal(): Promise<void> {
   await ensureAuthUserColumns();
 
+  await addMissingColumns("stations", [
+    { name: "description", sql: "ALTER TABLE `stations` ADD `description` text" },
+    { name: "photo_urls", sql: "ALTER TABLE `stations` ADD `photo_urls` text" },
+    { name: "last_visited_by", sql: "ALTER TABLE `stations` ADD `last_visited_by` text" },
+    { name: "station_type", sql: "ALTER TABLE `stations` ADD `station_type` text DEFAULT 'bait_station' NOT NULL" },
+    { name: "external_code", sql: "ALTER TABLE `stations` ADD `external_code` text" },
+    { name: "installation_status", sql: "ALTER TABLE `stations` ADD `installation_status` text DEFAULT 'installed' NOT NULL" },
+    { name: "verified_at", sql: "ALTER TABLE `stations` ADD `verified_at` integer" },
+    { name: "verified_by", sql: "ALTER TABLE `stations` ADD `verified_by` text" },
+    { name: "source_document_id", sql: "ALTER TABLE `stations` ADD `source_document_id` text" },
+    { name: "requires_immediate_supervision", sql: "ALTER TABLE `stations` ADD `requires_immediate_supervision` integer DEFAULT false NOT NULL" },
+  ]);
+  await createIndexIfColumnsExist("stations_type_idx", "stations", ["station_type"]);
+  await createIndexIfColumnsExist("stations_external_code_idx", "stations", ["external_code"]);
+  await createIndexIfColumnsExist("stations_installation_status_idx", "stations", ["installation_status"]);
+  await createIndexIfColumnsExist("stations_source_document_idx", "stations", ["source_document_id"]);
+
   await addMissingColumns("app_settings", [
     { name: "support_phone", sql: "ALTER TABLE `app_settings` ADD `support_phone` text" },
     { name: "support_email", sql: "ALTER TABLE `app_settings` ADD `support_email` text" },

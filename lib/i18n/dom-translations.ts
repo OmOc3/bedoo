@@ -680,13 +680,6 @@ const arabicTransliteration: Record<string, string> = {
   "ـ": "",
 };
 
-const arabicDiacriticsPattern = /[\u064B-\u065F\u0670]/gu;
-const remainingArabicPattern = /[\u0600-\u06FF]/gu;
-
-function transliterateRemainingArabic(value: string): string {
-  return value.replace(arabicDiacriticsPattern, "").replace(remainingArabicPattern, (character) => arabicTransliteration[character] ?? "");
-}
-
 export function translateArabicText(value: string): string {
   const normalizedValue = normalizeTranslatableText(value);
 
@@ -718,5 +711,7 @@ export function translateArabicText(value: string): string {
     working = applyNumericUnitReplacements(working);
   }
 
-  return hasArabicText(working) ? transliterateRemainingArabic(working) : working;
+  // Keep unmatched Arabic text unchanged (especially user-entered names)
+  // instead of transliterating it into approximated Latin letters.
+  return working;
 }
