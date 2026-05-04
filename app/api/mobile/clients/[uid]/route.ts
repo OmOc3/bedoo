@@ -38,13 +38,13 @@ export async function GET(
     const { uid } = await params;
 
     if (session.role !== "manager" && session.uid !== uid) {
-      throw new AppError("ط؛ظٹط± ظ…طµط±ط­.", "CLIENT_DETAIL_FORBIDDEN", 403);
+      throw new AppError("غير مصرح.", "CLIENT_DETAIL_FORBIDDEN", 403);
     }
 
     const detail = await getClientAccountDetail(uid);
 
     if (!detail) {
-      throw new AppError("ط§ظ„ط¹ظ…ظٹظ„ ط؛ظٹط± ظ…ظˆط¬ظˆط¯.", "CLIENT_NOT_FOUND", 404);
+      throw new AppError("العميل غير موجود.", "CLIENT_NOT_FOUND", 404);
     }
 
     return NextResponse.json(mobileClientAccountDetailResponse(detail));
@@ -63,7 +63,7 @@ export async function PATCH(
     const body = (await request.json()) as unknown;
 
     if (!isRecord(body)) {
-      throw new AppError("ط·ظ„ط¨ ط§ظ„ط¹ظ…ظٹظ„ ط؛ظٹط± طµط§ظ„ط­.", "CLIENT_REQUEST_INVALID", 400);
+      throw new AppError("طلب العميل غير صالح.", "CLIENT_REQUEST_INVALID", 400);
     }
 
     if (body.profile !== undefined) {
@@ -78,7 +78,7 @@ export async function PATCH(
         return NextResponse.json(
           {
             code: "MOBILE_CLIENT_PROFILE_INVALID",
-            message: parsed.error.issues[0]?.message ?? "طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¹ظ…ظٹظ„.",
+            message: parsed.error.issues[0]?.message ?? "تحقق من بيانات العميل.",
           },
           { status: 400 },
         );
@@ -108,7 +108,7 @@ export async function PATCH(
         return NextResponse.json(
           {
             code: "MOBILE_CLIENT_ACCESS_INVALID",
-            message: parsed.error.issues[0]?.message ?? "طھط­ظ‚ظ‚ ظ…ظ† ظ…ط­ط·ط§طھ ط§ظ„ط¹ظ…ظٹظ„.",
+            message: parsed.error.issues[0]?.message ?? "تحقق من محطات العميل.",
           },
           { status: 400 },
         );
@@ -125,7 +125,7 @@ export async function PATCH(
     const detail = await getClientAccountDetail(uid);
 
     if (!detail) {
-      throw new AppError("ط§ظ„ط¹ظ…ظٹظ„ ط؛ظٹط± ظ…ظˆط¬ظˆط¯.", "CLIENT_NOT_FOUND", 404);
+      throw new AppError("العميل غير موجود.", "CLIENT_NOT_FOUND", 404);
     }
 
     return NextResponse.json(mobileClientAccountDetailResponse(detail));

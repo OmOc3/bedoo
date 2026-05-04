@@ -14,7 +14,7 @@ export async function GET(
   request: NextRequest,
 ): Promise<NextResponse<MobileUserResponse[] | ApiErrorResponse>> {
   try {
-    await requireBearerRole(request, ["technician", "supervisor", "manager"]);
+    await requireBearerRole(request, ["supervisor", "manager"]);
     const users = await listAppUsers();
 
     return NextResponse.json(users.map(mobileUserResponse));

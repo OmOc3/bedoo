@@ -20,26 +20,30 @@ try {
   await client.execute({ sql: "select 1 as x", args: [] });
   console.log("select ok");
 
-  const createSql =
-    "create table if not exists app_settings (id text primary key not null, maintenance_enabled integer not null default 0, client_daily_station_order_limit integer not null default 0, updated_at integer, updated_by text)";
-
-  await client.execute({ sql: createSql, args: [] });
-  console.log("create table ok");
-
-  const result = await client.execute({
-    sql: "select name from sqlite_master where type = 'table' and name = 'app_settings'",
+  const tables = await client.execute({
+    sql: "select count(*) as c from sqlite_master where type = 'table'",
     args: [],
   });
-  console.log("sqlite_master check:", result.rows);
+  const firstRow = tables.rows[0];
+  const count =
+    firstRow && typeof firstRow === "object"
+      ? (firstRow.c ?? firstRow.C ?? Object.values(firstRow)[0])
+      : "?";
+  console.log("table count:", count);
 
-  const columns = await client.execute({ sql: "pragma table_info('app_settings')", args: [] });
-  console.log("app_settings columns:", columns.rows);
-
-  await client.execute({
-    sql: "insert into app_settings (id, maintenance_enabled, client_daily_station_order_limit) values ('global', 0, 0) on conflict(id) do update set maintenance_enabled=excluded.maintenance_enabled",
+  const appSettings = await client.execute({
+    sql: "select name from sqlite_master where type = 'table' and name = 'app_settings' limit 1",
     args: [],
   });
-  console.log("upsert ok");
+  if (appSettings.rows.length > 0) {
+    const columns = await client.execute({ sql: "pragma table_info('app_settings')", args: [] });
+    console.log(
+      "app_settings columns:",
+      columns.rows.map((r) => (r && typeof r === "object" ? r.name ?? r.NAME : null)).filter(Boolean),
+    );
+  } else {
+    console.log("app_settings: (table not present — run migrations if expected)");
+  }
 } finally {
   client.close();
 }

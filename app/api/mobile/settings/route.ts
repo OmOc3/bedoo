@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse<MobileAp
       return NextResponse.json(
         {
           code: "MOBILE_SETTINGS_INVALID",
-          message: parsed.error.issues[0]?.message ?? "طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ.",
+          message: parsed.error.issues[0]?.message ?? "تحقق من بيانات الإعدادات.",
         },
         { status: 400 },
       );

@@ -31,7 +31,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           code: "MOBILE_PAYROLL_INVALID",
-          message: parsed.error.issues[0]?.message ?? "طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ط±ط§طھط¨.",
+          message: parsed.error.issues[0]?.message ?? "تحقق من بيانات الراتب.",
         },
         { status: 400 },
       );

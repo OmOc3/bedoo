@@ -52,7 +52,7 @@ export async function GET(
     const { uid } = await params;
 
     if (session.role !== "manager" && session.uid !== uid) {
-      throw new AppError("ط؛ظٹط± ظ…طµط±ط­.", "SCHEDULE_FORBIDDEN", 403);
+      throw new AppError("غير مصرح.", "SCHEDULE_FORBIDDEN", 403);
     }
 
     const schedule = await getActiveWorkSchedule(uid);
@@ -73,13 +73,13 @@ export async function PATCH(
     const target = await getAppUser(uid);
 
     if (!target || target.role !== "technician") {
-      throw new AppError("ط§ظ„ظپظ†ظٹ ط؛ظٹط± ظ…ظˆط¬ظˆط¯.", "TECHNICIAN_NOT_FOUND", 404);
+      throw new AppError("الفني غير موجود.", "TECHNICIAN_NOT_FOUND", 404);
     }
 
     const body = (await request.json()) as unknown;
 
     if (!isRecord(body)) {
-      throw new AppError("ط·ظ„ط¨ ط¬ط¯ظˆظ„ ط§ظ„ط¹ظ…ظ„ ط؛ظٹط± طµط§ظ„ط­.", "SCHEDULE_REQUEST_INVALID", 400);
+      throw new AppError("طلب جدول العمل غير صالح.", "SCHEDULE_REQUEST_INVALID", 400);
     }
 
     const shiftStartTime = typeof body.shiftStartTime === "string" ? body.shiftStartTime.trim() : "";
@@ -89,19 +89,19 @@ export async function PATCH(
     const hourlyRate = numberValue(body.hourlyRate);
 
     if (!isValidShiftTime(shiftStartTime) || !isValidShiftTime(shiftEndTime)) {
-      throw new AppError("طھظˆظ‚ظٹطھط§طھ ط§ظ„ط´ظٹظپطھ ط؛ظٹط± طµط§ظ„ط­ط©.", "SCHEDULE_TIME_INVALID", 400);
+      throw new AppError("توقيتات الشيفت غير صالحة.", "SCHEDULE_TIME_INVALID", 400);
     }
 
     if (workDays.length === 0) {
-      throw new AppError("ظٹط¬ط¨ طھط­ط¯ظٹط¯ ظٹظˆظ… ط¹ظ…ظ„ ظˆط§ط­ط¯ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„.", "SCHEDULE_DAYS_REQUIRED", 400);
+      throw new AppError("يجب تحديد يوم عمل واحد على الأقل.", "SCHEDULE_DAYS_REQUIRED", 400);
     }
 
     if (!expectedDurationMinutes || expectedDurationMinutes < 15 || expectedDurationMinutes > 720) {
-      throw new AppError("ظ…ط¯ط© ط§ظ„ط´ظٹظپطھ ط؛ظٹط± طµط§ظ„ط­ط©.", "SCHEDULE_DURATION_INVALID", 400);
+      throw new AppError("مدة الشيفت غير صالحة.", "SCHEDULE_DURATION_INVALID", 400);
     }
 
     if (hourlyRate !== undefined && hourlyRate < 0) {
-      throw new AppError("ط³ط¹ط± ط§ظ„ط³ط§ط¹ط© ط؛ظٹط± طµط§ظ„ط­.", "SCHEDULE_RATE_INVALID", 400);
+      throw new AppError("سعر الساعة غير صالح.", "SCHEDULE_RATE_INVALID", 400);
     }
 
     const schedule = await upsertWorkSchedule({

@@ -25,7 +25,7 @@ export async function GET(
     const report = await getReportById(reportId);
 
     if (!report) {
-      throw new AppError("ط§ظ„طھظ‚ط±ظٹط± ط؛ظٹط± ظ…ظˆط¬ظˆط¯.", "REPORT_NOT_FOUND", 404);
+      throw new AppError("التقرير غير موجود.", "REPORT_NOT_FOUND", 404);
     }
 
     const allowed =
@@ -35,7 +35,7 @@ export async function GET(
       (session.role === "client" && (await hasClientStationAccess(session.uid, report.stationId)));
 
     if (!allowed) {
-      throw new AppError("ط؛ظٹط± ظ…طµط±ط­.", "REPORT_FORBIDDEN", 403);
+      throw new AppError("غير مصرح.", "REPORT_FORBIDDEN", 403);
     }
 
     return NextResponse.json(mobileReportResponse(report));
@@ -58,7 +58,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           code: "MOBILE_REPORT_EDIT_INVALID",
-          message: parsed.error.issues[0]?.message ?? "طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط§ظ†ط§طھ طھط¹ط¯ظٹظ„ ط§ظ„طھظ‚ط±ظٹط±.",
+          message: parsed.error.issues[0]?.message ?? "تحقق من بيانات تعديل التقرير.",
         },
         { status: 400 },
       );
@@ -67,11 +67,11 @@ export async function PATCH(
     const existing = await getReportById(reportId);
 
     if (!existing) {
-      throw new AppError("ط§ظ„طھظ‚ط±ظٹط± ط؛ظٹط± ظ…ظˆط¬ظˆط¯.", "REPORT_NOT_FOUND", 404);
+      throw new AppError("التقرير غير موجود.", "REPORT_NOT_FOUND", 404);
     }
 
     if (session.role === "supervisor" && existing.reviewStatus !== "pending") {
-      throw new AppError("ظ„ط§ ظٹظ…ظƒظ† طھط¹ط¯ظٹظ„ ط§ظ„طھظ‚ط±ظٹط± ط¨ط¹ط¯ ط§ط¹طھظ…ط§ط¯ ط§ظ„ظ…ط±ط§ط¬ط¹ط©.", "REPORT_EDIT_FORBIDDEN", 403);
+      throw new AppError("لا يمكن تعديل التقرير بعد اعتماد المراجعة.", "REPORT_EDIT_FORBIDDEN", 403);
     }
 
     const updated = await updateReportSubmissionByReviewer(reportId, {
@@ -83,7 +83,7 @@ export async function PATCH(
     });
 
     if (!updated) {
-      throw new AppError("طھط¹ط°ط± ط­ظپط¸ ط§ظ„طھط¹ط¯ظٹظ„ط§طھ.", "REPORT_EDIT_FAILED", 500);
+      throw new AppError("تعذر حفظ التعديلات.", "REPORT_EDIT_FAILED", 500);
     }
 
     return NextResponse.json(mobileReportResponse(updated));
