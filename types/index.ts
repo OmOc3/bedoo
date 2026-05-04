@@ -1,6 +1,9 @@
 import type {
+  SharedClientAnalysisDocumentCategory,
   SharedPestTypeOption,
   SharedReviewStatus,
+  SharedStationInstallationStatus,
+  SharedStationType,
   SharedStatusOption,
   SharedUserRole,
 } from "@ecopest/shared/constants";
@@ -10,6 +13,10 @@ export type UserRole = SharedUserRole;
 export type StatusOption = SharedStatusOption;
 
 export type PestTypeOption = SharedPestTypeOption;
+
+export type StationType = SharedStationType;
+
+export type StationInstallationStatus = SharedStationInstallationStatus;
 
 export interface AppTimestamp {
   seconds: number;
@@ -51,6 +58,12 @@ export interface Station {
   location: string;
   description?: string;
   zone?: string;
+  stationType: StationType;
+  externalCode?: string;
+  installationStatus: StationInstallationStatus;
+  verifiedAt?: AppTimestamp;
+  verifiedBy?: string;
+  sourceDocumentId?: string;
   photoUrls?: string[];
   coordinates?: Coordinates;
   qrCodeValue: string;
@@ -136,13 +149,15 @@ export interface ClientStationAccess {
   visibilityUpdatedBy?: string;
 }
 
-export type ClientAnalysisDocumentFileType = "doc" | "docx" | "pdf";
+export type ClientAnalysisDocumentFileType = "doc" | "docx" | "pdf" | "xls" | "xlsx";
+export type ClientAnalysisDocumentCategory = SharedClientAnalysisDocumentCategory;
 
 export interface ClientAnalysisDocument {
   clientName?: string;
   clientUid: string;
   createdAt: AppTimestamp;
   documentId: string;
+  documentCategory: ClientAnalysisDocumentCategory;
   fileName: string;
   fileType: ClientAnalysisDocumentFileType;
   fileUrl: string;

@@ -25,10 +25,16 @@ function GlobeIcon({ className }: { className?: string }) {
   );
 }
 
-export function LanguageSwitcher() {
+interface LanguageSwitcherProps {
+  className?: string;
+  placement?: "floating" | "inline";
+}
+
+export function LanguageSwitcher({ className, placement = "floating" }: LanguageSwitcherProps = {}) {
   const router = useRouter();
   const { direction, locale, messages, setLocale } = useLanguage();
   const isRtl = direction === "rtl";
+  const isFloating = placement === "floating";
 
   async function handleLocaleChange(nextLocale: Locale): Promise<void> {
     if (nextLocale === locale) {
@@ -46,16 +52,32 @@ export function LanguageSwitcher() {
     <div
       aria-label={messages.common.chooseLanguage}
       className={cn(
-        "fixed top-3 z-[80] flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/95 px-1.5 py-1 shadow-lg shadow-black/5 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--surface)]/80",
-        isRtl ? "start-3 sm:start-5" : "end-3 sm:end-5",
+        "flex items-center gap-1.5 border px-1.5 py-1",
+        isFloating
+          ? "fixed top-3 z-[80] rounded-full border-[var(--border)] bg-[var(--surface)]/95 shadow-lg shadow-black/5 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--surface)]/80"
+          : "rounded-xl border-[var(--sidebar-border)] bg-[var(--sidebar-surface)]",
+        isFloating ? (isRtl ? "start-3 sm:start-5" : "end-3 sm:end-5") : null,
+        className,
       )}
       data-no-translate
       role="group"
     >
-      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface-subtle)] text-[var(--primary)]">
+      <span
+        className={cn(
+          "flex h-8 w-8 items-center justify-center",
+          isFloating
+            ? "rounded-full bg-[var(--surface-subtle)] text-[var(--primary)]"
+            : "rounded-lg bg-[var(--sidebar)] text-[var(--sidebar-text)]",
+        )}
+      >
         <GlobeIcon className="h-4 w-4" />
       </span>
-      <div className="flex overflow-hidden rounded-full bg-[var(--surface-subtle)] p-0.5">
+      <div
+        className={cn(
+          "flex overflow-hidden p-0.5",
+          isFloating ? "rounded-full bg-[var(--surface-subtle)]" : "rounded-lg bg-[var(--sidebar)]",
+        )}
+      >
         {supportedLocales.map((localeOption) => {
           const isActive = localeOption === locale;
 
@@ -70,7 +92,9 @@ export function LanguageSwitcher() {
                 "min-h-8 min-w-[2.75rem] rounded-full px-2.5 text-xs font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
                 isActive
                   ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-sm"
-                  : "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]",
+                  : isFloating
+                    ? "text-[var(--muted)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
+                    : "text-[var(--sidebar-muted)] hover:bg-[var(--sidebar-surface)] hover:text-[var(--sidebar-text)]",
               )}
               key={localeOption}
               onClick={() => {

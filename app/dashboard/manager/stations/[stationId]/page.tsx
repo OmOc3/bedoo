@@ -13,6 +13,10 @@ import { getStationById, listStationTechnicianVisits } from "@/lib/db/repositori
 import { resolveStationQrCodeValue } from "@/lib/stations/qr-export";
 import { buildStationReportUrl } from "@/lib/url/base-url";
 import type { AppTimestamp } from "@/types";
+import {
+  stationInstallationStatusLabels,
+  stationTypeLabels,
+} from "@ecopest/shared/constants";
 
 interface StationDetailPageProps {
   params: Promise<{
@@ -114,6 +118,22 @@ export default async function StationDetailPage({ params }: StationDetailPagePro
               <div>
                 <dt className="text-sm font-medium text-[var(--muted)]">{sd.colZone}</dt>
                 <dd className="mt-1 text-sm text-[var(--foreground)]">{station.zone ?? sl.zoneUndefined}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-[var(--muted)]">نوع المحطة</dt>
+                <dd className="mt-1 text-sm text-[var(--foreground)]">{stationTypeLabels[station.stationType]}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-[var(--muted)]">الكود الخارجي</dt>
+                <dd className="mt-1 text-sm text-[var(--foreground)]" dir="ltr">{station.externalCode ?? "-"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-[var(--muted)]">حالة التركيب</dt>
+                <dd className="mt-1 text-sm text-[var(--foreground)]">{stationInstallationStatusLabels[station.installationStatus]}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-[var(--muted)]">اعتماد المسح الميداني</dt>
+                <dd className="mt-1 text-sm text-[var(--foreground)]">{formatTimestamp(station.verifiedAt)}</dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-[var(--muted)]">{sd.colStatus}</dt>

@@ -8,14 +8,23 @@ import { createStationAction, deleteStationImageAction, updateStationAction, typ
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import { stationFormSchema, type StationFormValues } from "@/lib/validation/stations";
-import type { Coordinates } from "@/types";
+import type { Coordinates, StationInstallationStatus, StationType } from "@/types";
+import {
+  stationInstallationStatusLabels,
+  stationInstallationStatuses,
+  stationTypeLabels,
+  stationTypeOptions,
+} from "@ecopest/shared/constants";
 
 interface StationFormProps {
   mode: "create" | "edit";
   station?: {
     description?: string;
+    externalCode?: string;
+    installationStatus: StationInstallationStatus;
     photoUrls?: string[];
     stationId: string;
+    stationType: StationType;
     label: string;
     location: string;
     requiresImmediateSupervision: boolean;
@@ -32,6 +41,18 @@ function toFormData(values: StationFormValues): FormData {
 
   if (values.description) {
     formData.set("description", values.description);
+  }
+
+  if (values.externalCode) {
+    formData.set("externalCode", values.externalCode);
+  }
+
+  if (values.stationType) {
+    formData.set("stationType", values.stationType);
+  }
+
+  if (values.installationStatus) {
+    formData.set("installationStatus", values.installationStatus);
   }
 
   if (values.zone) {
@@ -68,6 +89,9 @@ export function StationForm({ mode, station }: StationFormProps) {
       label: station?.label ?? "",
       location: station?.location ?? "",
       description: station?.description ?? "",
+      externalCode: station?.externalCode ?? "",
+      installationStatus: station?.installationStatus ?? "installed",
+      stationType: station?.stationType ?? "bait_station",
       zone: station?.zone ?? "",
       requiresImmediateSupervision: station?.requiresImmediateSupervision ?? false,
       lat: station?.coordinates ? String(station.coordinates.lat) : "",
@@ -149,6 +173,43 @@ export function StationForm({ mode, station }: StationFormProps) {
         placeholder="اختياري"
         {...form.register("zone")}
       />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-[var(--foreground)]">نوع المحطة</span>
+          <select
+            className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] shadow-control focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            {...form.register("stationType")}
+          >
+            {stationTypeOptions.map((type) => (
+              <option key={type} value={type}>
+                {stationTypeLabels[type]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <TextField
+          autoComplete="off"
+          error={form.formState.errors.externalCode?.message ?? getFieldError(actionResult, "externalCode")}
+          id="externalCode"
+          label="الكود الخارجي"
+          placeholder="مثال: BS-027"
+          {...form.register("externalCode")}
+        />
+        <label className="block space-y-1.5">
+          <span className="text-sm font-semibold text-[var(--foreground)]">حالة التركيب</span>
+          <select
+            className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--foreground)] shadow-control focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+            {...form.register("installationStatus")}
+          >
+            {stationInstallationStatuses.map((status) => (
+              <option key={status} value={status}>
+                {stationInstallationStatusLabels[status]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       <div className="space-y-2">
         <label className="block text-sm font-semibold text-[var(--foreground)]" htmlFor="description">

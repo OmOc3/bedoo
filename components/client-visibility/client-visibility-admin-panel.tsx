@@ -8,6 +8,7 @@ import { ClientServiceAreaForm } from "@/components/client-visibility/client-ser
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { ClientAnalysisDocument, ClientServiceArea, ClientStationAccess } from "@/types";
 import Image from "next/image";
+import { clientAnalysisDocumentCategoryLabels } from "@ecopest/shared/constants";
 
 interface ClientVisibilityAdminPanelProps {
   access: ClientStationAccess[];
@@ -18,6 +19,10 @@ interface ClientVisibilityAdminPanelProps {
 
 function fileTypeLabel(fileType: ClientAnalysisDocument["fileType"]): string {
   return fileType.toUpperCase();
+}
+
+function documentCategoryLabel(category: ClientAnalysisDocument["documentCategory"]): string {
+  return clientAnalysisDocumentCategoryLabels[category];
 }
 
 export function ClientVisibilityAdminPanel({
@@ -54,6 +59,9 @@ export function ClientVisibilityAdminPanel({
                       </StatusBadge>
                       <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-bold text-[var(--muted)]">
                         {fileTypeLabel(document.fileType)}
+                      </span>
+                      <span className="rounded-full bg-[var(--surface-subtle)] px-2 py-1 text-xs font-bold text-[var(--muted)]">
+                        {documentCategoryLabel(document.documentCategory)}
                       </span>
                     </div>
                     <p className="mt-1 truncate text-xs text-[var(--muted)]">{document.fileName}</p>

@@ -26,11 +26,13 @@ function station(overrides: Partial<Station> = {}): Station {
     createdAt: timestamp(new Date("2026-05-01T12:00:00.000Z")),
     createdBy: "manager-1",
     isActive: true,
+    installationStatus: "installed",
     label: "محطة 1",
     location: "الموقع",
     qrCodeValue: "https://ecopest-production.vercel.app/station/000001/report?qr=token",
     requiresImmediateSupervision: false,
     stationId: "000001",
+    stationType: "bait_station",
     totalReports: 0,
     ...overrides,
   };

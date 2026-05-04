@@ -73,12 +73,18 @@ export function stationFromRow(row: {
   lng: number | null;
   location: string;
   description: string | null;
+  externalCode: Station["externalCode"] | null;
+  installationStatus: Station["installationStatus"];
   photoUrls: string[] | null;
   qrCodeValue: string;
+  sourceDocumentId: string | null;
   stationId: string;
+  stationType: Station["stationType"];
   totalReports: number;
   updatedAt: Date | null;
   updatedBy: string | null;
+  verifiedAt: Date | null;
+  verifiedBy: string | null;
   zone: string | null;
 }): Station {
   return {
@@ -87,6 +93,12 @@ export function stationFromRow(row: {
     location: row.location,
     description: row.description ?? undefined,
     zone: row.zone ?? undefined,
+    stationType: row.stationType,
+    externalCode: row.externalCode ?? undefined,
+    installationStatus: row.installationStatus,
+    verifiedAt: toAppTimestamp(row.verifiedAt),
+    verifiedBy: row.verifiedBy ?? undefined,
+    sourceDocumentId: row.sourceDocumentId ?? undefined,
     photoUrls: normalizeCloudinaryDeliveryUrls(row.photoUrls),
     coordinates: coordinatesFromRow(row),
     qrCodeValue: row.qrCodeValue,

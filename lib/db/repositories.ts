@@ -15,6 +15,8 @@ import {
   appSettings,
   auditLogs,
   clientAnalysisDocuments,
+  clientStationImportBatches,
+  clientStationImportRows,
   clientSignupDevices,
   clientOrders,
   clientProfiles,
@@ -38,6 +40,7 @@ import {
 import { normalizeCloudinaryDeliveryUrl } from "@/lib/cloudinary/utils";
 import { appUserFromAuthUser, auditLogFromRow, reportFromRow, requiredTimestamp, stationFromRow } from "@/lib/db/mappers";
 import { AppError } from "@/lib/errors";
+import type { ExistingStationImportKey, StationImportPreview, StationImportPreviewRow } from "@/lib/stations/import-csv";
 import { stationClientNamesByStationId } from "@/lib/stations/qr-export";
 import { buildStationReportUrl } from "@/lib/url/base-url";
 import {
@@ -53,6 +56,7 @@ import type {
   AttendanceSession,
   AuditLog,
   ClientAnalysisDocument,
+  ClientAnalysisDocumentCategory,
   ClientOrder,
   ClientOrderWithStation,
   ClientProfile,
@@ -75,6 +79,8 @@ import type {
   ShiftStatus,
   SprayStatus,
   Station,
+  StationInstallationStatus,
+  StationType,
   StatusOption,
   SupportContactSettings,
   TechnicianShift,
@@ -87,23 +93,31 @@ export interface CreateStationRecord {
   coordinates?: Coordinates;
   createdBy: string;
   description?: string;
+  externalCode?: string;
+  installationStatus?: StationInstallationStatus;
   label: string;
   location: string;
   photoUrls?: string[];
   qrCodeValue: string;
   requiresImmediateSupervision?: boolean;
+  sourceDocumentId?: string;
   stationId: string;
+  stationType?: StationType;
   zone?: string;
 }
 
 export interface UpdateStationRecord {
   coordinates?: Coordinates;
   description?: string;
+  externalCode?: string;
+  installationStatus?: StationInstallationStatus;
   label?: string;
   location?: string;
   photoUrls?: string[];
   qrCodeValue: string;
   requiresImmediateSupervision?: boolean;
+  sourceDocumentId?: string;
+  stationType?: StationType;
   updatedBy: string;
   zone?: string;
 }
@@ -509,6 +523,7 @@ export interface CreateClientAnalysisDocumentInput {
   actorRole: UserRole;
   actorUid: string;
   clientUid: string;
+  documentCategory: ClientAnalysisDocumentCategory;
   fileName: string;
   fileType: ClientAnalysisDocument["fileType"];
   fileUrl: string;
@@ -543,6 +558,20 @@ export interface CreateDailyAreaTaskInput {
   notes?: string;
   scheduledDate: string;
   technicianUid: string;
+}
+
+export interface ApplyStationImportInput {
+  actorRole: UserRole;
+  actorUid: string;
+  clientUid: string;
+  preview: StationImportPreview;
+  sourceDocumentId?: string;
+  sourceName: string;
+}
+
+export interface ApplyStationImportResult {
+  batchId: string;
+  createdStationIds: string[];
 }
 
 export interface CompleteDailyAreaTaskInput {
@@ -628,6 +657,10 @@ function idempotentReportId(actorUid: string, clientReportId: string): string {
 
 function sanitizeLike(value: string): string {
   return `%${value.replace(/[%_]/g, "\\$&")}%`;
+}
+
+function isInstalledStation(status: StationInstallationStatus | undefined): boolean {
+  return (status ?? "installed") === "installed";
 }
 
 export async function getAppUser(uid: string): Promise<AppUser | null> {
@@ -822,25 +855,40 @@ export async function listAuditLogs(input: {
 }
 
 export async function createStationRecord(input: CreateStationRecord): Promise<void> {
+  const createdAt = now();
+  const installationStatus = input.installationStatus ?? "installed";
+  const isInstalled = isInstalledStation(installationStatus);
+
   await db.insert(stations).values({
     stationId: input.stationId,
     label: input.label,
     location: input.location,
     description: input.description,
     zone: input.zone,
+    stationType: input.stationType ?? "bait_station",
+    externalCode: input.externalCode,
+    installationStatus,
+    verifiedAt: isInstalled ? createdAt : null,
+    verifiedBy: isInstalled ? input.createdBy : null,
+    sourceDocumentId: input.sourceDocumentId,
     photoUrls: input.photoUrls,
     lat: input.coordinates?.lat,
     lng: input.coordinates?.lng,
     qrCodeValue: input.qrCodeValue,
-    isActive: true,
+    isActive: isInstalled,
     requiresImmediateSupervision: input.requiresImmediateSupervision ?? false,
     totalReports: 0,
-    createdAt: now(),
+    createdAt,
     createdBy: input.createdBy,
   });
 }
 
 export async function updateStationRecord(stationId: string, input: UpdateStationRecord): Promise<void> {
+  const existing = await getStationById(stationId);
+  const installationStatus = input.installationStatus ?? existing?.installationStatus ?? "installed";
+  const isInstalled = isInstalledStation(installationStatus);
+  const timestamp = now();
+
   await db
     .update(stations)
     .set({
@@ -848,23 +896,36 @@ export async function updateStationRecord(stationId: string, input: UpdateStatio
       location: input.location,
       description: input.description ?? null,
       zone: input.zone ?? null,
+      stationType: input.stationType ?? existing?.stationType ?? "bait_station",
+      externalCode: input.externalCode !== undefined ? input.externalCode : existing?.externalCode ?? null,
+      installationStatus,
+      verifiedAt: isInstalled ? existing?.verifiedAt?.toDate() ?? timestamp : null,
+      verifiedBy: isInstalled ? existing?.verifiedBy ?? input.updatedBy : null,
+      sourceDocumentId: input.sourceDocumentId !== undefined ? input.sourceDocumentId : existing?.sourceDocumentId ?? null,
       photoUrls: input.photoUrls ?? null,
       lat: input.coordinates?.lat ?? null,
       lng: input.coordinates?.lng ?? null,
       qrCodeValue: input.qrCodeValue,
+      isActive: isInstalled,
       requiresImmediateSupervision: input.requiresImmediateSupervision,
-      updatedAt: now(),
+      updatedAt: timestamp,
       updatedBy: input.updatedBy,
     })
     .where(eq(stations.stationId, stationId));
 }
 
 export async function toggleStationStatusRecord(stationId: string, nextIsActive: boolean, updatedBy: string): Promise<void> {
+  const existing = await getStationById(stationId);
+  const timestamp = now();
+
   await db
     .update(stations)
     .set({
       isActive: nextIsActive,
-      updatedAt: now(),
+      installationStatus: nextIsActive ? "installed" : existing?.installationStatus ?? "installed",
+      verifiedAt: nextIsActive ? existing?.verifiedAt?.toDate() ?? timestamp : existing?.verifiedAt?.toDate() ?? null,
+      verifiedBy: nextIsActive ? existing?.verifiedBy ?? updatedBy : existing?.verifiedBy ?? null,
+      updatedAt: timestamp,
       updatedBy,
     })
     .where(eq(stations.stationId, stationId));
@@ -953,6 +1014,7 @@ export async function listStationsForQrExport(input: {
   }
 
   const conditions = [
+    eq(stations.isActive, true),
     input.dateFrom ? gte(stations.createdAt, input.dateFrom) : undefined,
     stationIds ? inArray(stations.stationId, stationIds) : undefined,
   ].filter((condition) => condition !== undefined);
@@ -966,6 +1028,189 @@ export async function listStationsForQrExport(input: {
   const clientNamesByStationId = await getStationClientNames(exportStations.map((station) => station.stationId));
 
   return { clientNamesByStationId, stations: exportStations };
+}
+
+export async function listStationImportExistingKeys(clientUid: string): Promise<ExistingStationImportKey[]> {
+  const rows = await db
+    .select({
+      externalCode: stations.externalCode,
+      label: stations.label,
+      stationId: stations.stationId,
+      stationType: stations.stationType,
+      zone: stations.zone,
+    })
+    .from(clientStationAccess)
+    .innerJoin(stations, eq(clientStationAccess.stationId, stations.stationId))
+    .where(eq(clientStationAccess.clientUid, clientUid));
+
+  return rows.map((row) => ({
+    externalCode: row.externalCode ?? undefined,
+    label: row.label,
+    stationId: row.stationId,
+    stationType: row.stationType,
+    zone: row.zone ?? undefined,
+  }));
+}
+
+function importRowIssues(row: StationImportPreviewRow): string[] {
+  return [...row.errors, ...row.warnings];
+}
+
+export async function applyStationImport(input: ApplyStationImportInput): Promise<ApplyStationImportResult> {
+  if (input.actorRole !== "manager") {
+    throw new AppError("ليست لديك صلاحية استيراد المحطات.", "STATION_IMPORT_FORBIDDEN", 403);
+  }
+
+  const targetClient = await getAppUser(input.clientUid);
+  if (!targetClient || targetClient.role !== "client") {
+    throw new AppError("العميل غير موجود.", "CLIENT_NOT_FOUND", 404);
+  }
+
+  if (input.preview.blockedCount > 0) {
+    throw new AppError("لا يمكن تطبيق الاستيراد قبل حل الصفوف المرفوضة.", "STATION_IMPORT_BLOCKED", 400);
+  }
+
+  if (input.preview.rows.length === 0) {
+    throw new AppError("لا توجد صفوف صالحة للاستيراد.", "STATION_IMPORT_EMPTY", 400);
+  }
+
+  const clientMismatch = input.preview.rows.find((row) => row.clientUid !== input.clientUid);
+  if (clientMismatch) {
+    throw new AppError("كل صفوف CSV يجب أن تخص نفس العميل المحدد.", "STATION_IMPORT_CLIENT_MISMATCH", 400);
+  }
+
+  if (input.sourceDocumentId) {
+    const [documentRow] = await db
+      .select({ clientUid: clientAnalysisDocuments.clientUid })
+      .from(clientAnalysisDocuments)
+      .where(eq(clientAnalysisDocuments.documentId, input.sourceDocumentId))
+      .limit(1);
+
+    if (!documentRow || documentRow.clientUid !== input.clientUid) {
+      throw new AppError("مستند المصدر غير مرتبط بهذا العميل.", "STATION_IMPORT_SOURCE_DOCUMENT_INVALID", 400);
+    }
+  }
+
+  const batchId = crypto.randomUUID();
+  const createdAt = now();
+  const createdStationIds: string[] = [];
+  const firstStationId = await generateNextStationId();
+  let nextStationNumber = Number(firstStationId);
+
+  await db.transaction(async (tx) => {
+    await tx.insert(clientStationImportBatches).values({
+      appliedAt: createdAt,
+      appliedBy: input.actorUid,
+      batchId,
+      blockedCount: input.preview.blockedCount,
+      clientUid: input.clientUid,
+      createdAt,
+      createdBy: input.actorUid,
+      readyCount: input.preview.readyCount,
+      rowCount: input.preview.rowCount,
+      sourceDocumentId: input.sourceDocumentId ?? null,
+      sourceName: input.sourceName.trim(),
+      status: "applied",
+      summary: {
+        conflicts: input.preview.conflicts,
+        warningCount: input.preview.warningCount,
+      },
+      warningCount: input.preview.warningCount,
+    });
+
+    for (const row of input.preview.rows) {
+      const stationId = String(nextStationNumber).padStart(generatedStationIdLength, "0");
+      nextStationNumber += 1;
+      const qrCodeValue = await buildStationReportUrl(stationId);
+      const installationStatus = row.installationStatus;
+      const isInstalled = isInstalledStation(installationStatus);
+
+      await tx.insert(stations).values({
+        createdAt,
+        createdBy: input.actorUid,
+        description: row.description ?? row.notes ?? null,
+        externalCode: row.externalCode ?? null,
+        installationStatus,
+        isActive: isInstalled,
+        label: row.label,
+        lastVisitedAt: null,
+        lastVisitedBy: null,
+        lat: row.coordinates?.lat ?? null,
+        lng: row.coordinates?.lng ?? null,
+        location: row.location,
+        photoUrls: null,
+        qrCodeValue,
+        requiresImmediateSupervision: false,
+        sourceDocumentId: input.sourceDocumentId ?? null,
+        stationId,
+        stationType: row.stationType,
+        totalReports: 0,
+        updatedAt: null,
+        updatedBy: null,
+        verifiedAt: isInstalled ? createdAt : null,
+        verifiedBy: isInstalled ? input.actorUid : null,
+        zone: row.zone ?? null,
+      });
+
+      await tx.insert(clientStationAccess).values({
+        accessId: crypto.randomUUID(),
+        clientUid: input.clientUid,
+        createdAt,
+        createdBy: input.actorUid,
+        reportsVisibleToClient: false,
+        stationId,
+        stationVisibleToClient: false,
+        visibilityUpdatedAt: createdAt,
+        visibilityUpdatedBy: input.actorUid,
+      });
+
+      await tx.insert(clientStationImportRows).values({
+        batchId,
+        clientUid: row.clientUid,
+        createdAt,
+        description: row.description ?? null,
+        duplicateStationId: row.duplicateStationId ?? null,
+        externalCode: row.externalCode ?? null,
+        installationStatus: row.installationStatus,
+        issues: importRowIssues(row),
+        label: row.label,
+        lat: row.coordinates?.lat ?? null,
+        lng: row.coordinates?.lng ?? null,
+        location: row.location,
+        notes: row.notes ?? null,
+        rowId: crypto.randomUUID(),
+        rowNumber: row.rowNumber,
+        sourceDocumentId: input.sourceDocumentId ?? null,
+        sourceFile: row.sourceFile,
+        sourceReleaseDate: row.sourceReleaseDate ?? null,
+        stationId,
+        stationType: row.stationType,
+        status: "applied",
+        zone: row.zone ?? null,
+      });
+
+      createdStationIds.push(stationId);
+    }
+
+    await tx.insert(auditLogs).values({
+      action: "station_import.apply",
+      actorRole: input.actorRole,
+      actorUid: input.actorUid,
+      createdAt,
+      entityId: batchId,
+      entityType: "client_station_import_batch",
+      logId: crypto.randomUUID(),
+      metadata: {
+        clientUid: input.clientUid,
+        conflicts: input.preview.conflicts,
+        createdStationCount: createdStationIds.length,
+        sourceDocumentId: input.sourceDocumentId,
+        sourceName: input.sourceName,
+      },
+    });
+  });
+
+  return { batchId, createdStationIds };
 }
 
 export async function listNearbyStations(
@@ -1487,6 +1732,7 @@ function clientAnalysisDocumentFromRow(
     clientUid: row.clientUid,
     createdAt: requiredTimestamp(row.createdAt),
     documentId: row.documentId,
+    documentCategory: row.documentCategory,
     fileName: row.fileName,
     fileType: row.fileType,
     fileUrl: normalizeCloudinaryDeliveryUrl(row.fileUrl),
@@ -2013,6 +2259,7 @@ export async function createClientAnalysisDocument(
     clientUid: input.clientUid,
     createdAt: timestamp,
     documentId: crypto.randomUUID(),
+    documentCategory: input.documentCategory,
     fileName: input.fileName,
     fileType: input.fileType,
     fileUrl: input.fileUrl,
@@ -2034,6 +2281,7 @@ export async function createClientAnalysisDocument(
     entityId: record.documentId,
     metadata: {
       clientUid: input.clientUid,
+      documentCategory: input.documentCategory,
       fileType: input.fileType,
       visible: record.isVisibleToClient,
     },
@@ -2049,6 +2297,7 @@ export async function listClientAnalysisDocumentsForAdmin(clientUid: string): Pr
       clientUid: clientAnalysisDocuments.clientUid,
       createdAt: clientAnalysisDocuments.createdAt,
       documentId: clientAnalysisDocuments.documentId,
+      documentCategory: clientAnalysisDocuments.documentCategory,
       fileName: clientAnalysisDocuments.fileName,
       fileType: clientAnalysisDocuments.fileType,
       fileUrl: clientAnalysisDocuments.fileUrl,

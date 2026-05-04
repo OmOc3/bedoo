@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { clientAnalysisDocumentCategories } from "@ecopest/shared/constants";
 
 const uidSchema = z.string().trim().min(1, "اختر العميل.");
 const optionalTrimmedText = z
@@ -9,6 +10,7 @@ const optionalTrimmedText = z
 
 export const uploadClientAnalysisDocumentSchema = z.object({
   clientUid: uidSchema,
+  documentCategory: z.enum(clientAnalysisDocumentCategories),
   title: z.string().trim().min(2, "اكتب عنوان الملف.").max(120, "عنوان الملف طويل."),
 });
 

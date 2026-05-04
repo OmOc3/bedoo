@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement, type SVGProps } from "react";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { BrandMark } from "@/components/layout/brand";
 import { ReportNotificationListener } from "@/components/notifications/report-notification-listener";
@@ -474,10 +475,13 @@ export function DashboardNav({ role }: DashboardNavProps) {
             </nav>
 
             <div className="relative mt-auto border-t border-[var(--sidebar-border)] p-4">
-              <LogoutButton
-                buttonClassName="!w-full !border-[var(--sidebar-border)] !bg-[var(--sidebar-surface)] !text-[var(--sidebar-text)] hover:!bg-[var(--sidebar-border)] hover:!text-[var(--sidebar-text)]"
-                className="text-[var(--sidebar-text)]"
-              />
+              <div className="flex items-center gap-2">
+                <LanguageSwitcher className="shrink-0" placement="inline" />
+                <LogoutButton
+                  buttonClassName="!w-full !border-[var(--sidebar-border)] !bg-[var(--sidebar-surface)] !text-[var(--sidebar-text)] hover:!bg-[var(--sidebar-border)] hover:!text-[var(--sidebar-text)]"
+                  className="w-full text-[var(--sidebar-text)]"
+                />
+              </div>
             </div>
           </aside>
         </>
@@ -558,13 +562,16 @@ export function DashboardNav({ role }: DashboardNavProps) {
         <div
           className={cn(
             "relative mt-auto border-t border-[var(--sidebar-border)] p-4 overflow-hidden transition-[opacity,max-height] duration-300",
-            isSidebarOpen ? "max-h-24 opacity-100" : "max-h-0 opacity-0"
+            isSidebarOpen ? "max-h-28 opacity-100" : "max-h-0 opacity-0"
           )}
         >
-          <LogoutButton
-            buttonClassName="!w-full !border-[var(--sidebar-border)] !bg-[var(--sidebar-surface)] !text-[var(--sidebar-text)] hover:!bg-[var(--sidebar-border)] hover:!text-[var(--sidebar-text)]"
-            className="text-[var(--sidebar-text)]"
-          />
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher className="shrink-0" placement="inline" />
+            <LogoutButton
+              buttonClassName="!w-full !border-[var(--sidebar-border)] !bg-[var(--sidebar-surface)] !text-[var(--sidebar-text)] hover:!bg-[var(--sidebar-border)] hover:!text-[var(--sidebar-text)]"
+              className="w-full text-[var(--sidebar-text)]"
+            />
+          </div>
         </div>
       </aside>
 

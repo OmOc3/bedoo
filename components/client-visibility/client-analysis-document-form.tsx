@@ -13,6 +13,10 @@ import {
   uploadClientAnalysisDocumentSchema,
   type UploadClientAnalysisDocumentValues,
 } from "@/lib/validation/client-visibility";
+import {
+  clientAnalysisDocumentCategories,
+  clientAnalysisDocumentCategoryLabels,
+} from "@ecopest/shared/constants";
 
 interface ClientAnalysisDocumentFormProps {
   clientUid: string;
@@ -24,6 +28,7 @@ export function ClientAnalysisDocumentForm({ clientUid }: ClientAnalysisDocument
     resolver: zodResolver(uploadClientAnalysisDocumentSchema),
     defaultValues: {
       clientUid,
+      documentCategory: "import_source",
       title: "",
     },
   });
@@ -39,13 +44,14 @@ export function ClientAnalysisDocumentForm({ clientUid }: ClientAnalysisDocument
 
     const formData = new FormData(target);
     formData.set("clientUid", values.clientUid);
+    formData.set("documentCategory", values.documentCategory);
     formData.set("title", values.title);
 
     const actionResult = await uploadClientAnalysisDocumentAction(formData);
     setResult(actionResult);
 
     if (actionResult.success) {
-      form.reset({ clientUid, title: "" });
+      form.reset({ clientUid, documentCategory: "import_source", title: "" });
       target.reset();
     }
   }
@@ -58,6 +64,20 @@ export function ClientAnalysisDocumentForm({ clientUid }: ClientAnalysisDocument
       </div>
 
       <input type="hidden" {...form.register("clientUid")} />
+
+      <label className="block space-y-1.5">
+        <span className="text-sm font-semibold text-[var(--muted)]">تصنيف الملف</span>
+        <select
+          className="min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] shadow-control focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+          {...form.register("documentCategory")}
+        >
+          {clientAnalysisDocumentCategories.map((category) => (
+            <option key={category} value={category}>
+              {clientAnalysisDocumentCategoryLabels[category]}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-[var(--muted)]">عنوان الملف</span>
@@ -74,7 +94,7 @@ export function ClientAnalysisDocumentForm({ clientUid }: ClientAnalysisDocument
       <label className="block space-y-1.5">
         <span className="text-sm font-semibold text-[var(--muted)]">الملف</span>
         <input
-          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           className="block min-h-11 w-full cursor-pointer rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] shadow-control file:me-3 file:rounded-md file:border-0 file:bg-[var(--surface-subtle)] file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-[var(--foreground)]"
           name="file"
           required

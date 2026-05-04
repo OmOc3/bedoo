@@ -40,6 +40,58 @@ export const pestTypeLabelsEnglish: Record<SharedPestTypeOption, string> = {
   others: "Others",
 };
 
+export const stationTypeOptions = ["bait_station", "pottery_station", "glue_board"] as const;
+export type SharedStationType = (typeof stationTypeOptions)[number];
+
+export const stationTypeLabels: Record<SharedStationType, string> = {
+  bait_station: "محطة طعوم",
+  pottery_station: "محطة فخار",
+  glue_board: "لوح لاصق",
+};
+
+export const stationTypeLabelsEnglish: Record<SharedStationType, string> = {
+  bait_station: "Bait station",
+  pottery_station: "Pottery station",
+  glue_board: "Glue board",
+};
+
+export const stationInstallationStatuses = ["pending_field_verification", "installed", "not_installed"] as const;
+export type SharedStationInstallationStatus = (typeof stationInstallationStatuses)[number];
+
+export const stationInstallationStatusLabels: Record<SharedStationInstallationStatus, string> = {
+  pending_field_verification: "بانتظار التحقق الميداني",
+  installed: "مثبتة",
+  not_installed: "غير مثبتة",
+};
+
+export const stationInstallationStatusLabelsEnglish: Record<SharedStationInstallationStatus, string> = {
+  pending_field_verification: "Pending field verification",
+  installed: "Installed",
+  not_installed: "Not installed",
+};
+
+export const clientAnalysisDocumentCategories = [
+  "layout_map",
+  "weekly_report",
+  "monthly_report",
+  "import_source",
+] as const;
+export type SharedClientAnalysisDocumentCategory = (typeof clientAnalysisDocumentCategories)[number];
+
+export const clientAnalysisDocumentCategoryLabels: Record<SharedClientAnalysisDocumentCategory, string> = {
+  layout_map: "خريطة توزيع",
+  weekly_report: "تقرير أسبوعي",
+  monthly_report: "تقرير شهري",
+  import_source: "مصدر استيراد",
+};
+
+export const clientAnalysisDocumentCategoryLabelsEnglish: Record<SharedClientAnalysisDocumentCategory, string> = {
+  layout_map: "Layout map",
+  weekly_report: "Weekly report",
+  monthly_report: "Monthly report",
+  import_source: "Import source",
+};
+
 export interface StatusOptionEntry {
   labelArabic: string;
   labelEnglish: string;

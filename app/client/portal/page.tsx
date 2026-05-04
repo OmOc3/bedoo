@@ -5,6 +5,10 @@ import { StatusPills } from "@/components/reports/status-pills";
 import { ThemeIconToggle } from "@/components/theme/theme-icon-toggle";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
+import {
+  clientAnalysisDocumentCategoryLabels,
+  clientAnalysisDocumentCategoryLabelsEnglish,
+} from "@ecopest/shared";
 import { requireRole } from "@/lib/auth/server-session";
 import {
   listOrderedStationsForClient,
@@ -14,16 +18,24 @@ import {
 } from "@/lib/db/repositories";
 import { getIntlLocaleForApp } from "@/lib/i18n";
 import { getI18nMessages, getRequestLocale, getRequestLocaleDirection } from "@/lib/i18n/server";
+import type { Locale } from "@/lib/i18n";
 import type { AppTimestamp, SprayStatus } from "@/types";
 
 export const metadata: Metadata = {
   title: "بوابة العميل",
 };
 
-const sprayLabels: Record<SprayStatus, string> = {
-  not_sprayed: "لم يتم الرش",
-  sprayed: "تم الرش",
-};
+function getSprayLabels(locale: Locale): Record<SprayStatus, string> {
+  return locale === "en"
+    ? {
+        not_sprayed: "Not sprayed",
+        sprayed: "Sprayed",
+      }
+    : {
+        not_sprayed: "لم يتم الرش",
+        sprayed: "تم الرش",
+      };
+}
 
 function formatTimestamp(timestamp: AppTimestamp | undefined, intlLocale: string, unavailableLabel: string): string {
   if (!timestamp) {
@@ -59,6 +71,9 @@ export default async function ClientPortalPage() {
   ]);
   const isRtl = direction === "rtl";
   const headline = locale === "en" ? `Welcome, ${session.user.displayName}` : `أهلا، ${session.user.displayName}`;
+  const sprayLabels = getSprayLabels(locale);
+  const documentCategoryLabels =
+    locale === "en" ? clientAnalysisDocumentCategoryLabelsEnglish : clientAnalysisDocumentCategoryLabels;
 
   return (
     <main className="min-h-dvh bg-[var(--background)] px-4 py-5 text-start sm:px-6 lg:px-8" dir={direction}>
@@ -84,28 +99,31 @@ export default async function ClientPortalPage() {
 
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
-            <p className="text-sm font-medium text-[var(--muted)]">ملفات التحليلات</p>
+            <p className="text-sm font-medium text-[var(--muted)]">{locale === "en" ? "Analysis files" : "ملفات التحليلات"}</p>
             <p className="mt-2 text-3xl font-extrabold text-[var(--foreground)]">{analysisDocuments.length}</p>
           </div>
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
-            <p className="text-sm font-medium text-[var(--muted)]">محطات ظاهرة</p>
+            <p className="text-sm font-medium text-[var(--muted)]">{locale === "en" ? "Visible stations" : "محطات ظاهرة"}</p>
             <p className="mt-2 text-3xl font-extrabold text-[var(--foreground)]">{stations.length}</p>
           </div>
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
-            <p className="text-sm font-medium text-[var(--muted)]">نتائج رش منشورة</p>
+            <p className="text-sm font-medium text-[var(--muted)]">{locale === "en" ? "Published spray results" : "نتائج رش منشورة"}</p>
             <p className="mt-2 text-3xl font-extrabold text-[var(--foreground)]">{areaTasks.length}</p>
           </div>
         </div>
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
           <SectionHeader
-            description="ملفات PDF أو Word التي نشرها فريق التشغيل لحسابك."
-            title="التحليلات"
+            description={locale === "en" ? "PDF, Word, or Excel files published by operations for your account." : "ملفات PDF أو Word أو Excel التي نشرها فريق التشغيل لحسابك."}
+            title={locale === "en" ? "Analysis" : "التحليلات"}
           />
 
           {analysisDocuments.length === 0 ? (
             <div className="mt-5">
-              <EmptyState description="لم يتم نشر ملفات تحليلات لهذا الحساب حتى الآن." title="لا توجد ملفات تحليلات" />
+              <EmptyState
+                description={locale === "en" ? "No analysis files have been published for this account yet." : "لم يتم نشر ملفات تحليلات لهذا الحساب حتى الآن."}
+                title={locale === "en" ? "No analysis files" : "لا توجد ملفات تحليلات"}
+              />
             </div>
           ) : (
             <div className="mt-5 divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border)]">
@@ -113,7 +131,12 @@ export default async function ClientPortalPage() {
                 <article className="grid gap-3 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" key={document.documentId}>
                   <div className="min-w-0">
                     <h3 className="text-base font-bold text-[var(--foreground)]">{document.title}</h3>
-                    <p className="mt-1 truncate text-sm text-[var(--muted)]">{document.fileName}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-[var(--surface-subtle)] px-2.5 py-1 text-xs font-semibold text-[var(--muted)]">
+                        {documentCategoryLabels[document.documentCategory]}
+                      </span>
+                      <span className="min-w-0 truncate text-sm text-[var(--muted)]">{document.fileName}</span>
+                    </div>
                   </div>
                   <a
                     className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)]"
@@ -121,7 +144,7 @@ export default async function ClientPortalPage() {
                     rel="noreferrer"
                     target="_blank"
                   >
-                    فتح الملف
+                    {locale === "en" ? "Open file" : "فتح الملف"}
                   </a>
                 </article>
               ))}
@@ -131,13 +154,16 @@ export default async function ClientPortalPage() {
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
           <SectionHeader
-            description="المحطات والتقارير التي وافق المشرف أو المدير على ظهورها."
-            title="حالة المحطات والمتابعة"
+            description={locale === "en" ? "Stations and reports approved for visibility by a supervisor or manager." : "المحطات والتقارير التي وافق المشرف أو المدير على ظهورها."}
+            title={locale === "en" ? "Stations and follow-up" : "حالة المحطات والمتابعة"}
           />
 
           {stations.length === 0 ? (
             <div className="mt-5">
-              <EmptyState description="لم يتم نشر حالة محطات لهذا الحساب حتى الآن." title="لا توجد محطات منشورة" />
+              <EmptyState
+                description={locale === "en" ? "No station visibility data has been published for this account yet." : "لم يتم نشر حالة محطات لهذا الحساب حتى الآن."}
+                title={locale === "en" ? "No published stations" : "لا توجد محطات منشورة"}
+              />
             </div>
           ) : (
             <div className="mt-5 grid gap-4 xl:grid-cols-2">
@@ -148,15 +174,17 @@ export default async function ClientPortalPage() {
                       <h3 className="text-base font-bold text-[var(--foreground)]">{station.label}</h3>
                       <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{station.location}</p>
                     </div>
-                    <StatusBadge tone={station.isActive ? "active" : "inactive"}>{station.isActive ? "نشطة" : "غير نشطة"}</StatusBadge>
+                    <StatusBadge tone={station.isActive ? "active" : "inactive"}>
+                      {station.isActive ? (locale === "en" ? "Active" : "نشطة") : locale === "en" ? "Inactive" : "غير نشطة"}
+                    </StatusBadge>
                   </div>
                   <dl className="mt-4 grid gap-3 border-t border-[var(--border)] pt-4 text-sm sm:grid-cols-2">
                     <div>
-                      <dt className="font-semibold text-[var(--muted)]">آخر زيارة</dt>
+                      <dt className="font-semibold text-[var(--muted)]">{locale === "en" ? "Last visit" : "آخر زيارة"}</dt>
                       <dd className="mt-1 text-[var(--foreground)]">{formatTimestamp(station.lastVisitedAt, intlLocale, t.common.unavailable)}</dd>
                     </div>
                     <div>
-                      <dt className="font-semibold text-[var(--muted)]">عدد التقارير</dt>
+                      <dt className="font-semibold text-[var(--muted)]">{locale === "en" ? "Reports count" : "عدد التقارير"}</dt>
                       <dd className="mt-1 text-[var(--foreground)]">{station.totalReports}</dd>
                     </div>
                   </dl>
@@ -166,9 +194,11 @@ export default async function ClientPortalPage() {
           )}
 
           <div className="mt-6">
-            <h3 className="text-base font-bold text-[var(--foreground)]">تقارير المتابعة المعتمدة</h3>
+            <h3 className="text-base font-bold text-[var(--foreground)]">{locale === "en" ? "Approved follow-up reports" : "تقارير المتابعة المعتمدة"}</h3>
             {reports.length === 0 ? (
-              <p className="mt-3 rounded-lg bg-[var(--surface-subtle)] p-4 text-sm text-[var(--muted)]">لا توجد تقارير متابعة منشورة.</p>
+              <p className="mt-3 rounded-lg bg-[var(--surface-subtle)] p-4 text-sm text-[var(--muted)]">
+                {locale === "en" ? "No follow-up reports have been published." : "لا توجد تقارير متابعة منشورة."}
+              </p>
             ) : (
               <div className="mt-3 divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border)]">
                 {reports.map((report) => (
@@ -177,7 +207,9 @@ export default async function ClientPortalPage() {
                       <div>
                         <h4 className="text-sm font-bold text-[var(--foreground)]">{report.stationLabel}</h4>
                         <p className="mt-1 text-xs text-[var(--muted)]">
-                          {report.technicianName}، {formatTimestamp(report.submittedAt, intlLocale, t.common.unavailable)}
+                          {report.technicianName}
+                          {locale === "en" ? ", " : "، "}
+                          {formatTimestamp(report.submittedAt, intlLocale, t.common.unavailable)}
                         </p>
                       </div>
                       <StatusPills status={report.status} />
@@ -192,25 +224,28 @@ export default async function ClientPortalPage() {
 
         <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card">
           <SectionHeader
-            description="نتيجة QR المنطقة بعد تنفيذ الفني ونشر المشرف أو المدير للنتيجة."
-            title="حالة رش المناطق"
+            description={locale === "en" ? "Area QR result after technician execution and supervisor or manager publication." : "نتيجة QR المنطقة بعد تنفيذ الفني ونشر المشرف أو المدير للنتيجة."}
+            title={locale === "en" ? "Area spray status" : "حالة رش المناطق"}
           />
 
           {areaTasks.length === 0 ? (
             <div className="mt-5">
-              <EmptyState description="لم يتم نشر نتائج رش مناطق لهذا الحساب حتى الآن." title="لا توجد نتائج رش منشورة" />
+              <EmptyState
+                description={locale === "en" ? "No area spray results have been published for this account yet." : "لم يتم نشر نتائج رش مناطق لهذا الحساب حتى الآن."}
+                title={locale === "en" ? "No published spray results" : "لا توجد نتائج رش منشورة"}
+              />
             </div>
           ) : (
             <div className="mt-5 divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border)]">
               {areaTasks.map((task) => (
                 <article className="grid gap-3 p-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center" key={task.taskId}>
                   <div>
-                    <h3 className="text-base font-bold text-[var(--foreground)]">{task.areaName ?? "منطقة"}</h3>
+                    <h3 className="text-base font-bold text-[var(--foreground)]">{task.areaName ?? (locale === "en" ? "Area" : "منطقة")}</h3>
                     <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{task.areaLocation}</p>
                     <p className="mt-1 text-xs text-[var(--muted)]" dir="ltr">{task.scheduledDate}</p>
                   </div>
                   <StatusBadge tone={task.sprayStatus === "sprayed" ? "reviewed" : "rejected"}>
-                    {task.sprayStatus ? sprayLabels[task.sprayStatus] : "غير مسجل"}
+                    {task.sprayStatus ? sprayLabels[task.sprayStatus] : locale === "en" ? "Not recorded" : "غير مسجل"}
                   </StatusBadge>
                 </article>
               ))}

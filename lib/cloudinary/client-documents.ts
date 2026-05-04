@@ -28,6 +28,11 @@ const documentTypes: Record<string, { extension: ClientAnalysisDocumentFileType;
     mimeTypes: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
   },
   pdf: { extension: "pdf", mimeTypes: ["application/pdf"] },
+  xls: { extension: "xls", mimeTypes: ["application/vnd.ms-excel", "application/octet-stream"] },
+  xlsx: {
+    extension: "xlsx",
+    mimeTypes: ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"],
+  },
 };
 
 function getCloudinaryConfig(): CloudinaryConfig | null {
@@ -60,7 +65,9 @@ function signUploadParams(params: Record<string, string>, apiSecret: string): st
 function extensionFromName(fileName: string): ClientAnalysisDocumentFileType | null {
   const extension = fileName.split(".").at(-1)?.toLowerCase();
 
-  return extension === "pdf" || extension === "doc" || extension === "docx" ? extension : null;
+  return extension === "pdf" || extension === "doc" || extension === "docx" || extension === "xls" || extension === "xlsx"
+    ? extension
+    : null;
 }
 
 function isCloudinaryUploadResponse(value: unknown): value is { secure_url: string } {
@@ -79,14 +86,14 @@ export async function validateClientAnalysisDocumentFile(file: File): Promise<Va
   const extension = extensionFromName(file.name);
 
   if (!extension) {
-    throw new AppError("ارفع ملف PDF أو Word فقط.", "CLIENT_DOCUMENT_EXTENSION_INVALID", 400);
+    throw new AppError("ارفع ملف PDF أو Word أو Excel فقط.", "CLIENT_DOCUMENT_EXTENSION_INVALID", 400);
   }
 
   const allowed = documentTypes[extension];
   const type = file.type || (allowed.mimeTypes[0] ?? "application/octet-stream");
 
   if (file.type && !allowed.mimeTypes.includes(file.type)) {
-    throw new AppError("نوع الملف لا يطابق PDF أو Word.", "CLIENT_DOCUMENT_MIME_INVALID", 400);
+    throw new AppError("نوع الملف لا يطابق PDF أو Word أو Excel.", "CLIENT_DOCUMENT_MIME_INVALID", 400);
   }
 
   return {

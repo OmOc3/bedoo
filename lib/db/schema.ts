@@ -3,6 +3,7 @@ import { customType, index, integer, real, sqliteTable, text, uniqueIndex } from
 import { booleanFlagFromDriver } from "@/lib/db/boolean";
 import type {
   ClientAnalysisDocumentFileType,
+  ClientAnalysisDocumentCategory,
   ClientOrderStatus,
   Coordinates,
   DailyAreaTaskStatus,
@@ -10,6 +11,8 @@ import type {
   ReportPhotoCategory,
   ReportPhotoPaths,
   SprayStatus,
+  StationInstallationStatus,
+  StationType,
   StatusOption,
   UserRole,
 } from "@/types";
@@ -155,6 +158,17 @@ export const stations = sqliteTable(
     location: text("location").notNull(),
     description: text("description"),
     zone: text("zone"),
+    stationType: text("station_type").$type<StationType>().notNull().default("bait_station"),
+    externalCode: text("external_code"),
+    installationStatus: text("installation_status")
+      .$type<StationInstallationStatus>()
+      .notNull()
+      .default("installed"),
+    verifiedAt: timestamp("verified_at"),
+    verifiedBy: text("verified_by"),
+    sourceDocumentId: text("source_document_id").references(() => clientAnalysisDocuments.documentId, {
+      onDelete: "set null",
+    }),
     photoUrls: text("photo_urls", { mode: "json" }).$type<string[]>(),
     lat: real("lat"),
     lng: real("lng"),
@@ -173,6 +187,10 @@ export const stations = sqliteTable(
     index("stations_created_at_idx").on(table.createdAt),
     index("stations_active_idx").on(table.isActive),
     index("stations_zone_idx").on(table.zone),
+    index("stations_type_idx").on(table.stationType),
+    index("stations_external_code_idx").on(table.externalCode),
+    index("stations_installation_status_idx").on(table.installationStatus),
+    index("stations_source_document_idx").on(table.sourceDocumentId),
   ],
 );
 
@@ -452,6 +470,10 @@ export const clientAnalysisDocuments = sqliteTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     title: text("title").notNull(),
+    documentCategory: text("document_category")
+      .$type<ClientAnalysisDocumentCategory>()
+      .notNull()
+      .default("import_source"),
     fileName: text("file_name").notNull(),
     fileType: text("file_type").$type<ClientAnalysisDocumentFileType>().notNull(),
     fileUrl: text("file_url").notNull(),
@@ -466,7 +488,72 @@ export const clientAnalysisDocuments = sqliteTable(
   (table) => [
     index("client_analysis_documents_client_uid_idx").on(table.clientUid),
     index("client_analysis_documents_visible_idx").on(table.isVisibleToClient),
+    index("client_analysis_documents_category_idx").on(table.documentCategory),
     index("client_analysis_documents_created_at_idx").on(table.createdAt),
+  ],
+);
+
+export const clientStationImportBatches = sqliteTable(
+  "client_station_import_batches",
+  {
+    batchId: text("batch_id").primaryKey(),
+    clientUid: text("client_uid")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    sourceDocumentId: text("source_document_id").references(() => clientAnalysisDocuments.documentId, {
+      onDelete: "set null",
+    }),
+    sourceName: text("source_name").notNull(),
+    status: text("status").notNull().default("applied"),
+    rowCount: integer("row_count").notNull().default(0),
+    readyCount: integer("ready_count").notNull().default(0),
+    blockedCount: integer("blocked_count").notNull().default(0),
+    warningCount: integer("warning_count").notNull().default(0),
+    createdAt: timestamp("created_at").notNull(),
+    createdBy: text("created_by").notNull(),
+    appliedAt: timestamp("applied_at"),
+    appliedBy: text("applied_by"),
+    summary: text("summary", { mode: "json" }).$type<Record<string, unknown>>(),
+  },
+  (table) => [
+    index("client_station_import_batches_client_uid_idx").on(table.clientUid),
+    index("client_station_import_batches_status_idx").on(table.status),
+    index("client_station_import_batches_created_at_idx").on(table.createdAt),
+  ],
+);
+
+export const clientStationImportRows = sqliteTable(
+  "client_station_import_rows",
+  {
+    rowId: text("row_id").primaryKey(),
+    batchId: text("batch_id")
+      .notNull()
+      .references(() => clientStationImportBatches.batchId, { onDelete: "cascade" }),
+    rowNumber: integer("row_number").notNull(),
+    clientUid: text("client_uid").notNull(),
+    sourceFile: text("source_file").notNull(),
+    sourceReleaseDate: text("source_release_date"),
+    zone: text("zone"),
+    stationType: text("station_type").$type<StationType>().notNull(),
+    externalCode: text("external_code"),
+    label: text("label").notNull(),
+    location: text("location").notNull(),
+    description: text("description"),
+    installationStatus: text("installation_status").$type<StationInstallationStatus>().notNull(),
+    notes: text("notes"),
+    lat: real("lat"),
+    lng: real("lng"),
+    sourceDocumentId: text("source_document_id"),
+    duplicateStationId: text("duplicate_station_id"),
+    stationId: text("station_id").references(() => stations.stationId, { onDelete: "set null" }),
+    status: text("status").notNull(),
+    issues: text("issues", { mode: "json" }).$type<string[]>().notNull(),
+    createdAt: timestamp("created_at").notNull(),
+  },
+  (table) => [
+    index("client_station_import_rows_batch_id_idx").on(table.batchId),
+    index("client_station_import_rows_status_idx").on(table.status),
+    index("client_station_import_rows_station_id_idx").on(table.stationId),
   ],
 );
 

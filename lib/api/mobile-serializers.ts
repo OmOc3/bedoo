@@ -28,6 +28,8 @@ export interface MobileStationResponse {
   createdBy?: string;
   description?: string;
   distanceMeters?: number;
+  externalCode?: string;
+  installationStatus?: Station["installationStatus"];
   isActive: boolean;
   label: string;
   lastVisitedAt?: string;
@@ -37,6 +39,7 @@ export interface MobileStationResponse {
   qrCodeValue?: string;
   requiresImmediateSupervision: boolean;
   stationId: string;
+  stationType?: Station["stationType"];
   totalReports: number;
   updatedAt?: string;
   updatedBy?: string;
@@ -241,9 +244,12 @@ export function mobileStationResponse(
     ...(data.coordinates ? { coordinates: data.coordinates } : {}),
     ...(data.createdBy ? { createdBy: data.createdBy } : {}),
     ...(data.description ? { description: data.description } : {}),
+    ...(data.externalCode ? { externalCode: data.externalCode } : {}),
+    ...(data.installationStatus ? { installationStatus: data.installationStatus } : {}),
     ...(data.lastVisitedBy ? { lastVisitedBy: data.lastVisitedBy } : {}),
     ...(data.photoUrls?.length ? { photoUrls: data.photoUrls } : {}),
     ...(data.qrCodeValue ? { qrCodeValue: data.qrCodeValue } : {}),
+    ...(data.stationType ? { stationType: data.stationType } : {}),
     ...(data.updatedBy ? { updatedBy: data.updatedBy } : {}),
     ...(data.zone ? { zone: data.zone } : {}),
     ...(typeof distanceMeters === "number" ? { distanceMeters } : {}),

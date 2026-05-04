@@ -84,6 +84,7 @@ export async function uploadClientAnalysisDocumentAction(formData: FormData): Pr
   const t = await getActionMessages();
   const parsed = uploadClientAnalysisDocumentSchema.safeParse({
     clientUid: formData.get("clientUid"),
+    documentCategory: formData.get("documentCategory"),
     title: formData.get("title"),
   });
 
@@ -103,6 +104,7 @@ export async function uploadClientAnalysisDocumentAction(formData: FormData): Pr
       actorRole: session.role,
       actorUid: session.uid,
       clientUid: parsed.data.clientUid,
+      documentCategory: parsed.data.documentCategory,
       fileName: uploaded.fileName,
       fileType: uploaded.fileType,
       fileUrl: uploaded.fileUrl,

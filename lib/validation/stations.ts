@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { stationInstallationStatuses, stationTypeOptions } from "@ecopest/shared/constants";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -21,6 +22,7 @@ function isEmptyCoordinate(value: unknown): boolean {
 const stationLabelSchema = z.string().trim().min(1).max(120);
 const stationLocationSchema = z.string().trim().min(1).max(200);
 const stationZoneSchema = z.string().trim().max(80).optional();
+const stationExternalCodeSchema = z.string().trim().max(80).optional();
 
 export const stationCoordinatesSchema = z.object({
   lat: z.number().min(-90).max(90),
@@ -31,7 +33,10 @@ export const createStationSchema = z.object({
   label: stationLabelSchema,
   location: stationLocationSchema,
   description: z.string().trim().max(800).optional(),
+  externalCode: stationExternalCodeSchema,
+  installationStatus: z.enum(stationInstallationStatuses).optional(),
   photoUrls: z.array(z.string().url()).max(8).optional(),
+  stationType: z.enum(stationTypeOptions).optional(),
   zone: stationZoneSchema,
   requiresImmediateSupervision: z.boolean().optional(),
   coordinates: z.preprocess(
@@ -46,6 +51,9 @@ export const stationFormSchema = z.object({
   label: stationLabelSchema,
   location: stationLocationSchema,
   description: z.string().trim().max(800).optional(),
+  externalCode: stationExternalCodeSchema,
+  installationStatus: z.enum(stationInstallationStatuses).optional(),
+  stationType: z.enum(stationTypeOptions).optional(),
   zone: stationZoneSchema,
   requiresImmediateSupervision: z.boolean().optional(),
   lat: z.string().trim().optional(),
