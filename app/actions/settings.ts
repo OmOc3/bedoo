@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole } from "@/lib/auth/server-session";
 import { updateAppSettings } from "@/lib/db/repositories";
+import { getActionMessages } from "@/lib/i18n/action-locale";
 import { updateAppSettingsSchema } from "@/lib/validation/settings";
 
 function booleanFromFormData(formData: FormData, key: string): boolean {
@@ -23,6 +24,7 @@ function stringFromFormData(formData: FormData, key: string): string | undefined
 
 export async function updateAppSettingsAction(formData: FormData): Promise<void> {
   const session = await requireRole(["manager"]);
+  const t = await getActionMessages();
 
   const parsed = updateAppSettingsSchema.safeParse({
     maintenanceEnabled: booleanFromFormData(formData, "maintenanceEnabled"),
@@ -34,7 +36,9 @@ export async function updateAppSettingsAction(formData: FormData): Promise<void>
   });
 
   if (!parsed.success) {
-    redirect(`/dashboard/manager/settings?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "تحقق من بيانات الإعدادات.")}`);
+    redirect(
+      `/dashboard/manager/settings?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? t.actionErrors.settings_validationFailed)}`,
+    );
   }
 
   try {
@@ -49,7 +53,9 @@ export async function updateAppSettingsAction(formData: FormData): Promise<void>
       supportPhone: parsed.data.supportPhone,
     });
   } catch (error: unknown) {
-    redirect(`/dashboard/manager/settings?error=${encodeURIComponent(error instanceof Error ? error.message : "تعذر حفظ الإعدادات.")}`);
+    redirect(
+      `/dashboard/manager/settings?error=${encodeURIComponent(error instanceof Error ? error.message : t.actionErrors.settings_saveFailed)}`,
+    );
   }
 
   revalidatePath("/dashboard/manager/settings");

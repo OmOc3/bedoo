@@ -1,5 +1,7 @@
 "use client";
 
+import { LocalizedInlineError } from "@/components/i18n/localized-inline-error";
+
 export default function ManagerAreaTasksError() {
-  return <div className="p-6 text-sm text-[var(--danger)]">تعذر تحميل المهام اليومية.</div>;
+  return <LocalizedInlineError messageKey="areaTasks" />;
 }

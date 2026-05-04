@@ -1,9 +1,5 @@
-export default function ClientProfileLoading() {
-  return (
-    <main className="min-h-dvh bg-[var(--background)] px-4 py-8 text-right" dir="rtl">
-      <div className="mx-auto max-w-7xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
-        جار تحميل ملف العميل...
-      </div>
-    </main>
-  );
+import { AsyncRouteLoading } from "@/components/i18n/async-route-loading";
+
+export default async function LoadingManagerClientProfilePage() {
+  return <AsyncRouteLoading messageKey="clientProfile" />;
 }

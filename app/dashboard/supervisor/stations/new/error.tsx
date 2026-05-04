@@ -1,5 +1,7 @@
 "use client";
 
+import { LocalizedInlineError } from "@/components/i18n/localized-inline-error";
+
 export default function SupervisorNewStationError() {
-  return <div className="p-6 text-sm text-[var(--danger)]">تعذر تحميل نموذج إنشاء المحطة.</div>;
+  return <LocalizedInlineError messageKey="stationNewForm" />;
 }

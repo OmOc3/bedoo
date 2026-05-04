@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server-session";
+import { stationAccessRadiusMeters } from "@/lib/geo";
+import type { I18nMessages } from "@/lib/i18n";
+import { getActionMessages } from "@/lib/i18n/action-locale";
 import { getOpenAttendanceSession, getReportById, getStationById, requireOpenTechnicianShift, submitReportRecord, updateReportReviewRecord, updateReportSubmissionByReviewer } from "@/lib/db/repositories";
 import { AppError } from "@/lib/errors";
 import { editSubmittedReportSchema, reviewReportSchema, submitReportSchema } from "@/lib/validation/reports";
@@ -63,6 +66,21 @@ function optionalNumber(formData: FormData, key: string): number | undefined {
   return Number(value);
 }
 
+function appErrorToReportMessage(error: AppError, t: I18nMessages): string {
+  switch (error.code) {
+    case "STATION_ACCESS_LOCATION_INVALID":
+      return t.actionErrors.reports_geoInvalid;
+    case "STATION_ACCESS_LOCATION_ACCURACY_LOW":
+      return t.actionErrors.reports_geoAccuracyLow;
+    case "STATION_ACCESS_LOCATION_MISSING":
+      return t.actionErrors.reports_geoMissingCoords;
+    case "STATION_ACCESS_OUT_OF_RANGE":
+      return t.actionErrors.reports_geoOutOfRange.replace("{meters}", String(stationAccessRadiusMeters));
+    default:
+      return error.message;
+  }
+}
+
 function reportLocationFromFormData(formData: FormData): StationAccessLocation | null {
   const lat = optionalNumber(formData, "lat");
   const lng = optionalNumber(formData, "lng");
@@ -83,6 +101,7 @@ export async function submitStationReportAction(
   formData: FormData,
 ): Promise<SubmitReportActionResult> {
   const session = await requireRole(["technician", "manager"]);
+  const t = await getActionMessages();
   const parsed = submitReportSchema.safeParse({
     stationId,
     status: stringArray(formData, "status"),
@@ -97,7 +116,7 @@ export async function submitStationReportAction(
 
   if (!parsed.success) {
     return {
-      error: "تحقق من بيانات التقرير وحاول مرة أخرى.",
+      error: t.actionErrors.reports_validationFailed,
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -105,11 +124,11 @@ export async function submitStationReportAction(
   const station = await getStationById(parsed.data.stationId);
 
   if (!station) {
-    return { error: "المحطة غير موجودة" };
+    return { error: t.actionErrors.reports_stationNotFound };
   }
 
   if (!station.isActive) {
-    return { error: "هذه المحطة غير نشطة" };
+    return { error: t.actionErrors.reports_stationInactive };
   }
 
   if (session.role === "technician") {
@@ -118,16 +137,16 @@ export async function submitStationReportAction(
       const openAttendance = await getOpenAttendanceSession(session.uid);
 
       if (openAttendance?.clockInLocation?.stationId !== parsed.data.stationId || openAttendance.shiftId !== openShift.shiftId) {
-        return { error: "يجب تسجيل الحضور في هذه المحطة قبل حفظ التقرير." };
+        return { error: t.actionErrors.reports_attendanceRequired };
       }
     } catch {
-      return { error: "يجب تسجيل الحضور في هذه المحطة قبل حفظ التقرير." };
+      return { error: t.actionErrors.reports_attendanceRequired };
     }
 
     const reportLocation = reportLocationFromFormData(formData);
 
     if (!reportLocation) {
-      const message = "يجب السماح بقراءة موقعك الحالي قبل حفظ التقرير.";
+      const message = t.actionErrors.reports_locationPermissionRequired;
 
       await writeAuditLog({
         actorUid: session.uid,
@@ -148,7 +167,8 @@ export async function submitStationReportAction(
     try {
       assertStationAccessLocation(station, reportLocation);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "المحطة دي خارج النطاق ولا يمكن حفظ التقرير.";
+      const message =
+        error instanceof AppError ? appErrorToReportMessage(error, t) : t.actionErrors.reports_outOfRange;
 
       await writeAuditLog({
         actorUid: session.uid,
@@ -233,7 +253,7 @@ export async function submitStationReportAction(
       reportId: result.reportId,
     };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر حفظ التقرير." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.reports_saveFailed };
   }
 }
 
@@ -242,6 +262,7 @@ export async function addReviewReportAction(
   formData: FormData,
 ): Promise<ReviewReportActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const reviewStatusRaw = formData.get("reviewStatus");
   const parsed = reviewReportSchema.safeParse({
     reviewStatus: typeof reviewStatusRaw === "string" ? reviewStatusRaw : undefined,
@@ -250,7 +271,7 @@ export async function addReviewReportAction(
 
   if (!parsed.success) {
     return {
-      error: "تحقق من بيانات المراجعة وحاول مرة أخرى.",
+      error: t.actionErrors.reports_reviewValidationFailed,
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -262,7 +283,7 @@ export async function addReviewReportAction(
   });
 
   if (!report) {
-    return { error: "التقرير غير موجود." };
+    return { error: t.actionErrors.reports_notFound };
   }
 
   await writeAuditLog({
@@ -290,6 +311,7 @@ export async function editSubmittedReportAction(
   formData: FormData,
 ): Promise<EditSubmittedReportActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const parsed = editSubmittedReportSchema.safeParse({
     notes: optionalString(formData, "notes"),
     status: stringArray(formData, "status"),
@@ -298,7 +320,7 @@ export async function editSubmittedReportAction(
 
   if (!parsed.success) {
     return {
-      error: "تحقق من بيانات التعديل وحاول مرة أخرى.",
+      error: t.actionErrors.reports_editValidationFailed,
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -306,14 +328,14 @@ export async function editSubmittedReportAction(
   const existing = await getReportById(reportId);
 
   if (!existing) {
-    return { error: "التقرير غير موجود." };
+    return { error: t.actionErrors.reports_notFound };
   }
 
   const canSupervisorEdit = session.role === "supervisor" && existing.reviewStatus === "pending";
   const canManagerEdit = session.role === "manager";
 
   if (!canSupervisorEdit && !canManagerEdit) {
-    return { error: "لا يمكن تعديل التقرير بعد اعتماد المراجعة." };
+    return { error: t.actionErrors.reports_lockedAfterReview };
   }
 
   const updated = await updateReportSubmissionByReviewer(reportId, {
@@ -325,7 +347,7 @@ export async function editSubmittedReportAction(
   });
 
   if (!updated) {
-    return { error: "تعذر حفظ التعديلات." };
+    return { error: t.actionErrors.reports_editSaveFailed };
   }
 
   revalidatePath("/dashboard/manager/reports");

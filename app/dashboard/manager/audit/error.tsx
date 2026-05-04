@@ -1,17 +1,7 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { LocalizedDashboardError } from "@/components/i18n/localized-dashboard-error";
 
 export default function ManagerAuditError({ reset }: { reset: () => void }) {
-  return (
-    <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-6 text-right" dir="rtl">
-      <section className="mx-auto w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-        <h2 className="text-lg font-semibold text-[var(--foreground)]">تعذر تحميل سجل العمليات</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">تحقق من اتصال قاعدة البيانات ثم حاول مرة أخرى.</p>
-        <Button className="mt-4" onClick={reset}>
-          إعادة المحاولة
-        </Button>
-      </section>
-    </main>
-  );
+  return <LocalizedDashboardError descriptionKey="managerAuditHint" reset={reset} titleKey="managerAudit" />;
 }

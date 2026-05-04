@@ -1,5 +1,7 @@
 "use client";
 
-export default function SupervisorClientDetailError() {
-  return <div className="p-6 text-sm text-[var(--danger)]">تعذر تحميل ملف العميل.</div>;
+import { LocalizedInlineError } from "@/components/i18n/localized-inline-error";
+
+export default function SupervisorClientProfileError() {
+  return <LocalizedInlineError messageKey="clientProfile" />;
 }

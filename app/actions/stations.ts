@@ -15,6 +15,8 @@ import {
 import { buildStationReportUrl } from "@/lib/url/base-url";
 import { createStationSchema, updateStationSchema } from "@/lib/validation/stations";
 import { writeAuditLog } from "@/lib/audit";
+import { getActionMessages } from "@/lib/i18n/action-locale";
+import type { I18nMessages } from "@/lib/i18n";
 
 export interface StationActionResult {
   error?: string;
@@ -39,13 +41,13 @@ function stationPhotoFiles(formData: FormData): File[] {
     .filter((value): value is File => value instanceof File && value.size > 0);
 }
 
-async function uploadStationPhotos(stationId: string, files: File[]): Promise<string[]> {
+async function uploadStationPhotos(stationId: string, files: File[], t: I18nMessages): Promise<string[]> {
   if (files.length === 0) {
     return [];
   }
 
   if (files.length > 4) {
-    throw new Error("يمكن رفع 4 صور للمحطة في كل مرة.");
+    throw new Error(t.actionErrors.stations_photoLimit);
   }
 
   return Promise.all(files.map((file) => uploadStationImageToCloudinary(file, stationId)));
@@ -90,14 +92,15 @@ function booleanFromFormData(formData: FormData, key: string): boolean {
 
 export async function createStationAction(formData: FormData): Promise<StationActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const stationId = await generateNextStationId();
   let uploadedPhotoUrls: string[];
 
   try {
-    uploadedPhotoUrls = await uploadStationPhotos(stationId, stationPhotoFiles(formData));
+    uploadedPhotoUrls = await uploadStationPhotos(stationId, stationPhotoFiles(formData), t);
   } catch (error: unknown) {
     return {
-      error: error instanceof Error ? error.message : "تعذر رفع صور المحطة.",
+      error: error instanceof Error ? error.message : t.actionErrors.stations_uploadPhotosFailed,
     };
   }
 
@@ -113,7 +116,7 @@ export async function createStationAction(formData: FormData): Promise<StationAc
 
   if (!parsed.success) {
     return {
-      error: "تحقق من بيانات المحطة وحاول مرة أخرى.",
+      error: t.actionErrors.stations_validationFailed,
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -156,19 +159,20 @@ export async function createStationAction(formData: FormData): Promise<StationAc
 
 export async function updateStationAction(stationId: string, formData: FormData): Promise<StationActionResult> {
   const session = await requireRole(["manager"]);
+  const t = await getActionMessages();
   const station = await getStationById(stationId);
 
   if (!station) {
-    return { error: "المحطة غير موجودة." };
+    return { error: t.actionErrors.stations_notFound };
   }
 
   let uploadedPhotoUrls: string[];
 
   try {
-    uploadedPhotoUrls = await uploadStationPhotos(stationId, stationPhotoFiles(formData));
+    uploadedPhotoUrls = await uploadStationPhotos(stationId, stationPhotoFiles(formData), t);
   } catch (error: unknown) {
     return {
-      error: error instanceof Error ? error.message : "تعذر رفع صور المحطة.",
+      error: error instanceof Error ? error.message : t.actionErrors.stations_uploadPhotosFailed,
     };
   }
 
@@ -185,7 +189,7 @@ export async function updateStationAction(stationId: string, formData: FormData)
 
   if (!parsed.success) {
     return {
-      error: "تحقق من بيانات المحطة وحاول مرة أخرى.",
+      error: t.actionErrors.stations_validationFailed,
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -249,16 +253,17 @@ export async function deleteStationImageAction(
   imageUrl: string,
 ): Promise<DeleteStationImageResult> {
   const session = await requireRole(["manager"]);
+  const t = await getActionMessages();
   const station = await getStationById(stationId);
 
   if (!station) {
-    return { error: "المحطة غير موجودة." };
+    return { error: t.actionErrors.stations_notFound };
   }
 
   const currentPhotoUrls = station.photoUrls ?? [];
 
   if (!currentPhotoUrls.includes(imageUrl)) {
-    return { error: "الصورة غير موجودة في هذه المحطة." };
+    return { error: t.actionErrors.stations_imageNotFound };
   }
 
   try {
@@ -298,11 +303,14 @@ export async function deleteStationImageAction(
 
 export async function deleteStationAction(stationId: string): Promise<void> {
   const session = await requireRole(["manager"]);
+  const t = await getActionMessages();
 
   try {
     await deleteStationIfSafe({ actorUid: session.uid, actorRole: session.role, stationId });
   } catch (error: unknown) {
-    redirect(`/dashboard/manager/stations?error=${encodeURIComponent(error instanceof Error ? error.message : "تعذر حذف المحطة.")}`);
+    redirect(
+      `/dashboard/manager/stations?error=${encodeURIComponent(error instanceof Error ? error.message : t.actionErrors.stations_deleteFailed)}`,
+    );
   }
 
   revalidatePath("/dashboard/manager/stations");

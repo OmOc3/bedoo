@@ -26,5 +26,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "packages/shared/src/**/*.ts", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "mobile"]
+  "exclude": ["node_modules", "mobile", "packages/command-center"]
 }

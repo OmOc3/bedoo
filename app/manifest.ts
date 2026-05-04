@@ -2,12 +2,11 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "EcoPest — إيكوبست",
+    name: "EcoPest",
     short_name: "EcoPest",
-    description:
-      "EcoPest manages bait stations, QR inspections, field reports, and review workflows. إيكوبست لإدارة المحطات وتقارير الفحص الميدانية.",
-    lang: "ar",
-    dir: "rtl",
+    description: "EcoPest manages bait stations, QR inspections, field reports, and review workflows.",
+    lang: "en",
+    dir: "ltr",
     start_url: "/scan",
     scope: "/",
     display: "standalone",

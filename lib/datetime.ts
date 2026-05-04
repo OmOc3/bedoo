@@ -13,12 +13,26 @@ export type DateTimeStyle = {
   timeStyle?: Intl.DateTimeFormatOptions["timeStyle"];
 };
 
+function isEnglishIntlLocale(locale?: string): boolean {
+  if (!locale) {
+    return false;
+  }
+
+  return locale === "en" || locale.startsWith("en-");
+}
+
+function defaultUnavailableLabel(locale?: string): string {
+  return isEnglishIntlLocale(locale) ? "Unavailable" : "غير متاح";
+}
+
 export function formatDateTimeRome(
   input: DateInput,
-  options: DateTimeStyle & { locale?: string } = {},
+  options: DateTimeStyle & { locale?: string; unavailableLabel?: string } = {},
 ): string {
   const date = asValidDate(input);
-  if (!date) return "غير متاح";
+  if (!date) {
+    return options.unavailableLabel ?? defaultUnavailableLabel(options.locale);
+  }
 
   const locale = options.locale ?? "ar-EG";
   const { dateStyle = "medium", timeStyle = "short" } = options;
@@ -30,9 +44,14 @@ export function formatDateTimeRome(
   }).format(date);
 }
 
-export function formatDateRome(input: DateInput, options: { locale?: string; dateStyle?: Intl.DateTimeFormatOptions["dateStyle"] } = {}): string {
+export function formatDateRome(
+  input: DateInput,
+  options: { locale?: string; dateStyle?: Intl.DateTimeFormatOptions["dateStyle"]; unavailableLabel?: string } = {},
+): string {
   const date = asValidDate(input);
-  if (!date) return "غير متاح";
+  if (!date) {
+    return options.unavailableLabel ?? defaultUnavailableLabel(options.locale);
+  }
 
   return new Intl.DateTimeFormat(options.locale ?? "ar-EG", {
     dateStyle: options.dateStyle ?? "medium",
@@ -40,9 +59,14 @@ export function formatDateRome(input: DateInput, options: { locale?: string; dat
   }).format(date);
 }
 
-export function formatTimeRome(input: DateInput, options: { locale?: string; timeStyle?: Intl.DateTimeFormatOptions["timeStyle"] } = {}): string {
+export function formatTimeRome(
+  input: DateInput,
+  options: { locale?: string; timeStyle?: Intl.DateTimeFormatOptions["timeStyle"]; unavailableLabel?: string } = {},
+): string {
   const date = asValidDate(input);
-  if (!date) return "غير متاح";
+  if (!date) {
+    return options.unavailableLabel ?? defaultUnavailableLabel(options.locale);
+  }
 
   return new Intl.DateTimeFormat(options.locale ?? "ar-EG", {
     timeStyle: options.timeStyle ?? "short",

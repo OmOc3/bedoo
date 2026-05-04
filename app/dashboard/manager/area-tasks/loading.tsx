@@ -1,3 +1,5 @@
-export default function ManagerAreaTasksLoading() {
-  return <div className="p-6 text-sm text-[var(--muted)]">جار تحميل المهام اليومية...</div>;
+import { AsyncRouteLoading } from "@/components/i18n/async-route-loading";
+
+export default async function LoadingManagerAreaTasksPage() {
+  return <AsyncRouteLoading messageKey="areaTasks" />;
 }

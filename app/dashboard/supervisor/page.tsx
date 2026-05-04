@@ -47,7 +47,8 @@ const quickPanelClass =
 
 export default async function SupervisorDashboardPage() {
   await requireRole(["supervisor", "manager"]);
-  const t = getI18nMessages(await getRequestLocale());
+  const locale = await getRequestLocale();
+  const t = getI18nMessages(locale);
   const [stats, operations] = await Promise.all([getSupervisorDashboardStats(), getOperationTasks()]);
   const backlogQueueTotal = operations.totals.pendingReports + operations.totals.staleStations;
 
@@ -60,54 +61,54 @@ export default async function SupervisorDashboardPage() {
               className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
               href="/dashboard/supervisor/reports"
             >
-              عرض التقارير
+              {t.supervisorHome.viewReports}
             </Link>
             <Link
               className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
               href="/dashboard/supervisor/tasks"
             >
-              مهام اليوم
+              {t.supervisorHome.todayTasks}
             </Link>
             <Link
               className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
               href="/dashboard/supervisor/shifts"
             >
-              شيفتات الفنيين
+              {t.supervisorHome.technicianShifts}
             </Link>
           </div>
         }
-        description="متابعة التقارير اليومية وحالات المراجعة للمحطات النشطة."
+        description={t.supervisorHome.pageDescription}
         title={t.dashboard.supervisorTitle}
       />
 
       <section className="mt-8 space-y-4">
         <div>
-          <h2 className="section-heading text-lg">التقارير والمراجعة</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">لمحة مختصرة من النظام — انقر أي بطاقة للانتقال مباشرة.</p>
+          <h2 className="section-heading text-lg">{t.supervisorHome.sectionOpsTitle}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t.supervisorHome.sectionOpsLead}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <StatCard href="/dashboard/supervisor/reports" label="إجمالي التقارير" tone="blue" value={stats.totalReports} />
+          <StatCard href="/dashboard/supervisor/reports" label={t.supervisorHome.statTotalReports} tone="blue" value={stats.totalReports} />
           <StatCard
             href="/dashboard/supervisor/reports"
-            label="تقارير اليوم"
+            label={t.supervisorHome.statTodayReports}
             tone="teal"
             value={stats.reportsToday}
           />
           <StatCard
             href="/dashboard/supervisor/reports?reviewStatus=pending"
-            label="بانتظار المراجعة"
+            label={t.supervisorHome.statPendingReview}
             tone="amber"
             value={stats.pendingReviewReports}
           />
           <StatCard
             href="/dashboard/supervisor/reports"
-            label="المحطات النشطة"
+            label={t.supervisorHome.statActiveStations}
             tone="green"
             value={stats.activeStations}
           />
           <StatCard
             href="/dashboard/supervisor/tasks"
-            label="أولويات المتابعة"
+            label={t.supervisorHome.statFollowUp}
             tone="amber"
             value={backlogQueueTotal}
           />
@@ -116,30 +117,30 @@ export default async function SupervisorDashboardPage() {
 
       <section className="mt-10 space-y-4">
         <div>
-          <h2 className="section-heading text-lg">إجراءات سريعة</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">وصول متكرّر لتشغيل اليوم خارج التقارير فقط.</p>
+          <h2 className="section-heading text-lg">{t.supervisorHome.quickSectionTitle}</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">{t.supervisorHome.quickSectionLead}</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Link className={quickPanelClass} href="/dashboard/supervisor/attendance">
-            الحضور والانصراف
+            {t.supervisorHome.quickAttendance}
           </Link>
           <Link className={quickPanelClass} href="/dashboard/supervisor/daily-reports">
-            التقارير اليومية للفنيين
+            {t.supervisorHome.quickDailyReports}
           </Link>
           <Link className={quickPanelClass} href="/dashboard/supervisor/client-orders">
-            العملاء والطلبات
+            {t.supervisorHome.quickClientsOrders}
           </Link>
           <Link className={quickPanelClass} href="/dashboard/supervisor/reports?reviewStatus=pending">
-            مراجعة المعلقة فقط
+            {t.supervisorHome.quickPendingOnly}
           </Link>
           <Link className={quickPanelClass} href="/dashboard/supervisor/stations">
-            عرض المحطات
+            {t.supervisorHome.quickStations}
           </Link>
           <Link className={quickPanelClass} href="/dashboard/supervisor/analytics">
-            التحليلات
+            {t.supervisorHome.quickAnalytics}
           </Link>
           <Link className={quickPanelClass} href="/dashboard/supervisor/team">
-            الفريق
+            {t.supervisorHome.quickTeam}
           </Link>
         </div>
       </section>

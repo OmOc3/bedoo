@@ -8,7 +8,35 @@ export interface StationHealthDetails {
   value: StationHealth;
 }
 
-const staleVisitDays = 14;
+export interface StationHealthLabels {
+  inactive: string;
+  needsVisit: string;
+  staleVisitDays: (days: number) => string;
+  healthy: string;
+}
+
+const defaultStationHealthLabels: StationHealthLabels = {
+  inactive: "غير نشطة",
+  needsVisit: "تحتاج زيارة",
+  staleVisitDays: (days) => `لم تزر منذ ${days} يوم`,
+  healthy: "سليمة",
+};
+
+const staleVisitDaysThreshold = 14;
+
+export function stationHealthLabelsFromMessages(messages: {
+  inactive: string;
+  needsVisit: string;
+  staleVisitDays: string;
+  healthy: string;
+}): StationHealthLabels {
+  return {
+    inactive: messages.inactive,
+    needsVisit: messages.needsVisit,
+    staleVisitDays: (days) => messages.staleVisitDays.replace("{days}", String(days)),
+    healthy: messages.healthy,
+  };
+}
 
 function daysSince(timestamp?: AppTimestamp): number | null {
   if (!timestamp) {
@@ -20,10 +48,13 @@ function daysSince(timestamp?: AppTimestamp): number | null {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
-export function getStationHealth(station: Pick<Station, "isActive" | "lastVisitedAt">): StationHealthDetails {
+export function getStationHealth(
+  station: Pick<Station, "isActive" | "lastVisitedAt">,
+  labels: StationHealthLabels = defaultStationHealthLabels,
+): StationHealthDetails {
   if (!station.isActive) {
     return {
-      label: "غير نشطة",
+      label: labels.inactive,
       toneClassName: "bg-[var(--surface-subtle)] text-[var(--muted)] dark:bg-[var(--surface-elevated)]",
       value: "inactive",
     };
@@ -31,16 +62,16 @@ export function getStationHealth(station: Pick<Station, "isActive" | "lastVisite
 
   const visitAgeDays = daysSince(station.lastVisitedAt);
 
-  if (visitAgeDays === null || visitAgeDays > staleVisitDays) {
+  if (visitAgeDays === null || visitAgeDays > staleVisitDaysThreshold) {
     return {
-      label: visitAgeDays === null ? "تحتاج زيارة" : `لم تزر منذ ${visitAgeDays} يوم`,
+      label: visitAgeDays === null ? labels.needsVisit : labels.staleVisitDays(visitAgeDays),
       toneClassName: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
       value: "attention",
     };
   }
 
   return {
-    label: "سليمة",
+    label: labels.healthy,
     toneClassName: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
     value: "healthy",
   };

@@ -39,7 +39,8 @@ function toFormData(values: EditSubmittedReportValues): FormData {
 
 export function EditSubmittedReportForm({ canEdit, instanceId = "edit", report }: EditSubmittedReportFormProps) {
   const router = useRouter();
-  const { pestTypeLabels, statusOptionLabels, translate } = useLanguage();
+  const { direction, messages, pestTypeLabels, statusOptionLabels, translate } = useLanguage();
+  const rf = messages.reportFlow;
   const [result, setResult] = useState<EditSubmittedReportActionResult | null>(null);
   const fieldIdPrefix = `${instanceId}-${report.reportId}`;
   const form = useForm<EditSubmittedReportValues>({
@@ -54,7 +55,7 @@ export function EditSubmittedReportForm({ canEdit, instanceId = "edit", report }
   if (!canEdit) {
     return (
       <p className="mt-2 text-xs text-[var(--muted)]">
-        {translate("لا يمكن تعديل بيانات التنفيذ بعد اعتماد المراجعة. يمكن للمدير التعديل عند الحاجة.")}
+        {rf.editLocked}
       </p>
     );
   }
@@ -71,24 +72,26 @@ export function EditSubmittedReportForm({ canEdit, instanceId = "edit", report }
   }
 
   return (
-    <form className="mt-3 grid gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-3" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
-      <p className="text-sm font-bold text-[var(--foreground)]">
-        {translate("تعديل بيانات التنفيذ (قبل الاعتماد النهائي)")}
-      </p>
+    <form
+      className="mt-3 grid gap-3 rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-subtle)] p-3"
+      dir={direction === "rtl" ? "rtl" : "ltr"}
+      onSubmit={form.handleSubmit(onSubmit)}
+    >
+      <p className="text-sm font-bold text-[var(--foreground)]">{rf.editExecutionTitle}</p>
 
       {result?.error ? (
         <p className="text-sm font-medium text-[var(--danger)]" role="alert">
-          {result.error}
+          {translate(result.error)}
         </p>
       ) : null}
       {result?.success ? (
         <p className="text-sm font-medium text-[var(--success)]" role="status">
-          {translate("تم حفظ التعديلات.")}
+          {rf.editsSaved}
         </p>
       ) : null}
 
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-[var(--foreground)]">{translate("حالة المحطة")}</legend>
+        <legend className="text-sm font-medium text-[var(--foreground)]">{rf.stationStatusLegend}</legend>
         {statusOptions.map((status) => (
           <label className="flex cursor-pointer items-center gap-2 text-sm" key={status}>
             <input className="h-4 w-4 rounded accent-teal-600" type="checkbox" value={status} {...form.register("status")} />
@@ -101,9 +104,7 @@ export function EditSubmittedReportForm({ canEdit, instanceId = "edit", report }
       </fieldset>
 
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-[var(--foreground)]">
-          {translate("برنامج التنفيذ — أنواع الآفات")}
-        </legend>
+        <legend className="text-sm font-medium text-[var(--foreground)]">{rf.editExecutionProgram}</legend>
         {pestTypeOptions.map((pest) => (
           <label className="flex cursor-pointer items-center gap-2 text-sm" key={pest}>
             <input className="h-4 w-4 rounded accent-teal-600" type="checkbox" value={pest} {...form.register("pestTypes")} />
@@ -117,7 +118,7 @@ export function EditSubmittedReportForm({ canEdit, instanceId = "edit", report }
 
       <div className="space-y-1">
         <label className="text-sm font-medium text-[var(--foreground)]" htmlFor={`edit-notes-${fieldIdPrefix}`}>
-          {translate("ملاحظات الفني")}
+          {rf.technicianNotes}
         </label>
         <textarea
           className="min-h-20 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
@@ -128,7 +129,7 @@ export function EditSubmittedReportForm({ canEdit, instanceId = "edit", report }
       </div>
 
       <Button className="sm:w-fit" disabled={form.formState.isSubmitting} isLoading={form.formState.isSubmitting} type="submit">
-        {translate("حفظ تعديلات التنفيذ")}
+        {rf.saveExecutionEdits}
       </Button>
     </form>
   );

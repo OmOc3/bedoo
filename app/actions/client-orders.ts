@@ -14,6 +14,7 @@ import {
   upsertClientProfile,
 } from "@/lib/db/repositories";
 import { writeAuditLog } from "@/lib/audit";
+import { getActionMessages } from "@/lib/i18n/action-locale";
 import {
   clientAddressLinesFromText,
   updateClientAccountPasswordSchema,
@@ -47,6 +48,7 @@ function optionalString(formData: FormData, key: string): string | undefined {
 
 export async function updateClientAccountProfileAction(formData: FormData): Promise<ClientOrderActionResult> {
   const session = await requireRole(["client"]);
+  const t = await getActionMessages();
   const parsed = updateClientAccountProfileSchema.safeParse({
     displayName: formString(formData, "displayName"),
     image: formData.get("image") || undefined,
@@ -54,7 +56,7 @@ export async function updateClientAccountProfileAction(formData: FormData): Prom
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "تحقق من بيانات الحساب." };
+    return { error: parsed.error.issues[0]?.message ?? t.actionErrors.clientOrders_accountValidation };
   }
 
   const profileUpdate: { image?: string | null; name: string } = {
@@ -95,12 +97,13 @@ export async function updateClientAccountProfileAction(formData: FormData): Prom
     revalidatePath("/dashboard/manager/client-orders");
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر تحديث بيانات الحساب." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientOrders_accountUpdateFailed };
   }
 }
 
 export async function updateClientAccountPasswordAction(formData: FormData): Promise<ClientOrderActionResult> {
   const session = await requireRole(["client"]);
+  const t = await getActionMessages();
   const parsed = updateClientAccountPasswordSchema.safeParse({
     confirmPassword: formString(formData, "confirmPassword"),
     currentPassword: formString(formData, "currentPassword"),
@@ -108,7 +111,7 @@ export async function updateClientAccountPasswordAction(formData: FormData): Pro
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "تحقق من كلمة المرور." };
+    return { error: parsed.error.issues[0]?.message ?? t.actionErrors.clientOrders_passwordValidation };
   }
 
   try {
@@ -135,22 +138,24 @@ export async function updateClientAccountPasswordAction(formData: FormData): Pro
     revalidatePath("/client/portal");
     return { success: true };
   } catch (_error: unknown) {
-    return { error: "تعذر تحديث كلمة المرور. تحقق من كلمة المرور الحالية وحاول مرة أخرى." };
+    return { error: t.actionErrors.clientOrders_passwordUpdateFailed };
   }
 }
 
 export async function createClientOrderAction(formData: FormData): Promise<ClientOrderActionResult> {
   await requireRole(["manager", "supervisor"]);
   void formData;
+  const t = await getActionMessages();
 
   return {
-    error: "إنشاء طلبات الفحص من بوابة العميل متوقف. استخدم إنشاء المحطات وإدارة العميل من لوحة الإدارة.",
+    error: t.actionErrors.clientOrders_portalOrdersDisabled,
   };
 
 }
 
 export async function updateClientOrderStatusAction(formData: FormData): Promise<ClientOrderActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const parsed = updateClientOrderStatusSchema.safeParse({
     decisionNote: optionalString(formData, "decisionNote"),
     orderId: formData.get("orderId"),
@@ -158,7 +163,7 @@ export async function updateClientOrderStatusAction(formData: FormData): Promise
   });
 
   if (!parsed.success) {
-    return { error: "بيانات الطلب غير صحيحة." };
+    return { error: t.actionErrors.clientOrders_invalidOrder };
   }
 
   try {
@@ -175,7 +180,7 @@ export async function updateClientOrderStatusAction(formData: FormData): Promise
     revalidatePath("/client/portal");
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر تحديث حالة الطلب." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientOrders_statusUpdateFailed };
   }
 }
 
@@ -186,6 +191,7 @@ export async function runClientOrderStatusFormAction(formData: FormData): Promis
 
 export async function updateClientProfileAction(formData: FormData): Promise<ClientOrderActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const parsed = updateClientProfileSchema.safeParse({
     addressesText: formData.get("addressesText"),
     clientUid: formData.get("clientUid"),
@@ -193,7 +199,7 @@ export async function updateClientProfileAction(formData: FormData): Promise<Cli
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "تحقق من بيانات العميل." };
+    return { error: parsed.error.issues[0]?.message ?? t.actionErrors.clientOrders_clientValidation };
   }
 
   try {
@@ -209,19 +215,20 @@ export async function updateClientProfileAction(formData: FormData): Promise<Cli
     revalidatePath(`/dashboard/manager/client-orders/${parsed.data.clientUid}`);
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر تحديث بيانات العميل." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientOrders_clientUpdateFailed };
   }
 }
 
 export async function updateClientStationAccessAction(formData: FormData): Promise<ClientOrderActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const parsed = updateClientStationAccessSchema.safeParse({
     clientUid: formData.get("clientUid"),
     stationIds: formData.getAll("stationIds").filter((value): value is string => typeof value === "string"),
   });
 
   if (!parsed.success) {
-    return { error: "تحقق من محطات العميل المحددة." };
+    return { error: t.actionErrors.clientOrders_stationsSelectionInvalid };
   }
 
   try {
@@ -237,6 +244,6 @@ export async function updateClientStationAccessAction(formData: FormData): Promi
     revalidatePath("/client/portal");
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر تحديث محطات العميل." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientOrders_stationsUpdateFailed };
   }
 }

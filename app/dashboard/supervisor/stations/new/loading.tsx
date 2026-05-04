@@ -1,3 +1,5 @@
-export default function SupervisorNewStationLoading() {
-  return <div className="p-6 text-sm text-[var(--muted)]">جار تحميل نموذج المحطة...</div>;
+import { AsyncRouteLoading } from "@/components/i18n/async-route-loading";
+
+export default async function LoadingSupervisorNewStationPage() {
+  return <AsyncRouteLoading messageKey="stationNewForm" />;
 }

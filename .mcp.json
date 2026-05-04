@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "command-center": {
+      "command": "node",
+      "args": [
+        "C:/Users/Omar/Desktop/ecopest-main/ecopest-main/packages/command-center/dist/mcp/index.js"
+      ],
+      "env": {
+        "PROJECT_ROOT": "C:/Users/Omar/Desktop/ecopest-main/ecopest-main"
+      }
+    }
+  }
+}

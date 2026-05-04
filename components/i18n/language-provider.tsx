@@ -36,126 +36,172 @@ interface LanguageContextValue {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
-const translatableAttributes = ["aria-label", "aria-description", "alt", "placeholder", "title"] as const;
-const originalTextNodes = new WeakMap<Text, string>();
-const originalAttributes = new WeakMap<Element, Map<string, string>>();
-
-function preserveBoundaryWhitespace(originalValue: string, translatedValue: string): string {
-  const leadingWhitespace = originalValue.match(/^\s*/u)?.[0] ?? "";
-  const trailingWhitespace = originalValue.match(/\s*$/u)?.[0] ?? "";
-
-  return `${leadingWhitespace}${translatedValue}${trailingWhitespace}`;
-}
-
-function shouldSkipElement(element: Element): boolean {
-  if (element.closest("[data-no-translate]")) {
-    return true;
-  }
-
-  return ["CANVAS", "CODE", "NOSCRIPT", "PRE", "SCRIPT", "STYLE", "SVG"].includes(element.tagName);
-}
-
-function translateTextNode(node: Text, locale: Locale): void {
-  const parentElement = node.parentElement;
-
-  if (!parentElement || shouldSkipElement(parentElement)) {
-    return;
-  }
-
-  if (locale === "ar") {
-    const originalValue = originalTextNodes.get(node);
-
-    if (originalValue !== undefined && node.nodeValue !== originalValue) {
-      node.nodeValue = originalValue;
-    }
-
-    return;
-  }
-
-  const currentValue = node.nodeValue ?? "";
-
-  if (!hasArabicText(currentValue)) {
-    return;
-  }
-
-  const translatedValue = translateArabicText(currentValue);
-
-  if (translatedValue === currentValue) {
-    return;
-  }
-
-  originalTextNodes.set(node, currentValue);
-  node.nodeValue = preserveBoundaryWhitespace(currentValue, translatedValue);
-}
-
-function translateElementAttributes(element: Element, locale: Locale): void {
-  if (shouldSkipElement(element)) {
-    return;
-  }
-
-  let elementOriginalAttributes = originalAttributes.get(element);
-
-  for (const attributeName of translatableAttributes) {
-    const currentValue = element.getAttribute(attributeName);
-
-    if (currentValue === null) {
-      continue;
-    }
-
-    if (locale === "ar") {
-      const originalValue = elementOriginalAttributes?.get(attributeName);
-
-      if (originalValue !== undefined && currentValue !== originalValue) {
-        element.setAttribute(attributeName, originalValue);
-      }
-
-      continue;
-    }
-
-    if (!hasArabicText(currentValue)) {
-      continue;
-    }
-
-    const translatedValue = translateArabicText(currentValue);
-
-    if (translatedValue === currentValue) {
-      continue;
-    }
-
-    if (!elementOriginalAttributes) {
-      elementOriginalAttributes = new Map<string, string>();
-      originalAttributes.set(element, elementOriginalAttributes);
-    }
-
-    elementOriginalAttributes.set(attributeName, currentValue);
-    element.setAttribute(attributeName, translatedValue);
-  }
-}
-
-function translateDocument(locale: Locale): void {
-  const body = document.body;
-
-  if (!body) {
-    return;
-  }
-
-  const textWalker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
-  let currentNode = textWalker.nextNode();
-
-  while (currentNode) {
-    translateTextNode(currentNode as Text, locale);
-    currentNode = textWalker.nextNode();
-  }
-
-  translateElementAttributes(body, locale);
-
-  for (const element of Array.from(body.querySelectorAll("*"))) {
-    translateElementAttributes(element, locale);
-  }
-}
-
 function writeLocaleCookie(locale: Locale): void {
   document.cookie = `${localeCookieName}=${locale}; Path=/; Max-Age=31536000; SameSite=Lax`;
+}
+
+const skippedTranslationTags = new Set(["CODE", "KBD", "NOSCRIPT", "PRE", "SAMP", "SCRIPT", "STYLE", "TEXTAREA"]);
+const translatableAttributeNames = ["alt", "aria-description", "aria-label", "aria-valuetext", "placeholder", "title"] as const;
+const formButtonTypes = new Set(["button", "reset", "submit"]);
+const originalTextContent = new WeakMap<Text, string>();
+const originalAttributeValues = new WeakMap<Element, Map<string, string>>();
+
+function getElementForNode(node: Node): Element | null {
+  return node.nodeType === Node.ELEMENT_NODE ? (node as Element) : node.parentElement;
+}
+
+function shouldSkipTranslation(node: Node): boolean {
+  const element = getElementForNode(node);
+
+  for (let current = element; current; current = current.parentElement) {
+    if (
+      skippedTranslationTags.has(current.tagName) ||
+      current.hasAttribute("data-no-translate") ||
+      current.getAttribute("translate") === "no" ||
+      current.classList.contains("notranslate")
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function rememberAttributeValue(element: Element, attributeName: string, value: string): void {
+  const existingValues = originalAttributeValues.get(element) ?? new Map<string, string>();
+  existingValues.set(attributeName, value);
+  originalAttributeValues.set(element, existingValues);
+}
+
+function translatePreservingWhitespace(value: string): string {
+  if (!hasArabicText(value)) {
+    return value;
+  }
+
+  const leadingWhitespace = value.match(/^\s*/u)?.[0] ?? "";
+  const trailingWhitespace = value.match(/\s*$/u)?.[0] ?? "";
+  const text = value.slice(leadingWhitespace.length, value.length - trailingWhitespace.length);
+
+  if (!hasArabicText(text)) {
+    return value;
+  }
+
+  return `${leadingWhitespace}${translateArabicText(text)}${trailingWhitespace}`;
+}
+
+function translateTextNodeToEnglish(node: Text): void {
+  if (shouldSkipTranslation(node)) {
+    return;
+  }
+
+  const value = node.nodeValue ?? "";
+
+  if (!hasArabicText(value)) {
+    return;
+  }
+
+  originalTextContent.set(node, value);
+  node.nodeValue = translatePreservingWhitespace(value);
+}
+
+function translateFormButtonValueToEnglish(element: Element): void {
+  if (!(element instanceof HTMLInputElement) || !formButtonTypes.has(element.type)) {
+    return;
+  }
+
+  const value = element.value;
+
+  if (!hasArabicText(value)) {
+    return;
+  }
+
+  rememberAttributeValue(element, "value", value);
+  element.value = translateArabicText(value);
+  element.setAttribute("value", element.value);
+}
+
+function translateElementToEnglish(element: Element): void {
+  if (shouldSkipTranslation(element)) {
+    return;
+  }
+
+  if (element.getAttribute("dir") === "rtl") {
+    rememberAttributeValue(element, "dir", "rtl");
+    element.setAttribute("dir", "ltr");
+  }
+
+  for (const attributeName of translatableAttributeNames) {
+    const value = element.getAttribute(attributeName);
+
+    if (!value || !hasArabicText(value)) {
+      continue;
+    }
+
+    rememberAttributeValue(element, attributeName, value);
+    element.setAttribute(attributeName, translatePreservingWhitespace(value));
+  }
+
+  translateFormButtonValueToEnglish(element);
+}
+
+function translateSubtreeToEnglish(root: Node): void {
+  if (root.nodeType === Node.TEXT_NODE) {
+    translateTextNodeToEnglish(root as Text);
+    return;
+  }
+
+  if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) {
+    return;
+  }
+
+  if (root.nodeType === Node.ELEMENT_NODE) {
+    const element = root as Element;
+
+    if (shouldSkipTranslation(element)) {
+      return;
+    }
+
+    translateElementToEnglish(element);
+  }
+
+  for (let child = root.firstChild; child; child = child.nextSibling) {
+    translateSubtreeToEnglish(child);
+  }
+}
+
+function restoreSubtreeTranslations(root: Node): void {
+  if (root.nodeType === Node.TEXT_NODE) {
+    const originalValue = originalTextContent.get(root as Text);
+
+    if (originalValue !== undefined) {
+      root.nodeValue = originalValue;
+    }
+
+    return;
+  }
+
+  if (root.nodeType !== Node.ELEMENT_NODE && root.nodeType !== Node.DOCUMENT_FRAGMENT_NODE && root.nodeType !== Node.DOCUMENT_NODE) {
+    return;
+  }
+
+  if (root.nodeType === Node.ELEMENT_NODE) {
+    const element = root as Element;
+    const originalAttributes = originalAttributeValues.get(element);
+
+    if (originalAttributes) {
+      for (const [attributeName, value] of originalAttributes) {
+        element.setAttribute(attributeName, value);
+
+        if (attributeName === "value" && element instanceof HTMLInputElement) {
+          element.value = value;
+        }
+      }
+    }
+  }
+
+  for (let child = root.firstChild; child; child = child.nextSibling) {
+    restoreSubtreeTranslations(child);
+  }
 }
 
 export function LanguageProvider({ children, initialLocale }: { children: ReactNode; initialLocale: Locale }) {
@@ -186,27 +232,49 @@ export function LanguageProvider({ children, initialLocale }: { children: ReactN
     document.documentElement.lang = locale;
     document.documentElement.dir = direction;
     document.documentElement.dataset.locale = locale;
-    translateDocument(locale);
+  }, [direction, locale]);
 
-    let animationFrameId = 0;
-    const observer = new MutationObserver(() => {
-      window.cancelAnimationFrame(animationFrameId);
-      animationFrameId = window.requestAnimationFrame(() => translateDocument(locale));
+  useEffect(() => {
+    const root = document.documentElement;
+
+    if (locale !== "en") {
+      restoreSubtreeTranslations(root);
+      delete root.dataset.translationReady;
+      return;
+    }
+
+    delete root.dataset.translationReady;
+    translateSubtreeToEnglish(root);
+    root.dataset.translationReady = "true";
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === "characterData") {
+          translateSubtreeToEnglish(mutation.target);
+          continue;
+        }
+
+        if (mutation.type === "attributes") {
+          translateSubtreeToEnglish(mutation.target);
+          continue;
+        }
+
+        mutation.addedNodes.forEach((node) => {
+          translateSubtreeToEnglish(node);
+        });
+      }
     });
 
-    observer.observe(document.body, {
-      attributeFilter: [...translatableAttributes],
+    observer.observe(root, {
+      attributeFilter: [...translatableAttributeNames, "dir", "value"],
       attributes: true,
       characterData: true,
       childList: true,
       subtree: true,
     });
 
-    return () => {
-      window.cancelAnimationFrame(animationFrameId);
-      observer.disconnect();
-    };
-  }, [direction, locale]);
+    return () => observer.disconnect();
+  }, [locale]);
 
   const contextValue = useMemo<LanguageContextValue>(
     () => ({

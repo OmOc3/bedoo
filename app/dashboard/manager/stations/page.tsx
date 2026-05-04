@@ -7,13 +7,18 @@ import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { deleteStationAction, toggleStationStatusAction } from "@/app/actions/stations";
 import { requireRole } from "@/lib/auth/server-session";
 import { formatDateTimeRome } from "@/lib/datetime";
+import { getIntlLocaleForApp } from "@/lib/i18n";
+import { getI18nMessages, getRequestLocale } from "@/lib/i18n/server";
 import { listStations } from "@/lib/db/repositories";
-import { getStationHealth } from "@/lib/station-health";
+import { getStationHealth, stationHealthLabelsFromMessages } from "@/lib/station-health";
 import type { AppTimestamp } from "@/types";
 
-export const metadata: Metadata = {
-  title: "المحطات",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const t = getI18nMessages(locale);
+
+  return { title: t.stationsListPage.metaTitleManager };
+}
 
 interface ManagerStationsPageProps {
   searchParams: Promise<{
@@ -21,17 +26,27 @@ interface ManagerStationsPageProps {
   }>;
 }
 
-function formatTimestamp(timestamp?: AppTimestamp): string {
-  if (!timestamp) {
-    return "لم تتم الزيارة";
-  }
-
-  return formatDateTimeRome(timestamp.toDate(), { locale: "ar-EG" });
-}
-
 export default async function ManagerStationsPage({ searchParams }: ManagerStationsPageProps) {
   const params = await searchParams;
   await requireRole(["manager"]);
+  const locale = await getRequestLocale();
+  const t = getI18nMessages(locale);
+  const sl = t.stationsListPage;
+  const sm = t.stationsManagerPage;
+  const healthLabels = stationHealthLabelsFromMessages(t.stationHealth);
+  const intlLocale = getIntlLocaleForApp(locale);
+
+  function formatTimestamp(timestamp?: AppTimestamp): string {
+    if (!timestamp) {
+      return t.stations.neverVisited;
+    }
+
+    return formatDateTimeRome(timestamp.toDate(), {
+      locale: intlLocale,
+      unavailableLabel: t.common.unavailable,
+    });
+  }
+
   const query = (params.q ?? "").trim();
   const visibleStations = await listStations(query);
   const stations = query ? await listStations() : visibleStations;
@@ -45,18 +60,18 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                 className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
                 href="/dashboard/manager/stations/map"
               >
-                إحداثيات المحطات
+                {t.nav.stationCoordinates}
               </Link>
               <Link
                 className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
                 href="/dashboard/manager/stations/new"
               >
-                إضافة محطة
+                {sm.addStation}
               </Link>
             </div>
           }
-          description="إدارة محطات الطعوم، حالة التشغيل، وعدد الزيارات المسجلة."
-          title="المحطات"
+          description={sl.managerListDescription}
+          title={sl.title}
         />
 
         <form
@@ -65,14 +80,14 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
         >
           <div className="flex flex-1 flex-col gap-1">
             <label className="text-sm font-medium text-[var(--foreground)]" htmlFor="station-search">
-              البحث عن محطة
+              {sl.searchLabel}
             </label>
             <input
               className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm text-[var(--foreground)] transition-colors placeholder:text-[var(--muted)] hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
               defaultValue={query}
               id="station-search"
               name="q"
-              placeholder="ابحث باسم المحطة أو الموقع أو الرقم..."
+              placeholder={sl.searchPlaceholder}
               type="search"
             />
           </div>
@@ -80,14 +95,14 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
             className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
             type="submit"
           >
-            بحث
+            {sl.search}
           </button>
           {query ? (
             <Link
               className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-5 py-2.5 text-sm font-semibold text-[var(--foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--surface-subtle)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
               href="/dashboard/manager/stations"
             >
-              مسح
+              {sl.clear}
             </Link>
           ) : null}
         </form>
@@ -101,25 +116,23 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
           >
             <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div className="min-w-0">
-                <h2 className="text-lg font-bold text-[var(--foreground)]">تصدير QR للطباعة</h2>
-                <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-                  اختر محطات من القائمة أو صدّر كل المحطات حسب تاريخ الإنشاء في ملف PDF مستقل لكل محطة.
-                </p>
+                <h2 className="text-lg font-bold text-[var(--foreground)]">{sm.qrExportTitle}</h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{sm.qrExportLead}</p>
               </div>
               <button
                 className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
                 type="submit"
               >
-                تحميل PDF
+                {sm.downloadPdf}
               </button>
             </div>
             <fieldset className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <legend className="sr-only">نطاق تصدير QR</legend>
+              <legend className="sr-only">{sm.qrScopeLegend}</legend>
               {[
-                { label: "محطات محددة", value: "selected" },
-                { label: "كل المحطات", value: "all" },
-                { label: "آخر يوم", value: "last-day" },
-                { label: "آخر 7 أيام", value: "last-7-days" },
+                { label: sm.qrScopeSelected, value: "selected" },
+                { label: sm.qrScopeAll, value: "all" },
+                { label: sm.qrScopeLastDay, value: "last-day" },
+                { label: sm.qrScopeLast7, value: "last-7-days" },
               ].map((option) => (
                 <label
                   className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)] has-[:checked]:border-[var(--primary)] has-[:checked]:bg-[var(--primary-soft)]"
@@ -147,29 +160,29 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                   className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98]"
                   href="/dashboard/manager/stations/new"
                 >
-                  إضافة أول محطة
+                  {sm.addFirstStation}
                 </Link>
               }
-              description="ابدأ بإضافة محطة طعوم ليتاح للفنيين إرسال تقارير الفحص من رمز QR."
-              title="لا توجد محطات"
+              description={sm.firstStationEmptyDescription}
+              title={sl.emptyNoStationsTitle}
             />
           </div>
         ) : visibleStations.length === 0 ? (
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
-            <EmptyState description="جرّب البحث باسم محطة أو موقع مختلف." title="لا توجد نتائج مطابقة" />
+            <EmptyState description={sl.emptyNoMatchDescription} title={sl.emptyNoMatchTitle} />
           </div>
         ) : (
           <div className="space-y-3">
             <div className="grid gap-3 lg:hidden">
               {visibleStations.map((station) => {
-                const health = getStationHealth(station);
+                const health = getStationHealth(station, healthLabels);
 
                 return (
                   <article className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card" key={station.stationId}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex min-w-0 gap-3">
                         <input
-                          aria-label={`تحديد المحطة ${station.label} للتصدير`}
+                          aria-label={sl.selectForExportAria.replace("{label}", station.label)}
                           className="mt-1 h-5 w-5 shrink-0 accent-[var(--primary)]"
                           form="station-qr-export-form"
                           name="stationId"
@@ -191,12 +204,12 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
 
                     <dl className="mt-4 grid gap-3 text-sm">
                       <div>
-                        <dt className="font-medium text-[var(--muted)]">المنطقة</dt>
-                        <dd className="mt-1 text-[var(--foreground)]">{station.zone ?? "غير محدد"}</dd>
+                        <dt className="font-medium text-[var(--muted)]">{sl.zone}</dt>
+                        <dd className="mt-1 text-[var(--foreground)]">{station.zone ?? sl.zoneUndefined}</dd>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <dt className="font-medium text-[var(--muted)]">الحالة</dt>
+                          <dt className="font-medium text-[var(--muted)]">{sl.colStatus}</dt>
                           <dd className="mt-1">
                             <span
                               className={
@@ -205,12 +218,12 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                                   : "inline-flex items-center rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-semibold text-[var(--muted)] dark:bg-[var(--surface-elevated)]"
                               }
                             >
-                              {station.isActive ? "نشطة" : "غير نشطة"}
+                              {station.isActive ? sl.statusActive : sl.statusInactive}
                             </span>
                           </dd>
                         </div>
                         <div>
-                          <dt className="font-medium text-[var(--muted)]">إشراف فوري</dt>
+                          <dt className="font-medium text-[var(--muted)]">{sl.colImmediateSupervision}</dt>
                           <dd className="mt-1">
                             <span
                               className={
@@ -219,13 +232,13 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                                   : "inline-flex items-center rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-semibold text-[var(--muted)] dark:bg-[var(--surface-elevated)]"
                               }
                             >
-                              {station.requiresImmediateSupervision ? "مطلوب" : "لا"}
+                              {station.requiresImmediateSupervision ? sl.supervisionRequired : sl.supervisionNo}
                             </span>
                           </dd>
                         </div>
                       </div>
                       <div>
-                        <dt className="font-medium text-[var(--muted)]">آخر زيارة</dt>
+                        <dt className="font-medium text-[var(--muted)]">{sl.colLastVisit}</dt>
                         <dd className="mt-1 text-[var(--foreground)]">{formatTimestamp(station.lastVisitedAt)}</dd>
                       </div>
                     </dl>
@@ -235,28 +248,30 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                         className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm"
                         href={`/dashboard/manager/stations/${station.stationId}`}
                       >
-                        عرض
+                        {sl.view}
                       </Link>
                       <Link
                         className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm"
                         href={`/dashboard/manager/stations/${station.stationId}/edit`}
                       >
-                        تعديل
+                        {sl.edit}
                       </Link>
                       <form action={toggleStationStatusAction.bind(null, station.stationId, station.isActive)}>
                         <button
                           className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] shadow-sm"
                           type="submit"
                         >
-                          {station.isActive ? "تعطيل" : "تفعيل"}
+                          {station.isActive ? sl.deactivate : sl.activate}
                         </button>
                       </form>
                       <form action={deleteStationAction.bind(null, station.stationId)}>
                         <ConfirmSubmitButton
                           className="inline-flex min-h-11 items-center justify-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700"
-                          confirmMessage={`تأكيد حذف المحطة #${station.stationId} (${station.label})؟`}
+                          confirmMessage={sl.confirmDeleteStation
+                            .replace("{id}", String(station.stationId))
+                            .replace("{label}", station.label)}
                         >
-                          حذف
+                          {sl.delete}
                         </ConfirmSubmitButton>
                       </form>
                     </div>
@@ -270,52 +285,52 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
               <thead className="border-b border-[var(--border-subtle)] bg-[var(--surface-subtle)]">
                 <tr>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    تحديد
+                    {sl.colSelect}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    رقم المحطة
+                    {sl.colStationId}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    اسم المحطة
+                    {sl.colStationName}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    الموقع
+                    {sl.colLocation}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    المنطقة
+                    {sl.zone}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    الحالة
+                    {sl.colStatus}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    إشراف فوري
+                    {sl.colImmediateSupervision}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    الصحة
+                    {sl.colHealth}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    آخر زيارة
+                    {sl.colLastVisit}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    تمت الزيارة بواسطة
+                    {sl.colVisitedBy}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    التقارير
+                    {sl.colReports}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    الإجراءات
+                    {sl.colActions}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-subtle)]">
                 {visibleStations.map((station) => {
-                  const health = getStationHealth(station);
+                  const health = getStationHealth(station, healthLabels);
 
                   return (
                       <tr className="transition-colors even:bg-[var(--surface-subtle)] hover:bg-[var(--primary-soft)]" key={station.stationId}>
                         <td className="px-4 py-3">
                           <input
-                            aria-label={`تحديد المحطة ${station.label} للتصدير`}
+                            aria-label={sl.selectForExportAria.replace("{label}", station.label)}
                             className="h-4 w-4 accent-[var(--primary)]"
                             form="station-qr-export-form"
                             name="stationId"
@@ -328,7 +343,7 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                         </td>
                         <td className="px-4 py-3 text-sm font-medium text-[var(--foreground)]">{station.label}</td>
                         <td className="px-4 py-3 text-sm text-[var(--muted)]">{station.location}</td>
-                        <td className="px-4 py-3 text-sm text-[var(--muted)]">{station.zone ?? "غير محدد"}</td>
+                        <td className="px-4 py-3 text-sm text-[var(--muted)]">{station.zone ?? sl.zoneUndefined}</td>
                         <td className="px-4 py-3">
                           <span
                             className={
@@ -337,7 +352,7 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                                 : "inline-flex items-center rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-semibold text-[var(--muted)] dark:bg-[var(--surface-elevated)]"
                             }
                           >
-                            {station.isActive ? "نشطة" : "غير نشطة"}
+                            {station.isActive ? sl.statusActive : sl.statusInactive}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -348,7 +363,7 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                                 : "inline-flex items-center rounded-full bg-[var(--surface-subtle)] px-2.5 py-0.5 text-xs font-semibold text-[var(--muted)] dark:bg-[var(--surface-elevated)]"
                             }
                           >
-                            {station.requiresImmediateSupervision ? "مطلوب" : "لا"}
+                            {station.requiresImmediateSupervision ? sl.supervisionRequired : sl.supervisionNo}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -365,28 +380,30 @@ export default async function ManagerStationsPage({ searchParams }: ManagerStati
                               className="text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:underline"
                               href={`/dashboard/manager/stations/${station.stationId}`}
                             >
-                              عرض
+                              {sl.view}
                             </Link>
                             <Link
                               className="text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:underline"
                               href={`/dashboard/manager/stations/${station.stationId}/edit`}
                             >
-                              تعديل
+                              {sl.edit}
                             </Link>
                             <form action={toggleStationStatusAction.bind(null, station.stationId, station.isActive)}>
                               <button
                                 className="text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:underline"
                                 type="submit"
                               >
-                                {station.isActive ? "تعطيل" : "تفعيل"}
+                                {station.isActive ? sl.deactivate : sl.activate}
                               </button>
                             </form>
                             <form action={deleteStationAction.bind(null, station.stationId)}>
                               <ConfirmSubmitButton
                                 className="text-sm font-semibold text-red-600 transition-colors hover:text-red-700 hover:underline"
-                                confirmMessage={`تأكيد حذف المحطة #${station.stationId} (${station.label})؟`}
+                                confirmMessage={sl.confirmDeleteStation
+                                  .replace("{id}", String(station.stationId))
+                                  .replace("{label}", station.label)}
                               >
-                                حذف
+                                {sl.delete}
                               </ConfirmSubmitButton>
                             </form>
                           </div>

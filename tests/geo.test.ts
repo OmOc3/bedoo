@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { distanceMeters, stationAccessRadiusMeters, stationsWithinRadius } from "../lib/geo.ts";
+import { distanceMeters, maxLocationAccuracyMeters, stationAccessRadiusMeters, stationsWithinRadius } from "../lib/geo.ts";
 import { assertStationAccessLocation } from "../lib/stations/location-access.ts";
 
 test("distanceMeters returns zero for identical coordinates", () => {
@@ -32,5 +32,27 @@ test("assertStationAccessLocation rejects stations outside the access radius", (
         { lat: 0, lng: 0.0015 },
       ),
     { code: "STATION_ACCESS_OUT_OF_RANGE" },
+  );
+});
+
+test("assertStationAccessLocation accepts GPS accuracy at the configured threshold", () => {
+  assert.deepEqual(
+    assertStationAccessLocation(
+      { coordinates: { lat: 30.0444, lng: 31.2357 } },
+      { accuracyMeters: maxLocationAccuracyMeters, lat: 30.0444, lng: 31.2357 },
+    ),
+    { distanceMeters: 0 },
+  );
+});
+
+test("assertStationAccessLocation rejects GPS accuracy worse than fifty meters", () => {
+  assert.equal(maxLocationAccuracyMeters, 50);
+  assert.throws(
+    () =>
+      assertStationAccessLocation(
+        { coordinates: { lat: 30.0444, lng: 31.2357 } },
+        { accuracyMeters: maxLocationAccuracyMeters + 1, lat: 30.0444, lng: 31.2357 },
+      ),
+    { code: "STATION_ACCESS_LOCATION_ACCURACY_LOW" },
   );
 });

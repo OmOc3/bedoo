@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server-session";
 import { clockInAttendanceSession, clockOutAttendanceSession } from "@/lib/db/repositories";
+import { getActionMessages } from "@/lib/i18n/action-locale";
 
 export interface AttendanceActionResult {
   error?: string;
@@ -19,26 +20,6 @@ function optionalString(formData: FormData, key: string): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function requiredString(formData: FormData, key: string): string {
-  const value = optionalString(formData, key);
-
-  if (!value) {
-    throw new Error("بيانات الموقع غير مكتملة.");
-  }
-
-  return value;
-}
-
-function requiredNumber(formData: FormData, key: string): number {
-  const value = Number(requiredString(formData, key));
-
-  if (!Number.isFinite(value)) {
-    throw new Error("بيانات الموقع غير صالحة.");
-  }
-
-  return value;
-}
-
 function optionalNumber(formData: FormData, key: string): number | undefined {
   const value = optionalString(formData, key);
 
@@ -52,15 +33,30 @@ function optionalNumber(formData: FormData, key: string): number | undefined {
 
 export async function clockInAction(formData: FormData): Promise<AttendanceActionResult> {
   const session = await requireRole(["technician", "manager"]);
-  const stationId = requiredString(formData, "stationId");
+  const t = await getActionMessages();
+  const stationId = optionalString(formData, "stationId")?.trim();
+  if (!stationId) {
+    return { error: t.actionErrors.attendance_stationIdRequired };
+  }
+
+  const latRaw = optionalString(formData, "lat");
+  const lngRaw = optionalString(formData, "lng");
+  if (!latRaw || !lngRaw) {
+    return { error: t.actionErrors.attendance_locationIncomplete };
+  }
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { error: t.actionErrors.attendance_locationInvalid };
+  }
 
   try {
     await clockInAttendanceSession({
       actorRole: session.role,
       location: {
         accuracyMeters: optionalNumber(formData, "accuracyMeters"),
-        lat: requiredNumber(formData, "lat"),
-        lng: requiredNumber(formData, "lng"),
+        lat,
+        lng,
       },
       stationId,
       technicianUid: session.uid,
@@ -71,21 +67,36 @@ export async function clockInAction(formData: FormData): Promise<AttendanceActio
     revalidatePath(`/station/${stationId}/report`);
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر تسجيل الحضور." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.attendance_clockInFailed };
   }
 }
 
 export async function clockOutAction(formData: FormData): Promise<AttendanceActionResult> {
   const session = await requireRole(["technician", "manager"]);
-  const stationId = requiredString(formData, "stationId");
+  const t = await getActionMessages();
+  const stationId = optionalString(formData, "stationId")?.trim();
+  if (!stationId) {
+    return { error: t.actionErrors.attendance_stationIdRequired };
+  }
+
+  const latRaw = optionalString(formData, "lat");
+  const lngRaw = optionalString(formData, "lng");
+  if (!latRaw || !lngRaw) {
+    return { error: t.actionErrors.attendance_locationIncomplete };
+  }
+  const lat = Number(latRaw);
+  const lng = Number(lngRaw);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { error: t.actionErrors.attendance_locationInvalid };
+  }
 
   try {
     await clockOutAttendanceSession({
       actorRole: session.role,
       location: {
         accuracyMeters: optionalNumber(formData, "accuracyMeters"),
-        lat: requiredNumber(formData, "lat"),
-        lng: requiredNumber(formData, "lng"),
+        lat,
+        lng,
       },
       stationId,
       technicianUid: session.uid,
@@ -96,6 +107,6 @@ export async function clockOutAction(formData: FormData): Promise<AttendanceActi
     revalidatePath(`/station/${stationId}/report`);
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر تسجيل الانصراف." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.attendance_clockOutFailed };
   }
 }

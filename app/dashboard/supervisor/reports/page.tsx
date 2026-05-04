@@ -12,6 +12,9 @@ import { ReviewReportForm } from "@/components/reports/review-report-form";
 import { StatusPills } from "@/components/reports/status-pills";
 import { requireRole } from "@/lib/auth/server-session";
 import { formatDateTimeRome } from "@/lib/datetime";
+import type { I18nMessages } from "@/lib/i18n";
+import { getIntlLocaleForApp } from "@/lib/i18n";
+import { getI18nMessages, getRequestLocale } from "@/lib/i18n/server";
 import { formatPestTypesLine } from "@/lib/reports/report-display";
 import { buildReportsListingHref, type ReportsFilterValues } from "@/lib/reports/report-filters";
 import { listReports, listStations } from "@/lib/db/repositories";
@@ -29,21 +32,27 @@ interface SupervisorReportsPageProps {
   }>;
 }
 
-export const metadata: Metadata = {
-  title: "تقارير المشرف",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const t = getI18nMessages(locale);
+
+  return { title: t.reportsPage.metaTitleSupervisor };
+}
 
 const pageSize = 25;
 
-function formatTimestamp(timestamp?: AppTimestamp): string {
+function formatTimestamp(timestamp: AppTimestamp | undefined, t: I18nMessages, intlLocale: string): string {
   if (!timestamp) {
-    return "غير متاح";
+    return t.common.unavailable;
   }
 
-  return formatDateTimeRome(timestamp.toDate(), { locale: "ar-EG" });
+  return formatDateTimeRome(timestamp.toDate(), {
+    locale: intlLocale,
+    unavailableLabel: t.common.unavailable,
+  });
 }
 
-function reviewStatusBadge(status: Report["reviewStatus"]) {
+function reviewStatusBadge(status: Report["reviewStatus"], t: I18nMessages) {
   const classes = {
     pending: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
     reviewed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
@@ -55,9 +64,9 @@ function reviewStatusBadge(status: Report["reviewStatus"]) {
     rejected: "bg-rose-400",
   }[status];
   const label = {
-    pending: "بانتظار المراجعة",
-    reviewed: "تمت المراجعة",
-    rejected: "مرفوض",
+    pending: t.reportsListing.reviewPending,
+    reviewed: t.reportsListing.reviewReviewed,
+    rejected: t.reportsListing.reviewRejected,
   }[status];
 
   return (
@@ -142,6 +151,10 @@ const reviewShortcutInactive =
 const reviewShortcutActive = "border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--foreground)]";
 
 export default async function SupervisorReportsPage({ searchParams }: SupervisorReportsPageProps) {
+  const locale = await getRequestLocale();
+  const t = getI18nMessages(locale);
+  const rp = t.reportsPage;
+  const intlLocale = getIntlLocaleForApp(locale);
   const params = await searchParams;
   const session = await requireRole(["supervisor", "manager"]);
 
@@ -174,7 +187,7 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
   ]);
   const stationFilterOptions = [...stationRows]
     .map((station) => ({ stationId: station.stationId, label: station.label }))
-    .sort((a, b) => a.label.localeCompare(b.label, "ar"));
+    .sort((a, b) => a.label.localeCompare(b.label, locale === "en" ? "en" : "ar"));
   const reports = pageReports.slice(0, pageSize);
   const hasNextPage = pageReports.length > pageSize;
   const lastReport = reports.at(-1);
@@ -192,12 +205,12 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
             className="inline-flex items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)]"
             href={buildExportHref(filters)}
           >
-            تصدير CSV
+            {rp.exportCsv}
           </Link>
         }
         backHref="/dashboard/supervisor"
-        description="استعرض تقارير الفنيين حسب المحطة أو التاريخ أو حالة المراجعة."
-        title="تقارير المشرف"
+        description={rp.supervisorDescription}
+        title={rp.supervisorTitle}
       />
 
       <div className="mb-3 flex flex-wrap gap-2">
@@ -205,13 +218,13 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
           className={`${reviewShortcutClasses} ${filters.reviewStatus === "" ? reviewShortcutActive : reviewShortcutInactive}`}
           href={buildReportsListingHref("/dashboard/supervisor/reports", filters, "")}
         >
-          كل حالات المراجعة
+          {rp.filterAllReview}
         </Link>
         <Link
           className={`${reviewShortcutClasses} ${filters.reviewStatus === "pending" ? reviewShortcutActive : reviewShortcutInactive}`}
           href={buildReportsListingHref("/dashboard/supervisor/reports", filters, "pending")}
         >
-          بانتظار المراجعة
+          {rp.filterPending}
         </Link>
       </div>
 
@@ -223,10 +236,7 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
 
       {reports.length === 0 ? (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-          <EmptyState
-            description="غيّر الفلاتر أو انتظر وصول تقارير جديدة من الفنيين."
-            title="لا توجد تقارير مطابقة"
-          />
+          <EmptyState description={rp.emptySupervisorDescription} title={rp.emptySupervisorTitle} />
         </div>
       ) : (
         <div className="space-y-3">
@@ -251,8 +261,8 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
                 key={report.reportId}
                 photoCount={photoCount(report)}
                 report={report}
-                reviewBadge={reviewStatusBadge(report.reviewStatus)}
-                timestamp={formatTimestamp(report.submittedAt)}
+                reviewBadge={reviewStatusBadge(report.reviewStatus, t)}
+                timestamp={formatTimestamp(report.submittedAt, t, intlLocale)}
               />
             ))}
           </div>
@@ -261,35 +271,35 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
               <thead className="border-b border-[var(--border)] bg-[var(--surface-subtle)]">
                 <tr>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                    وقت الإرسال
+                    {rp.colSubmittedAt}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                    المحطة
+                    {rp.colStation}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                    الموقع
+                    {rp.colLocation}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                    برنامج التنفيذ
+                    {rp.colProgram}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                    الفني
+                    {rp.colTechnician}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                    الحالة
+                    {rp.colStatus}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                    المراجعة
+                    {rp.colReview}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                    الإجراء
+                    {rp.colAction}
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-subtle)]">
                 {reports.map((report) => (
                   <tr className="align-top transition-colors hover:bg-[var(--surface-subtle)]" key={report.reportId}>
-                    <td className="px-4 py-3 text-sm text-[var(--foreground)]">{formatTimestamp(report.submittedAt)}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--foreground)]">{formatTimestamp(report.submittedAt, t, intlLocale)}</td>
                     <td className="px-4 py-3 text-sm font-medium text-[var(--foreground)]">{report.stationLabel}</td>
                     <td className="max-w-[200px] px-4 py-3 text-sm text-[var(--foreground)]">
                       <span className="line-clamp-2">{report.stationLocation ?? "—"}</span>
@@ -303,15 +313,15 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
                     <td className="px-4 py-3">
                       <StatusPills status={report.status} />
                     </td>
-                    <td className="px-4 py-3">{reviewStatusBadge(report.reviewStatus)}</td>
+                    <td className="px-4 py-3">{reviewStatusBadge(report.reviewStatus, t)}</td>
                     <td className="px-4 py-3">
                       <details>
                         <summary className="cursor-pointer text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:underline">
-                          عرض وتحديث
+                          {rp.viewUpdate}
                         </summary>
                         <div className="mt-2 max-w-md rounded-lg bg-[var(--surface-subtle)] p-3 text-sm leading-6 text-[var(--muted)]">
-                          <p className="font-medium text-[var(--foreground)]">ملاحظات الفني</p>
-                          <p className="mt-1">{report.notes ?? "لا توجد ملاحظات."}</p>
+                          <p className="font-medium text-[var(--foreground)]">{rp.technicianNotes}</p>
+                          <p className="mt-1">{report.notes ?? rp.noNotes}</p>
                           <ReportPhotoLinks photoCount={photoCount(report)} reportId={report.reportId} />
                           <EditSubmittedReportForm
                             canEdit={canEditReportSubmission(session.role, report)}
@@ -339,7 +349,7 @@ export default async function SupervisorReportsPage({ searchParams }: Supervisor
               className="inline-flex items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
               href={buildNextHref(filters, nextCursor)}
             >
-              الصفحة التالية
+              {rp.nextPage}
             </Link>
           </div>
         ) : null}

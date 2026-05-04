@@ -84,6 +84,10 @@ html[dir="ltr"] {
   direction: ltr;
 }
 
+html[data-locale="en"]:not([data-translation-ready="true"]) body {
+  visibility: hidden;
+}
+
 html.dark {
   color-scheme: dark;
 }

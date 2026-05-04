@@ -374,7 +374,7 @@ export async function buildManagerAiReportData({ requestedBy }: ManagerAiReportI
           ...status,
           label: statusOptionLabels[status.status],
         })),
-        trend: buildReportTrend(reports, rangeFrom, rangeTo).slice(-36).map((point) => ({ ...point })),
+        trend: buildReportTrend(reports, rangeFrom, rangeTo, "ar-EG").slice(-36).map((point) => ({ ...point })),
       },
       coverage,
       datasets: {

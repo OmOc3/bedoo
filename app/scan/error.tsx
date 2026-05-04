@@ -1,15 +1,25 @@
 "use client";
 
+import { useLanguage } from "@/components/i18n/language-provider";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function ScanError({ reset }: { reset: () => void }) {
+  const { direction, messages } = useLanguage();
+
   return (
-    <main className="flex min-h-dvh items-center bg-[var(--surface-subtle)] px-4 py-6 text-right" dir="rtl">
+    <main
+      className={cn(
+        "flex min-h-dvh items-center bg-[var(--surface-subtle)] px-4 py-6",
+        direction === "rtl" ? "text-right" : "text-start",
+      )}
+      dir={direction}
+    >
       <section className="mx-auto w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-        <h2 className="text-lg font-semibold text-[var(--foreground)]">تعذر تحميل صفحة المسح</h2>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">حاول مرة أخرى أو سجل الدخول من جديد.</p>
+        <h2 className="text-lg font-semibold text-[var(--foreground)]">{messages.scan.pageErrorTitle}</h2>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{messages.scan.pageErrorHint}</p>
         <Button className="mt-5" onClick={reset} type="button">
-          إعاده المحاولة
+          {messages.actions.retry}
         </Button>
       </section>
     </main>

@@ -8,6 +8,7 @@ import { useLanguage } from "@/components/i18n/language-provider";
 import { BrandMark } from "@/components/layout/brand";
 import { ReportNotificationListener } from "@/components/notifications/report-notification-listener";
 import { cn } from "@/lib/utils";
+import type { I18nMessages } from "@/lib/i18n";
 
 interface DashboardNavProps {
   role: "manager" | "supervisor";
@@ -16,39 +17,39 @@ interface DashboardNavProps {
 interface NavItem {
   href: string;
   icon: IconName;
-  label: string;
+  labelKey: keyof I18nMessages["nav"];
 }
 
 const managerItems: NavItem[] = [
-  { href: "/dashboard/manager/attendance", icon: "attendance", label: "الحضور والانصراف" },
-  { href: "/dashboard/manager/payroll", icon: "payroll", label: "الرواتب" },
-  { href: "/dashboard/manager/daily-reports", icon: "reports", label: "التقارير اليومية" },
-  { href: "/dashboard/manager/area-tasks", icon: "tasks", label: "المهام اليومية للمناطق" },
-  { href: "/dashboard/manager", icon: "dashboard", label: "لوحة القيادة" },
-  { href: "/dashboard/manager/tasks", icon: "tasks", label: "مهام اليوم" },
-  { href: "/dashboard/manager/stations", icon: "stations", label: "المحطات" },
-  { href: "/dashboard/manager/stations/map", icon: "map", label: "إحداثيات المحطات" },
-  { href: "/dashboard/manager/reports", icon: "reports", label: "التقارير" },
-  { href: "/dashboard/manager/client-orders", icon: "clients", label: "العملاء والطلبات" },
-  { href: "/dashboard/manager/analytics", icon: "analytics", label: "التحليلات" },
-  { href: "/dashboard/manager/team", icon: "team", label: "الفريق" },
-  { href: "/dashboard/manager/audit", icon: "audit", label: "السجل" },
-  { href: "/dashboard/manager/settings", icon: "settings", label: "الإعدادات" },
-  { href: "/dashboard/supervisor", icon: "supervisor", label: "لوحة المشرف" },
+  { href: "/dashboard/manager/attendance", icon: "attendance", labelKey: "attendanceDeparture" },
+  { href: "/dashboard/manager/payroll", icon: "payroll", labelKey: "payroll" },
+  { href: "/dashboard/manager/daily-reports", icon: "reports", labelKey: "dailyReports" },
+  { href: "/dashboard/manager/area-tasks", icon: "tasks", labelKey: "areaTasks" },
+  { href: "/dashboard/manager", icon: "dashboard", labelKey: "managerDashboard" },
+  { href: "/dashboard/manager/tasks", icon: "tasks", labelKey: "todayTasks" },
+  { href: "/dashboard/manager/stations", icon: "stations", labelKey: "stations" },
+  { href: "/dashboard/manager/stations/map", icon: "map", labelKey: "stationCoordinates" },
+  { href: "/dashboard/manager/reports", icon: "reports", labelKey: "reports" },
+  { href: "/dashboard/manager/client-orders", icon: "clients", labelKey: "clientsAndOrders" },
+  { href: "/dashboard/manager/analytics", icon: "analytics", labelKey: "analytics" },
+  { href: "/dashboard/manager/team", icon: "team", labelKey: "team" },
+  { href: "/dashboard/manager/audit", icon: "audit", labelKey: "auditLog" },
+  { href: "/dashboard/manager/settings", icon: "settings", labelKey: "settings" },
+  { href: "/dashboard/supervisor", icon: "supervisor", labelKey: "supervisorBoard" },
 ];
 
 const supervisorItems: NavItem[] = [
-  { href: "/dashboard/supervisor/attendance", icon: "attendance", label: "الحضور والانصراف" },
-  { href: "/dashboard/supervisor/daily-reports", icon: "reports", label: "التقارير اليومية" },
-  { href: "/dashboard/supervisor/area-tasks", icon: "tasks", label: "المهام اليومية للمناطق" },
-  { href: "/dashboard/supervisor", icon: "dashboard", label: "لوحة المشرف" },
-  { href: "/dashboard/supervisor/tasks", icon: "tasks", label: "مهام اليوم" },
-  { href: "/dashboard/supervisor/stations", icon: "stations", label: "المحطات" },
-  { href: "/dashboard/supervisor/shifts", icon: "team", label: "شيفتات الفنيين" },
-  { href: "/dashboard/supervisor/reports", icon: "reports", label: "التقارير" },
-  { href: "/dashboard/supervisor/client-orders", icon: "clients", label: "العملاء والطلبات" },
-  { href: "/dashboard/supervisor/analytics", icon: "analytics", label: "التحليلات" },
-  { href: "/dashboard/supervisor/team", icon: "team", label: "الفريق" },
+  { href: "/dashboard/supervisor/attendance", icon: "attendance", labelKey: "attendanceDeparture" },
+  { href: "/dashboard/supervisor/daily-reports", icon: "reports", labelKey: "dailyReports" },
+  { href: "/dashboard/supervisor/area-tasks", icon: "tasks", labelKey: "areaTasks" },
+  { href: "/dashboard/supervisor", icon: "dashboard", labelKey: "supervisorDashboard" },
+  { href: "/dashboard/supervisor/tasks", icon: "tasks", labelKey: "todayTasks" },
+  { href: "/dashboard/supervisor/stations", icon: "stations", labelKey: "stations" },
+  { href: "/dashboard/supervisor/shifts", icon: "team", labelKey: "technicianShifts" },
+  { href: "/dashboard/supervisor/reports", icon: "reports", labelKey: "reports" },
+  { href: "/dashboard/supervisor/client-orders", icon: "clients", labelKey: "clientsAndOrders" },
+  { href: "/dashboard/supervisor/analytics", icon: "analytics", labelKey: "analytics" },
+  { href: "/dashboard/supervisor/team", icon: "team", labelKey: "team" },
 ];
 
 type IconName =
@@ -276,7 +277,7 @@ function isItemActive(pathname: string, href: string): boolean {
 
 export function DashboardNav({ role }: DashboardNavProps) {
   const pathname = usePathname();
-  const { direction, translate } = useLanguage();
+  const { direction, locale, messages } = useLanguage();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
@@ -285,12 +286,12 @@ export function DashboardNav({ role }: DashboardNavProps) {
   const items = role === "manager" ? managerItems : supervisorItems;
   const currentPathname = pathname ?? "";
   const isRtl = direction === "rtl";
-  const mobileToggleLabel = translate(isMobileNavOpen ? "إغلاق القائمة" : "فتح القائمة");
-  const closeMenuLabel = translate("إغلاق القائمة");
-  const mainMenuLabel = translate("القائمة الرئيسية");
-  const primaryNavigationLabel = translate("التنقل الرئيسي");
-  const brandArabicName = translate("إيكوبست");
-  const brandTagline = translate("إدارة محطات الطعوم");
+  const mobileToggleLabel = isMobileNavOpen ? messages.nav.closeMenu : messages.nav.openMenu;
+  const closeMenuLabel = messages.nav.closeMenu;
+  const mainMenuLabel = messages.nav.mainMenu;
+  const primaryNavigationLabel = messages.nav.primaryNavigation;
+  const brandTitle = locale === "ar" ? messages.brand.nameArabic : messages.brand.name;
+  const brandTagline = messages.brandTagline;
   const showLatinBrandAlias = isRtl;
 
   function handleSidebarMouseEnter(): void {
@@ -425,7 +426,7 @@ export function DashboardNav({ role }: DashboardNavProps) {
                   <BrandMark className="h-10 w-10 shrink-0" />
                   <div className="min-w-0">
                     <p className="truncate text-base font-bold leading-tight text-[var(--sidebar-text)]">
-                      {brandArabicName}
+                      {brandTitle}
                       {showLatinBrandAlias ? (
                         <span className="ms-1.5 text-xs font-semibold text-[var(--sidebar-muted)]">EcoPest</span>
                       ) : null}
@@ -451,7 +452,7 @@ export function DashboardNav({ role }: DashboardNavProps) {
               {items.map((item) => {
                 const isActive = isItemActive(currentPathname, item.href);
                 const Icon = icons[item.icon];
-                const itemLabel = translate(item.label);
+                const itemLabel = messages.nav[item.labelKey];
 
                 return (
                   <Link
@@ -506,7 +507,7 @@ export function DashboardNav({ role }: DashboardNavProps) {
                 )}
               >
                 <p className="truncate text-base font-bold leading-tight text-[var(--sidebar-text)] whitespace-nowrap">
-                  {brandArabicName}
+                  {brandTitle}
                   {showLatinBrandAlias ? (
                     <span className="ms-1.5 text-xs font-semibold text-[var(--sidebar-muted)]">EcoPest</span>
                   ) : null}
@@ -524,7 +525,7 @@ export function DashboardNav({ role }: DashboardNavProps) {
           {items.map((item) => {
             const isActive = isItemActive(currentPathname, item.href);
             const Icon = icons[item.icon];
-            const itemLabel = translate(item.label);
+            const itemLabel = messages.nav[item.labelKey];
 
             return (
               <Link
@@ -577,7 +578,7 @@ export function DashboardNav({ role }: DashboardNavProps) {
           {items.map((item) => {
             const isActive = isItemActive(currentPathname, item.href);
             const Icon = icons[item.icon];
-            const itemLabel = translate(item.label);
+            const itemLabel = messages.nav[item.labelKey];
 
             return (
               <Link

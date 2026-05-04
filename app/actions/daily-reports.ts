@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/server-session";
 import { uploadReportImageToCloudinary } from "@/lib/cloudinary/report-images";
 import { createDailyWorkReport } from "@/lib/db/repositories";
+import { getActionMessages } from "@/lib/i18n/action-locale";
 import { createDailyWorkReportSchema } from "@/lib/validation/daily-reports";
 
 export interface DailyWorkReportActionResult {
@@ -31,11 +32,11 @@ function imageFiles(formData: FormData): File[] {
   return formData.getAll("photos").filter((value): value is File => value instanceof File && value.size > 0).slice(0, 8);
 }
 
-function parseReportDate(value: string): Date {
+function parseReportDate(value: string, invalidMessage: string): Date {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    throw new Error("تاريخ التقرير غير صالح.");
+    throw new Error(invalidMessage);
   }
 
   date.setHours(12, 0, 0, 0);
@@ -44,6 +45,7 @@ function parseReportDate(value: string): Date {
 
 export async function createDailyWorkReportAction(formData: FormData): Promise<DailyWorkReportActionResult> {
   const session = await requireRole(["technician", "manager"]);
+  const t = await getActionMessages();
   const parsed = createDailyWorkReportSchema.safeParse({
     notes: optionalString(formData, "notes"),
     reportDate: formData.get("reportDate"),
@@ -53,7 +55,7 @@ export async function createDailyWorkReportAction(formData: FormData): Promise<D
 
   if (!parsed.success) {
     return {
-      error: "تحقق من بيانات التقرير اليومي.",
+      error: t.actionErrors.dailyReports_validationFailed,
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -70,7 +72,7 @@ export async function createDailyWorkReportAction(formData: FormData): Promise<D
       actorRole: session.role,
       notes: parsed.data.notes,
       photos,
-      reportDate: parseReportDate(parsed.data.reportDate),
+      reportDate: parseReportDate(parsed.data.reportDate, t.actionErrors.dailyReports_invalidDate),
       stationIds: parsed.data.stationIds,
       summary: parsed.data.summary,
       technicianName: session.user.displayName,
@@ -83,6 +85,6 @@ export async function createDailyWorkReportAction(formData: FormData): Promise<D
     revalidatePath("/client/portal");
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر حفظ التقرير اليومي." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.dailyReports_saveFailed };
   }
 }

@@ -1,18 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useLanguage } from "@/components/i18n/language-provider";
 
 export default function ShiftCompleteError() {
+  const { direction, messages } = useLanguage();
+
   return (
-    <main className="flex min-h-dvh items-center bg-[var(--surface-subtle)] px-4 py-6 text-right" dir="rtl">
-      <section className="mx-auto w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 text-center sm:p-6">
-        <h1 className="text-xl font-bold text-[var(--foreground)]">تعذر تحميل ملخص الشيفت</h1>
-        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">ارجع إلى صفحة الفني وراجع سجل الشيفتات.</p>
+    <main className="flex min-h-dvh items-center bg-[var(--surface-subtle)] px-4 py-6 text-start" dir={direction}>
+      <section className="mx-auto w-full max-w-md rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <h1 className="text-xl font-bold text-[var(--foreground)]">{messages.pageErrors.shiftSummary}</h1>
+        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{messages.pageErrors.shiftSummaryHint}</p>
         <Link
-          className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-3 text-base font-medium text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)]"
-          href="/scan"
+          className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)]"
+          href="/"
         >
-          العودة للرئيسية
+          {messages.pageErrors.backToHome}
         </Link>
       </section>
     </main>

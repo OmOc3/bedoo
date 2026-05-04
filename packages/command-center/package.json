@@ -1,0 +1,74 @@
+{
+  "name": "@ecopest/command-center",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "out/main/index.js",
+  "bin": {
+    "command-center-mcp": "dist/mcp/index.js",
+    "command-center": "dist/mcp/cli.js"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "npm run build:mcp && electron-vite build",
+    "build:mcp": "tsc -p tsconfig.mcp.json",
+    "typecheck": "tsc -p tsconfig.mcp.json --noEmit && tsc -p tsconfig.json --noEmit",
+    "dist:win": "npm run build && set CSC_IDENTITY_AUTO_DISCOVERY=false&& electron-builder --win portable --x64",
+    "open": "electron out/main/index.js",
+    "mcp:serve": "node dist/mcp/index.js",
+    "cli": "node dist/mcp/cli.js"
+  },
+  "build": {
+    "appId": "com.ecopest.commandcenter",
+    "productName": "EcoPest Command Center",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/icon.ico",
+        "to": "icon.ico"
+      },
+      {
+        "from": "resources/project-root.json",
+        "to": "project-root.json"
+      }
+    ],
+    "win": {
+      "icon": "resources/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "EcoPest-Command-Center-${version}-${arch}.${ext}"
+    }
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "chokidar": "^4.0.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "zod": "^4.1.12",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.8.1",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "electron": "^41.0.0",
+    "electron-builder": "^26.8.1",
+    "electron-vite": "^5.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.12"
+  }
+}

@@ -2,11 +2,12 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { submitStationReportAction, type SubmitReportActionResult } from "@/app/actions/reports";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { Button } from "@/components/ui/button";
+import { getIntlLocaleForApp } from "@/lib/i18n";
 import { distanceMeters, maxLocationAccuracyMeters, stationAccessRadiusMeters } from "@/lib/geo";
 import { maxReportImageSizeBytes } from "@/lib/reports/image-constraints";
 import { submitReportSchema, type SubmitReportValues } from "@/lib/validation/reports";
@@ -34,10 +35,10 @@ interface ReportFormProps {
   stationLabel: string;
 }
 
-function readPosition(): Promise<GeolocationPosition> {
+function readPosition(geoUnsupportedMessage: string): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error("المتصفح لا يدعم قراءة الموقع."));
+      reject(new Error(geoUnsupportedMessage));
       return;
     }
 
@@ -64,48 +65,6 @@ function locationToFormData(formData: FormData, location: ReportPosition): void 
   if (typeof location.accuracyMeters === "number") {
     formData.set("accuracyMeters", String(location.accuracyMeters));
   }
-}
-
-function formatDistance(value: number): string {
-  return value < 1000 ? `${Math.round(value)} متر` : `${(value / 1000).toFixed(1)} كم`;
-}
-
-function validateReportLocation(
-  stationCoordinates: Coordinates | undefined,
-  location: ReportPosition,
-): ReportLocationCheck {
-  if (!stationCoordinates) {
-    return {
-      status: "blocked",
-      message: "لا توجد إحداثيات مسجلة لهذه المحطة. تواصل مع المدير لتحديث موقع المحطة قبل حفظ التقرير.",
-    };
-  }
-
-  if (
-    typeof location.accuracyMeters === "number" &&
-    (!Number.isFinite(location.accuracyMeters) || location.accuracyMeters > maxLocationAccuracyMeters)
-  ) {
-    return {
-      status: "blocked",
-      message: "دقة الموقع ضعيفة. فعّل GPS واقترب من المحطة ثم حاول مرة أخرى.",
-    };
-  }
-
-  const distance = Math.round(distanceMeters(location, stationCoordinates));
-
-  if (distance > stationAccessRadiusMeters) {
-    return {
-      distanceMeters: distance,
-      status: "blocked",
-      message: `المحطة دي خارج النطاق المسموح (المسافة: ${formatDistance(distance)}). لازم تكون داخل ${stationAccessRadiusMeters} متر عشان تسجل التقرير.`,
-    };
-  }
-
-  return {
-    distanceMeters: distance,
-    status: "ready",
-    message: `أنت داخل نطاق المحطة (المسافة: ${formatDistance(distance)}).`,
-  };
 }
 
 function toFormData(values: SubmitReportValues): FormData {
@@ -163,23 +122,6 @@ function selectedReportFiles(values: SubmitReportValues): File[] {
   ].filter((file): file is File => file instanceof File && file.size > 0);
 }
 
-function imageSizeError(values: SubmitReportValues): string | null {
-  const files = selectedReportFiles(values);
-  const oversizedFile = files.find((file) => file.size > maxReportImageSizeBytes);
-
-  if (oversizedFile) {
-    return `حجم الصورة ${oversizedFile.name} يجب ألا يتجاوز 5 ميجابايت.`;
-  }
-
-  const totalBytes = files.reduce((total, file) => total + file.size, 0);
-
-  if (totalBytes > maxReportImagePayloadBytes) {
-    return "إجمالي صور التقرير كبير جدًا. قلل عدد الصور أو حجمها ثم حاول مرة أخرى.";
-  }
-
-  return null;
-}
-
 export function ReportForm({
   blockedReason,
   canSubmit = true,
@@ -188,12 +130,13 @@ export function ReportForm({
   stationId,
   stationLabel,
 }: ReportFormProps) {
-  const { pestTypeLabels, statusOptionLabels } = useLanguage();
+  const { direction, locale, messages, pestTypeLabels, statusOptionLabels, translate } = useLanguage();
+  const intlLocale = useMemo(() => getIntlLocaleForApp(locale), [locale]);
   const [actionResult, setActionResult] = useState<SubmitReportActionResult | null>(null);
   const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
   const [locationCheck, setLocationCheck] = useState<ReportLocationCheck>({
     status: requiresLocationCheck ? "checking" : "idle",
-    message: requiresLocationCheck ? "جاري التحقق من موقعك الحالي..." : null,
+    message: requiresLocationCheck ? messages.reportFlow.checkingLocation : null,
   });
   const form = useForm<SubmitReportValues>({
     resolver: zodResolver(submitReportSchema),
@@ -205,6 +148,90 @@ export function ReportForm({
     },
   });
 
+  const formatDistanceLabel = useCallback(
+    (value: number): string => {
+      if (locale === "en") {
+        return value < 1000 ? `${Math.round(value)} m` : `${(value / 1000).toFixed(1)} km`;
+      }
+      return value < 1000 ? `${Math.round(value)} متر` : `${(value / 1000).toFixed(1)} كم`;
+    },
+    [locale],
+  );
+
+  const validateReportLocation = useCallback(
+    (stationCoords: Coordinates | undefined, location: ReportPosition): ReportLocationCheck => {
+      if (!stationCoords) {
+        return {
+          status: "blocked",
+          message:
+            locale === "en"
+              ? "No coordinates are saved for this station. Contact the manager to update the station location before saving the report."
+              : "لا توجد إحداثيات مسجلة لهذه المحطة. تواصل مع المدير لتحديث موقع المحطة قبل حفظ التقرير.",
+        };
+      }
+
+      if (
+        typeof location.accuracyMeters === "number" &&
+        (!Number.isFinite(location.accuracyMeters) || location.accuracyMeters > maxLocationAccuracyMeters)
+      ) {
+        return {
+          status: "blocked",
+          message:
+            locale === "en"
+              ? "Location accuracy is low. Turn on GPS, move closer to the station, then try again."
+              : "دقة الموقع ضعيفة. فعّل GPS واقترب من المحطة ثم حاول مرة أخرى.",
+        };
+      }
+
+      const distance = Math.round(distanceMeters(location, stationCoords));
+
+      if (distance > stationAccessRadiusMeters) {
+        return {
+          distanceMeters: distance,
+          status: "blocked",
+          message:
+            locale === "en"
+              ? `This station is outside the allowed radius (distance: ${formatDistanceLabel(distance)}). You must be within ${stationAccessRadiusMeters} meters to submit the report.`
+              : `المحطة دي خارج النطاق المسموح (المسافة: ${formatDistanceLabel(distance)}). لازم تكون داخل ${stationAccessRadiusMeters} متر عشان تسجل التقرير.`,
+        };
+      }
+
+      return {
+        distanceMeters: distance,
+        status: "ready",
+        message:
+          locale === "en"
+            ? `You are within the station radius (distance: ${formatDistanceLabel(distance)}).`
+            : `أنت داخل نطاق المحطة (المسافة: ${formatDistanceLabel(distance)}).`,
+      };
+    },
+    [formatDistanceLabel, locale],
+  );
+
+  const imageSizeError = useCallback(
+    (values: SubmitReportValues): string | null => {
+      const files = selectedReportFiles(values);
+      const oversizedFile = files.find((file) => file.size > maxReportImageSizeBytes);
+
+      if (oversizedFile) {
+        return locale === "en"
+          ? `Image ${oversizedFile.name} must not exceed 5 MB.`
+          : `حجم الصورة ${oversizedFile.name} يجب ألا يتجاوز 5 ميجابايت.`;
+      }
+
+      const totalBytes = files.reduce((total, file) => total + file.size, 0);
+
+      if (totalBytes > maxReportImagePayloadBytes) {
+        return locale === "en"
+          ? "Total report images are too large. Reduce the number or size of images and try again."
+          : "إجمالي صور التقرير كبير جدًا. قلل عدد الصور أو حجمها ثم حاول مرة أخرى.";
+      }
+
+      return null;
+    },
+    [locale],
+  );
+
   const refreshLocationCheck = useCallback(async (): Promise<{
     check: ReportLocationCheck;
     location: ReportPosition | null;
@@ -215,10 +242,13 @@ export function ReportForm({
       return { check: nextCheck, location: null };
     }
 
-    setLocationCheck({ status: "checking", message: "جاري التحقق من موقعك الحالي..." });
+    setLocationCheck({
+      status: "checking",
+      message: messages.reportFlow.checkingLocation,
+    });
 
     try {
-      const position = await readPosition();
+      const position = await readPosition(messages.reportFlow.geoUnsupported);
       const location = positionToReportLocation(position);
       const nextCheck = validateReportLocation(stationCoordinates, location);
 
@@ -231,13 +261,16 @@ export function ReportForm({
     } catch {
       const nextCheck: ReportLocationCheck = {
         status: "blocked",
-        message: "تعذر قراءة موقعك الحالي. اسمح بقراءة الموقع ثم حاول مرة أخرى.",
+        message:
+          locale === "en"
+            ? "Unable to read your current location. Allow location access and try again."
+            : "تعذر قراءة موقعك الحالي. اسمح بقراءة الموقع ثم حاول مرة أخرى.",
       };
 
       setLocationCheck(nextCheck);
       return { check: nextCheck, location: null };
     }
-  }, [requiresLocationCheck, stationCoordinates]);
+  }, [locale, messages.reportFlow, requiresLocationCheck, stationCoordinates, validateReportLocation]);
 
   useEffect(() => {
     if (requiresLocationCheck) {
@@ -260,7 +293,13 @@ export function ReportForm({
       const { check, location } = await refreshLocationCheck();
 
       if (check.status !== "ready" || !location) {
-        setActionResult({ error: check.message ?? "المحطة دي خارج النطاق ولا يمكن حفظ التقرير." });
+        setActionResult({
+          error:
+            check.message ??
+            (locale === "en"
+              ? "This station is outside the allowed area; the report cannot be saved."
+              : "المحطة دي خارج النطاق ولا يمكن حفظ التقرير."),
+        });
         return;
       }
 
@@ -276,25 +315,37 @@ export function ReportForm({
     setActionResult(result);
   }
 
+  const formDir = direction === "rtl" ? "rtl" : "ltr";
+
   if (actionResult?.success) {
+    const formattedSuccessDate = new Intl.DateTimeFormat(intlLocale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(submittedAt ?? new Date());
+
     return (
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-center shadow-card sm:p-6">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--success-soft)] text-lg font-bold text-[var(--success)]">
           ✓
         </div>
-        <h2 className="text-xl font-bold text-[var(--foreground)]">تم حفظ التقرير بنجاح</h2>
+        <h2 className="text-xl font-bold text-[var(--foreground)]">{messages.reportFlow.savedTitle}</h2>
         <p className="mt-2 text-base leading-7 text-[var(--muted)]">
-          تم تسجيل تقرير {stationLabel} في{" "}
-          {new Intl.DateTimeFormat("ar-EG", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          }).format(submittedAt ?? new Date())}
+          {locale === "en" ? (
+            <>
+              Report for <span className="font-semibold text-[var(--foreground)]">{stationLabel}</span> saved on{" "}
+              {formattedSuccessDate}
+            </>
+          ) : (
+            <>
+              تم تسجيل تقرير {stationLabel} في {formattedSuccessDate}
+            </>
+          )}
         </p>
         <Link
           className="mt-5 inline-flex min-h-[44px] w-full items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-3 text-base font-semibold text-[var(--primary-foreground)] shadow-sm transition-all duration-150 hover:bg-[var(--primary-hover)] active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2"
           href="/scan"
         >
-          مسح محطة أخرى
+          {messages.reportFlow.scanAnother}
         </Link>
       </div>
     );
@@ -314,17 +365,15 @@ export function ReportForm({
         : "border-amber-200 bg-amber-50 text-amber-800";
 
   return (
-    <form className="space-y-5" dir="rtl" onSubmit={form.handleSubmit(onSubmit)}>
+    <form className="space-y-5" dir={formDir} onSubmit={form.handleSubmit(onSubmit)}>
       {actionResult?.error ? (
         <p className="rounded-lg border border-[var(--danger-muted)] bg-[var(--danger-soft)] px-4 py-3 text-sm font-medium text-[var(--danger)]" role="alert">
-          {actionResult.error}
+          {translate(actionResult.error)}
         </p>
       ) : null}
 
       {!canSubmit && blockedReason ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
-          {blockedReason}
-        </p>
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">{translate(blockedReason)}</p>
       ) : null}
 
       {requiresLocationCheck && locationCheck.message ? (
@@ -332,14 +381,14 @@ export function ReportForm({
           className={`rounded-lg border px-4 py-3 text-sm font-medium ${locationMessageTone}`}
           role={locationCheck.status === "blocked" ? "alert" : "status"}
         >
-          <p>{locationCheck.message}</p>
+          <p>{translate(locationCheck.message)}</p>
           {locationCheck.status === "blocked" ? (
             <button
               className="mt-3 inline-flex min-h-10 items-center justify-center rounded-lg border border-current px-3 py-2 text-sm font-semibold"
               onClick={() => void refreshLocationCheck()}
               type="button"
             >
-              إعادة فحص الموقع
+              {messages.reportFlow.recheckLocation}
             </button>
           ) : null}
         </div>
@@ -348,8 +397,8 @@ export function ReportForm({
       <input type="hidden" value={stationId} {...form.register("stationId")} />
 
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-4">
-        <h2 className="text-lg font-bold text-[var(--foreground)]">برنامج التنفيذ</h2>
-        <p className="mt-1 text-sm text-[var(--muted)]">اختر نوعاً واحداً أو أكثر من أنواع الآفات المستهدفة في هذا الموقع.</p>
+        <h2 className="text-lg font-bold text-[var(--foreground)]">{messages.reportFlow.treatmentProgram}</h2>
+        <p className="mt-1 text-sm text-[var(--muted)]">{messages.reportFlow.treatmentProgramLead}</p>
       </div>
 
       <fieldset
@@ -357,7 +406,7 @@ export function ReportForm({
         aria-invalid={Boolean(pestTypesError)}
         className="space-y-2"
       >
-        <legend className="mb-2 text-base font-bold text-[var(--foreground)]">أنواع الآفات (متعدد)</legend>
+        <legend className="mb-2 text-base font-bold text-[var(--foreground)]">{messages.reportFlow.pestTypesLegend}</legend>
         {pestTypeOptions.map((pest) => (
           <label
             className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:border-teal-300 hover:bg-teal-50 has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50 dark:hover:bg-teal-900/30 dark:has-[:checked]:bg-teal-900/30"
@@ -384,7 +433,7 @@ export function ReportForm({
         aria-invalid={Boolean(statusError)}
         className="space-y-2"
       >
-        <legend className="mb-2 text-base font-bold text-[var(--foreground)]">حالة المحطة</legend>
+        <legend className="mb-2 text-base font-bold text-[var(--foreground)]">{messages.reportFlow.stationStatusLegend}</legend>
         {statusOptions.map((status) => (
           <label
             className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:border-teal-300 hover:bg-teal-50 has-[:checked]:border-teal-500 has-[:checked]:bg-teal-50 dark:hover:bg-teal-900/30 dark:has-[:checked]:bg-teal-900/30"
@@ -408,7 +457,7 @@ export function ReportForm({
 
       <div className="space-y-2">
         <label className="block text-base font-bold text-[var(--foreground)]" htmlFor="notes">
-          ملاحظات
+          {messages.reportFlow.notes}
         </label>
         <textarea
           aria-describedby={notesError ? "notes-error" : undefined}
@@ -416,7 +465,7 @@ export function ReportForm({
           className="min-h-24 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-3 text-base text-[var(--foreground)] placeholder:text-[var(--muted)] transition-colors hover:border-[color-mix(in_srgb,var(--border)_50%,var(--foreground)_50%)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
           id="notes"
           maxLength={500}
-          placeholder="اختياري، حتى 500 حرف"
+          placeholder={messages.reportFlow.notesPlaceholder}
           {...form.register("notes")}
         />
         {notesError ? (
@@ -427,10 +476,12 @@ export function ReportForm({
       </div>
 
       <div className="space-y-2">
-        <p className="text-base font-bold text-[var(--foreground)]">صور التقرير (اختياري)</p>
+        <p className="text-base font-bold text-[var(--foreground)]">{messages.reportFlow.reportPhotosOptional}</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]" htmlFor="beforePhoto">قبل</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]" htmlFor="beforePhoto">
+              {messages.reportFlow.photoBefore}
+            </label>
             <input
               accept="image/*"
               className="block min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)] file:me-3 file:rounded-md file:border-0 file:bg-teal-50 file:px-2 file:py-1.5 file:font-semibold file:text-teal-700 dark:file:bg-teal-900/30 dark:file:text-teal-300"
@@ -440,7 +491,9 @@ export function ReportForm({
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]" htmlFor="afterPhoto">بعد</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]" htmlFor="afterPhoto">
+              {messages.reportFlow.photoAfter}
+            </label>
             <input
               accept="image/*"
               className="block min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)] file:me-3 file:rounded-md file:border-0 file:bg-teal-50 file:px-2 file:py-1.5 file:font-semibold file:text-teal-700 dark:file:bg-teal-900/30 dark:file:text-teal-300"
@@ -450,7 +503,9 @@ export function ReportForm({
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]" htmlFor="stationPhoto">المحطة</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]" htmlFor="stationPhoto">
+              {messages.reportFlow.photoStation}
+            </label>
             <input
               accept="image/*"
               className="block min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)] file:me-3 file:rounded-md file:border-0 file:bg-teal-50 file:px-2 file:py-1.5 file:font-semibold file:text-teal-700 dark:file:bg-teal-900/30 dark:file:text-teal-300"
@@ -460,7 +515,9 @@ export function ReportForm({
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]" htmlFor="duringPhotos">أثناء العمل</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]" htmlFor="duringPhotos">
+              {messages.reportFlow.photoDuring}
+            </label>
             <input
               accept="image/*"
               className="block min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)] file:me-3 file:rounded-md file:border-0 file:bg-teal-50 file:px-2 file:py-1.5 file:font-semibold file:text-teal-700 dark:file:bg-teal-900/30 dark:file:text-teal-300"
@@ -472,7 +529,9 @@ export function ReportForm({
             {duringPhotosError ? <p className="mt-1 text-xs text-[var(--danger)]">{duringPhotosError}</p> : null}
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]" htmlFor="otherPhotos">صور إضافية</label>
+            <label className="mb-1 block text-sm font-medium text-[var(--foreground)]" htmlFor="otherPhotos">
+              {messages.reportFlow.photoExtra}
+            </label>
             <input
               accept="image/*"
               className="block min-h-11 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--muted)] file:me-3 file:rounded-md file:border-0 file:bg-teal-50 file:px-2 file:py-1.5 file:font-semibold file:text-teal-700 dark:file:bg-teal-900/30 dark:file:text-teal-300"
@@ -487,7 +546,7 @@ export function ReportForm({
       </div>
 
       <Button className="w-full py-3 text-base" disabled={!canSubmit || form.formState.isSubmitting || isLocationBlocked} isLoading={form.formState.isSubmitting} type="submit">
-        حفظ التقرير
+        {messages.reportFlow.saveReport}
       </Button>
     </form>
   );

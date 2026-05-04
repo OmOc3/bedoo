@@ -2,11 +2,16 @@ import type { Metadata } from "next";
 import { CopyrightFooter } from "@/components/legal/copyright-footer";
 import { BrandLockup } from "@/components/layout/brand";
 import { BRAND } from "@/lib/brand";
-import { i18n } from "@/lib/i18n";
+import { getI18nMessages, getRequestLocale, getRequestLocaleDirection } from "@/lib/i18n/server";
 
-export const metadata: Metadata = {
-  title: i18n.legal.privacy,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const t = getI18nMessages(locale);
+
+  return {
+    title: t.legal.privacy,
+  };
+}
 
 const sections = [
   {
@@ -49,19 +54,24 @@ const sections = [
   },
 ] as const;
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const locale = await getRequestLocale();
+  const direction = await getRequestLocaleDirection();
+  const t = getI18nMessages(locale);
+  const isEnglish = locale === "en";
+  const pageTitle = isEnglish ? `${t.legal.privacy} ${BRAND.name}` : `${t.legal.privacy} ${BRAND.nameArabic}`;
+  const intro = isEnglish
+    ? "Generic privacy policy for review and customization."
+    : "نص عام لسياسة الخصوصية للمراجعة والتخصيص.";
+
   return (
-    <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-8 text-right sm:px-6 lg:px-8" dir="rtl">
+    <main className="min-h-dvh bg-[var(--surface-subtle)] px-4 py-8 text-start sm:px-6 lg:px-8" dir={direction}>
       <article className="mx-auto max-w-4xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-control sm:p-8">
         <BrandLockup className="mb-8" />
         <div className="border-b border-[var(--border)] pb-6">
-          <p className="text-sm font-medium text-teal-700">
-            {i18n.legal.privacy} / {i18n.en.legal.privacy}
-          </p>
-          <h1 className="mt-2 text-2xl font-bold text-[var(--foreground)]">سياسة خصوصية {BRAND.nameArabic}</h1>
-          <p className="mt-2 text-base leading-7 text-[var(--muted)]">
-            Generic bilingual privacy policy for review and customization. نص عام ثنائي اللغة للمراجعة والتخصيص.
-          </p>
+          <p className="text-sm font-medium text-teal-700">{t.legal.privacy}</p>
+          <h1 className="mt-2 text-2xl font-bold text-[var(--foreground)]">{pageTitle}</h1>
+          <p className="mt-2 text-base leading-7 text-[var(--muted)]">{intro}</p>
         </div>
 
         <div className="mt-8 space-y-7">
@@ -71,15 +81,9 @@ export default function PrivacyPage() {
               key={section.titleEn}
             >
               <div>
-                <h2 className="text-lg font-semibold text-[var(--foreground)]">{section.titleAr}</h2>
-                <p className="text-sm font-medium text-[var(--muted)]" dir="ltr">
-                  {section.titleEn}
-                </p>
+                <h2 className="text-lg font-semibold text-[var(--foreground)]">{isEnglish ? section.titleEn : section.titleAr}</h2>
               </div>
-              <p className="text-sm leading-7 text-[var(--foreground)]">{section.bodyAr}</p>
-              <p className="text-sm leading-7 text-[var(--muted)]" dir="ltr">
-                {section.bodyEn}
-              </p>
+              <p className="text-sm leading-7 text-[var(--foreground)]">{isEnglish ? section.bodyEn : section.bodyAr}</p>
             </section>
           ))}
         </div>

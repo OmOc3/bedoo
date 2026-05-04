@@ -66,6 +66,10 @@ const exactArabicToEnglishEntries = [
   ["تعطيل المستخدم", "Deactivate user"],
   ["تفعيل المستخدم", "Activate user"],
   ["تحديث حالة الطلب", "Update order status"],
+  ["اعتماد", "Approve"],
+  ["إلغاء", "Cancel"],
+  ["إخفاء من العميل", "Hide from client"],
+  ["نشر للعميل", "Publish to client"],
   ["انقر للتغيير", "Click to change"],
   ["اختياري", "Optional"],
   ["مطلوب", "Required"],
@@ -133,6 +137,13 @@ const exactArabicToEnglishEntries = [
   ["نشطة", "Active"],
   ["غير نشط", "Inactive"],
   ["غير نشطة", "Inactive"],
+  ["ظاهر", "Visible"],
+  ["مخفي", "Hidden"],
+  ["معتمدة للفني", "Approved for technician"],
+  ["ملغاة", "Canceled"],
+  ["لم يتم الرش", "Not sprayed"],
+  ["تم الرش", "Sprayed"],
+  ["لم يسجل بعد", "Not recorded yet"],
   ["محطات غير نشطة", "Inactive stations"],
   ["المحطات النشطة", "Active stations"],
   ["حسابات نشطة", "Active accounts"],
@@ -216,8 +227,14 @@ const exactArabicToEnglishEntries = [
   ["تفاصيل المحطة", "Station details"],
   ["تقرير فحص محطة", "Station inspection report"],
   ["المحطة", "Station"],
+  ["العميل", "Client"],
+  ["عميل", "Client"],
   ["الموقع", "Location"],
   ["المنطقة", "Area"],
+  ["اختر المنطقة", "Choose area"],
+  ["الفني", "Technician"],
+  ["اختر الفني", "Choose technician"],
+  ["التاريخ", "Date"],
   ["خط العرض", "Latitude"],
   ["خط الطول", "Longitude"],
   ["الموقع المحدد", "Selected location"],
@@ -333,7 +350,122 @@ const exactArabicToEnglishEntries = [
   ["ملاحظات الفني", "Technician notes"],
   ["حفظ تعديلات التنفيذ", "Save execution changes"],
   ["إجمالي صور التقرير كبير جدًا. قلل عدد الصور أو حجمها ثم حاول مرة أخرى.", "Total report images are too large. Reduce the number or size of images and try again."],
+
+  ["إدارة الشيفتات", "Manage shifts"],
+  ["نظرة تشغيلية على المحطات والتقارير والفنيين.", "Operational overview of stations, reports, and technicians."],
+  ["متابعة التقارير اليومية وحالات المراجعة للمحطات النشطة.", "Daily reports and review status for active stations."],
+  ["عرض التقارير", "View reports"],
+  ["لمحة مختصرة من النظام — انقر أي بطاقة للانتقال مباشرة.", "A quick snapshot — click any card to go there."],
+  ["وصول متكرّر لتشغيل اليوم خارج التقارير فقط.", "Frequent shortcuts for today beyond reports."],
+  ["مراجعة المعلقة فقط", "Pending review only"],
+  ["عرض المحطات", "View stations"],
+  ["التقارير اليومية للفنيين", "Technician daily reports"],
+  ["إعادة فحص الموقع", "Recheck location"],
+  ["برنامج التنفيذ", "Execution program"],
+  ["اختر نوعاً واحداً أو أكثر من أنواع الآفات المستهدفة في هذا الموقع.", "Select one or more target pest types for this site."],
+  ["أنواع الآفات (متعدد)", "Pest types (multi-select)"],
+  ["صور التقرير (اختياري)", "Report photos (optional)"],
+  ["صور إضافية", "Additional photos"],
+  ["حفظ التقرير", "Save report"],
+  ["تم حفظ التقرير بنجاح", "Report saved successfully"],
+  ["مسح محطة أخرى", "Scan another station"],
+  ["اختياري، حتى 500 حرف", "Optional, up to 500 characters"],
+  ["لا توجد إحداثيات مسجلة لهذه المحطة. تواصل مع المدير لتحديث موقع المحطة قبل حفظ التقرير.", "No coordinates are saved for this station. Contact the manager to update the station location before saving the report."],
+  ["دقة الموقع ضعيفة. فعّل GPS واقترب من المحطة ثم حاول مرة أخرى.", "Location accuracy is low. Turn on GPS, move closer to the station, then try again."],
+  ["تعذر قراءة موقعك الحالي. اسمح بقراءة الموقع ثم حاول مرة أخرى.", "Unable to read your current location. Allow location access and try again."],
+  ["المحطة دي خارج النطاق ولا يمكن حفظ التقرير.", "This station is outside the allowed area; the report cannot be saved."],
+  [
+    "المحطة دي خارج النطاق المسموح",
+    "This station is outside the allowed radius",
+  ],
+  [
+    "المحطة دي خارج النطاق المسموح (المسافة:",
+    "This station is outside the allowed radius (distance:",
+  ],
+  ["). لازم تكون داخل", "). You must be within"],
+  ["متر عشان تسجل التقرير.", "meters to submit the report."],
+  ["أنت داخل نطاق المحطة", "You are within the station radius"],
+  ["المسافة:", "Distance:"],
+  ["حجم الصورة", "Image"],
+  ["يجب ألا يتجاوز 5 ميجابايت.", "must not exceed 5 MB."],
+  ["المتصفح لا يدعم قراءة الموقع.", "This browser does not support location access."],
+  ["لازم تكون داخل", "You must be within"],
+  ["قبل", "Before"],
+  ["بعد", "After"],
+  ["ملاحظات", "Notes"],
+  ["المحطات القريبة", "Nearby stations"],
+  [
+    "تظهر المحطات النشطة داخل نطاق 100 متر من موقعك الحالي فقط.",
+    "Only active stations within 100 meters of your current location are shown.",
+  ],
+  [
+    "لا توجد محطات قريبة من موقعك الحالي. اقترب من المحطة أو استخدم QR المثبت عليها.",
+    "No stations are nearby. Move closer to a station or use the QR code installed on it.",
+  ],
+  ["آخر زيارة:", "Last visit:"],
+  ["بواسطة", "By"],
+  ["فتح المحطة", "Open station"],
+  ["تعذر تحميل المحطات القريبة.", "Unable to load nearby stations."],
+  ["اختر نوع الدخول", "Choose sign-in type"],
+  ["تم فصل بوابة العملاء عن الإدارة. اختر المسار المناسب حسب نوع حسابك.", "The client portal is separate from administration. Choose the right path for your account type."],
+  ["دخول الإدارة والفريق", "Admin and team sign in"],
+  ["دخول العملاء", "Client sign in"],
+  ["الصفحة غير موجودة", "Page not found"],
+  ["الرابط الذي تحاول فتحه غير متاح أو تم تغييره.", "The link you are trying to open is unavailable or has changed."],
+  ["لا يوجد اتصال", "No connection"],
+  ["لا يمكن تحميل الصفحة الآن. أعد المحاولة عند توفر الاتصال بالشبكة.", "This page cannot load right now. Try again when the network is available."],
+  ["العودة لصفحة المسح", "Back to scan"],
+  ["صيانة", "Maintenance"],
+  ["الموقع تحت الصيانة", "The site is under maintenance"],
+  ["في تعديلات بتتم حاليًا على النظام. اعمل تحديث للصفحة.", "System updates are in progress. Refresh the page."],
+  ["تحديث الصفحة", "Refresh page"],
+  ["إعدادات النظام", "System settings"],
+  ["تحكم سريع في وضع الصيانة وحدود طلبات العملاء وبيانات الدعم الظاهرة لهم.", "Quickly control maintenance mode, client order limits, and visible support details."],
+  ["تم حفظ الإعدادات بنجاح.", "Settings saved successfully."],
+  ["وضع الصيانة", "Maintenance mode"],
+  ["تفعيل وضع الصيانة", "Enable maintenance mode"],
+  ["رسالة الصيانة (اختياري)", "Maintenance message (optional)"],
+  ["الحد الأقصى 280 حرف.", "Maximum 280 characters."],
+  ["الحد اليومي لطلبات فحص المحطات لكل عميل", "Daily inspection order limit per client"],
+  ["ضع", "Set"],
+  ["لعدم تحديد حد.", "for no limit."],
+  ["بيانات الدعم للعملاء", "Client support details"],
+  ["رقم هاتف الدعم", "Support phone"],
+  ["بريد الدعم", "Support email"],
+  ["مواعيد الدعم", "Support hours"],
+  ["حفظ الإعدادات", "Save settings"],
+  ["ملاحظات تشغيلية", "Operational notes"],
+  ["إضافة مهمة يومية", "Add daily task"],
+  ["المشرف يضيف المهمة، والمدير يعتمدها قبل ظهورها للفني.", "The supervisor adds the task, and the manager approves it before it appears for the technician."],
+  ["تحقق من المنطقة والفني والتاريخ.", "Check the area, technician, and date."],
+  ["تم إنشاء المهمة.", "Task created."],
+  ["حفظ المهمة", "Save task"],
+  ["نتيجة الرش", "Spray result"],
+  ["ملاحظات التنفيذ", "Execution notes"],
+  ["تم تسجيل نتيجة الرش. لن تظهر للعميل إلا بعد نشرها من المشرف أو المدير.", "Spray result recorded. It will not appear to the client until a supervisor or manager publishes it."],
+  ["تسجيل نتيجة الرش", "Record spray result"],
+  ["إنشاء جدول يومي للمناطق، اعتماد المدير للمهام، ثم نشر نتيجة الرش للعميل بعد تنفيذ الفني.", "Create a daily area schedule, approve tasks as manager, then publish the spray result to the client after technician execution."],
+  ["بانتظار المدير", "Waiting for manager"],
+  ["منشورة للعميل", "Published to client"],
+  ["جدول المهام", "Task schedule"],
+  ["المهام المعتمدة فقط تظهر للفني في شاشة المسح.", "Only approved tasks appear to the technician on the scan screen."],
+  ["مهمة", "task"],
+  ["لا توجد مهام مناطق حتى الآن.", "There are no area tasks yet."],
+  ["ظهور العميل", "Client visibility"],
+  ["ملخص نهاية الشيفت", "End of shift summary"],
+  ["تم إنهاء الشيفت", "Shift ended"],
+  ["ملخص الشيفت", "Shift summary"],
+  ["وقت البدء", "Start time"],
+  ["وقت الانتهاء", "End time"],
+  ["غير مسجل", "Not recorded"],
+  ["نعم، يحتاج مراجعة تشغيلية", "Yes, needs operational review"],
+  ["حالة مراجعة الراتب", "Salary review status"],
+  ["بانتظار مراجعة المدير", "Pending manager review"],
+  ["العودة للرئيسية", "Back to home"],
 ] as const;
+
+/** Longest keys first so shorter substrings do not break longer phrases. */
+const longestFirstArabicToEnglish = [...exactArabicToEnglishEntries].sort((left, right) => right[0].length - left[0].length);
 
 export const exactArabicToEnglish = new Map<string, string>(exactArabicToEnglishEntries);
 
@@ -366,6 +498,89 @@ export function normalizeTranslatableText(value: string): string {
   return value.replace(whitespacePattern, " ").trim();
 }
 
+function replaceKnownArabicPhrases(value: string): string {
+  let result = value;
+
+  for (const [arabicPhrase, englishPhrase] of longestFirstArabicToEnglish) {
+    if (arabicPhrase.length === 0) {
+      continue;
+    }
+
+    if (result.includes(arabicPhrase)) {
+      result = result.split(arabicPhrase).join(englishPhrase);
+    }
+  }
+
+  return result;
+}
+
+function applyNumericUnitReplacements(value: string): string {
+  return value
+    .replace(/(\d+)\s*متر\b/gu, "$1 m")
+    .replace(/(\d+(?:[.,]\d+)?)\s*كم\b/gu, "$1 km")
+    .replace(/(\d+)\s*م\b/gu, "$1 m");
+}
+
+const arabicTransliteration: Record<string, string> = {
+  "ء": "",
+  "آ": "a",
+  "أ": "a",
+  "ؤ": "w",
+  "إ": "i",
+  "ئ": "y",
+  "ا": "a",
+  "ب": "b",
+  "ة": "h",
+  "ت": "t",
+  "ث": "th",
+  "ج": "j",
+  "ح": "h",
+  "خ": "kh",
+  "د": "d",
+  "ذ": "dh",
+  "ر": "r",
+  "ز": "z",
+  "س": "s",
+  "ش": "sh",
+  "ص": "s",
+  "ض": "d",
+  "ط": "t",
+  "ظ": "z",
+  "ع": "a",
+  "غ": "gh",
+  "ف": "f",
+  "ق": "q",
+  "ك": "k",
+  "ل": "l",
+  "م": "m",
+  "ن": "n",
+  "ه": "h",
+  "و": "w",
+  "ى": "a",
+  "ي": "y",
+  "٠": "0",
+  "١": "1",
+  "٢": "2",
+  "٣": "3",
+  "٤": "4",
+  "٥": "5",
+  "٦": "6",
+  "٧": "7",
+  "٨": "8",
+  "٩": "9",
+  "،": ",",
+  "؛": ";",
+  "؟": "?",
+  "ـ": "",
+};
+
+const arabicDiacriticsPattern = /[\u064B-\u065F\u0670]/gu;
+const remainingArabicPattern = /[\u0600-\u06FF]/gu;
+
+function transliterateRemainingArabic(value: string): string {
+  return value.replace(arabicDiacriticsPattern, "").replace(remainingArabicPattern, (character) => arabicTransliteration[character] ?? "");
+}
+
 export function translateArabicText(value: string): string {
   const normalizedValue = normalizeTranslatableText(value);
 
@@ -379,13 +594,23 @@ export function translateArabicText(value: string): string {
     return exactTranslation;
   }
 
+  let working = replaceKnownArabicPhrases(value);
+  working = applyNumericUnitReplacements(working);
+
+  const normalizedWorking = normalizeTranslatableText(working);
+
   for (const [pattern, translate] of dynamicArabicToEnglishRules) {
-    const match = normalizedValue.match(pattern);
+    const match = normalizedWorking.match(pattern);
 
     if (match) {
       return translate(match);
     }
   }
 
-  return value;
+  if (hasArabicText(working)) {
+    working = replaceKnownArabicPhrases(working);
+    working = applyNumericUnitReplacements(working);
+  }
+
+  return hasArabicText(working) ? transliterateRemainingArabic(working) : working;
 }

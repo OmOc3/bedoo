@@ -19,6 +19,7 @@ import {
   updateClientStationVisibility,
 } from "@/lib/db/repositories";
 import { buildServiceAreaScanUrl } from "@/lib/url/base-url";
+import { getActionMessages } from "@/lib/i18n/action-locale";
 import {
   completeDailyAreaTaskSchema,
   createClientServiceAreaSchema,
@@ -80,19 +81,20 @@ function revalidateClientVisibility(clientUid?: string): void {
 
 export async function uploadClientAnalysisDocumentAction(formData: FormData): Promise<ClientVisibilityActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const parsed = uploadClientAnalysisDocumentSchema.safeParse({
     clientUid: formData.get("clientUid"),
     title: formData.get("title"),
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "تحقق من بيانات الملف." };
+    return { error: parsed.error.issues[0]?.message ?? t.actionErrors.clientVisibility_fileDataInvalid };
   }
 
   const file = formData.get("file");
 
   if (!(file instanceof File) || file.size <= 0) {
-    return { error: "ارفع ملف PDF أو Word." };
+    return { error: t.actionErrors.clientVisibility_pdfWordOnly };
   }
 
   try {
@@ -111,7 +113,7 @@ export async function uploadClientAnalysisDocumentAction(formData: FormData): Pr
     revalidateClientVisibility(parsed.data.clientUid);
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر رفع ملف التحليل." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientVisibility_uploadAnalysisFailed };
   }
 }
 
@@ -119,11 +121,12 @@ export async function toggleClientAnalysisDocumentVisibilityAction(
   formData: FormData,
 ): Promise<ClientVisibilityActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const documentId = formString(formData, "documentId");
   const isVisibleToClient = booleanFromFormData(formData, "isVisibleToClient");
 
   if (!documentId) {
-    return { error: "ملف التحليل غير محدد." };
+    return { error: t.actionErrors.clientVisibility_analysisFileMissing };
   }
 
   try {
@@ -137,7 +140,7 @@ export async function toggleClientAnalysisDocumentVisibilityAction(
     revalidateClientVisibility(clientUid);
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر تحديث ظهور الملف." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientVisibility_fileVisibilityUpdateFailed };
   }
 }
 
@@ -147,6 +150,7 @@ export async function toggleClientAnalysisDocumentVisibilityFormAction(formData:
 
 export async function createClientServiceAreaAction(formData: FormData): Promise<ClientVisibilityActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const lat = optionalNumber(formData, "lat");
   const lng = optionalNumber(formData, "lng");
   const parsed = createClientServiceAreaSchema.safeParse({
@@ -159,7 +163,7 @@ export async function createClientServiceAreaAction(formData: FormData): Promise
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "تحقق من بيانات المنطقة." };
+    return { error: parsed.error.issues[0]?.message ?? t.actionErrors.clientVisibility_areaDataInvalid };
   }
 
   const areaId = crypto.randomUUID();
@@ -187,17 +191,18 @@ export async function createClientServiceAreaAction(formData: FormData): Promise
     revalidateClientVisibility(parsed.data.clientUid);
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر إنشاء المنطقة." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientVisibility_createAreaFailed };
   }
 }
 
 export async function toggleClientServiceAreaStatusAction(formData: FormData): Promise<ClientVisibilityActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const areaId = formString(formData, "areaId");
   const isActive = booleanFromFormData(formData, "isActive");
 
   if (!areaId) {
-    return { error: "المنطقة غير محددة." };
+    return { error: t.actionErrors.clientVisibility_areaMissing };
   }
 
   try {
@@ -211,7 +216,7 @@ export async function toggleClientServiceAreaStatusAction(formData: FormData): P
     revalidateClientVisibility(clientUid);
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر تحديث حالة المنطقة." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientVisibility_areaStatusUpdateFailed };
   }
 }
 
@@ -221,6 +226,7 @@ export async function toggleClientServiceAreaStatusFormAction(formData: FormData
 
 export async function updateClientStationVisibilityAction(formData: FormData): Promise<ClientVisibilityActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const parsed = updateClientStationVisibilitySchema.safeParse({
     clientUid: formData.get("clientUid"),
     reportsVisibleToClient: booleanFromFormData(formData, "reportsVisibleToClient"),
@@ -229,7 +235,7 @@ export async function updateClientStationVisibilityAction(formData: FormData): P
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "تحقق من إعدادات ظهور المحطة." };
+    return { error: parsed.error.issues[0]?.message ?? t.actionErrors.clientVisibility_stationVisibilityInvalid };
   }
 
   try {
@@ -245,7 +251,7 @@ export async function updateClientStationVisibilityAction(formData: FormData): P
     revalidateClientVisibility(parsed.data.clientUid);
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر تحديث ظهور المحطة." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientVisibility_stationVisibilityUpdateFailed };
   }
 }
 
@@ -255,6 +261,7 @@ export async function updateClientStationVisibilityFormAction(formData: FormData
 
 export async function createDailyAreaTaskAction(formData: FormData): Promise<ClientVisibilityActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const parsed = createDailyAreaTaskSchema.safeParse({
     areaId: formData.get("areaId"),
     notes: optionalString(formData, "notes"),
@@ -263,7 +270,7 @@ export async function createDailyAreaTaskAction(formData: FormData): Promise<Cli
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "تحقق من بيانات المهمة." };
+    return { error: parsed.error.issues[0]?.message ?? t.actionErrors.clientVisibility_taskDataInvalid };
   }
 
   try {
@@ -280,7 +287,7 @@ export async function createDailyAreaTaskAction(formData: FormData): Promise<Cli
     revalidatePath("/scan");
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر إنشاء المهمة." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientVisibility_createTaskFailed };
   }
 }
 
@@ -330,6 +337,7 @@ export async function toggleDailyAreaTaskClientVisibilityAction(formData: FormDa
 
 export async function completeDailyAreaTaskScanAction(formData: FormData): Promise<ClientVisibilityActionResult> {
   const session = await requireRole(["technician", "manager"]);
+  const t = await getActionMessages();
   const parsed = completeDailyAreaTaskSchema.safeParse({
     notes: optionalString(formData, "notes"),
     sprayStatus: formData.get("sprayStatus"),
@@ -337,14 +345,14 @@ export async function completeDailyAreaTaskScanAction(formData: FormData): Promi
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "تحقق من نتيجة الرش." };
+    return { error: parsed.error.issues[0]?.message ?? t.actionErrors.clientVisibility_sprayResultInvalid };
   }
 
   if (session.role === "technician") {
     const openShift = await getOpenShift(session.uid);
 
     if (!openShift) {
-      return { error: "ابدأ الشيفت قبل تسجيل نتيجة رش المنطقة." };
+      return { error: t.actionErrors.clientVisibility_startShiftBeforeSpray };
     }
   }
 
@@ -362,7 +370,7 @@ export async function completeDailyAreaTaskScanAction(formData: FormData): Promi
     revalidatePath("/scan");
     return { success: true };
   } catch (error: unknown) {
-    return { error: error instanceof Error ? error.message : "تعذر تسجيل نتيجة الرش." };
+    return { error: error instanceof Error ? error.message : t.actionErrors.clientVisibility_sprayResultSaveFailed };
   }
 }
 

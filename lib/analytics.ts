@@ -208,22 +208,26 @@ function bucketKey(date: Date): string {
   return formatIsoDateRome(date) ?? date.toISOString().slice(0, 10);
 }
 
-function trendLabel(date: Date, granularity: TrendGranularity): string {
+function trendLabel(date: Date, granularity: TrendGranularity, intlLocale: string): string {
+  const formatter = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(intlLocale, { ...options, timeZone: "Europe/Rome" });
+
   if (granularity === "week") {
-    return `أسبوع ${new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "short", timeZone: "Europe/Rome" }).format(date)}`;
+    const prefix = intlLocale.toLowerCase().startsWith("ar") ? "أسبوع " : "Week of ";
+    return `${prefix}${formatter({ day: "numeric", month: "short" }).format(date)}`;
   }
 
   if (granularity === "month") {
-    return new Intl.DateTimeFormat("ar-EG", { month: "short", year: "numeric", timeZone: "Europe/Rome" }).format(date);
+    return formatter({ month: "short", year: "numeric" }).format(date);
   }
 
-  return new Intl.DateTimeFormat("ar-EG", { day: "numeric", month: "short", timeZone: "Europe/Rome" }).format(date);
+  return formatter({ day: "numeric", month: "short" }).format(date);
 }
 
-function createTrendPoint(date: Date, granularity: TrendGranularity): ReportTrendPoint {
+function createTrendPoint(date: Date, granularity: TrendGranularity, intlLocale: string): ReportTrendPoint {
   return {
     key: bucketKey(date),
-    label: trendLabel(date, granularity),
+    label: trendLabel(date, granularity, intlLocale),
     pending: 0,
     rejected: 0,
     reviewed: 0,
@@ -235,14 +239,14 @@ function submittedAtDate(report: Report): Date {
   return report.submittedAt.toDate();
 }
 
-export function buildReportTrend(reports: Report[], rangeFrom: Date, rangeTo: Date): ReportTrendPoint[] {
+export function buildReportTrend(reports: Report[], rangeFrom: Date, rangeTo: Date, intlLocale: string): ReportTrendPoint[] {
   const granularity = trendGranularity(rangeFrom, rangeTo);
   const buckets = new Map<string, ReportTrendPoint>();
   let cursor = bucketStart(rangeFrom, granularity);
   const finalBucket = bucketStart(rangeTo, granularity);
 
   while (cursor.getTime() <= finalBucket.getTime()) {
-    const point = createTrendPoint(cursor, granularity);
+    const point = createTrendPoint(cursor, granularity, intlLocale);
 
     buckets.set(point.key, point);
     cursor = addStep(cursor, granularity);
@@ -290,33 +294,44 @@ function pendingCount(reports: Report[]): number {
   return reports.filter((report) => report.reviewStatus === "pending").length;
 }
 
-export function buildPeriodComparison(currentReports: Report[], previousReports: Report[]): PeriodComparisonMetric[] {
+export interface PeriodComparisonLabels {
+  activeTechnicians: string;
+  pending: string;
+  reviewed: string;
+  totalReports: string;
+}
+
+export function buildPeriodComparison(
+  currentReports: Report[],
+  previousReports: Report[],
+  labels: PeriodComparisonLabels,
+): PeriodComparisonMetric[] {
   const values: PeriodComparisonMetric[] = [
     {
       current: currentReports.length,
       key: "reports",
-      label: "إجمالي التقارير",
+      label: labels.totalReports,
       previous: previousReports.length,
       changePercent: percentageChange(currentReports.length, previousReports.length),
     },
     {
       current: pendingCount(currentReports),
       key: "pending",
-      label: "بانتظار المراجعة",
+      label: labels.pending,
       previous: pendingCount(previousReports),
       changePercent: percentageChange(pendingCount(currentReports), pendingCount(previousReports)),
     },
     {
       current: reviewedCount(currentReports),
       key: "reviewed",
-      label: "تمت مراجعتها",
+      label: labels.reviewed,
       previous: reviewedCount(previousReports),
       changePercent: percentageChange(reviewedCount(currentReports), reviewedCount(previousReports)),
     },
     {
       current: activeTechnicianCount(currentReports),
       key: "activeTechnicians",
-      label: "فنيون نشطون",
+      label: labels.activeTechnicians,
       previous: activeTechnicianCount(previousReports),
       changePercent: percentageChange(activeTechnicianCount(currentReports), activeTechnicianCount(previousReports)),
     },

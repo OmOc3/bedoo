@@ -1,7 +1,7 @@
 import type { Coordinates } from "@/types";
 
 export const stationAccessRadiusMeters = 100;
-export const maxLocationAccuracyMeters = 100;
+export const maxLocationAccuracyMeters = 50;
 
 export interface LocatedStation<T> {
   distanceMeters: number;

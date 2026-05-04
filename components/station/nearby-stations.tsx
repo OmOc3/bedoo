@@ -2,8 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLanguage } from "@/components/i18n/language-provider";
 import { formatDateTimeRome } from "@/lib/datetime";
+import { getIntlLocaleForApp } from "@/lib/i18n";
 
 interface NearbyStation {
   distanceMeters: number;
@@ -16,28 +18,10 @@ interface NearbyStation {
   zone?: string;
 }
 
-function formatDistance(value: number): string {
-  return value < 1000 ? `${Math.round(value)} م` : `${(value / 1000).toFixed(1)} كم`;
-}
-
-function formatTimestamp(value?: string): string {
-  if (!value) {
-    return "لم تتم الزيارة";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "غير متاح";
-  }
-
-  return formatDateTimeRome(date, { locale: "ar-EG" });
-}
-
-function readPosition(): Promise<GeolocationPosition> {
+function readPosition(geoUnsupportedMessage: string): Promise<GeolocationPosition> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error("المتصفح لا يدعم قراءة الموقع."));
+      reject(new Error(geoUnsupportedMessage));
       return;
     }
 
@@ -50,16 +34,50 @@ function readPosition(): Promise<GeolocationPosition> {
 }
 
 export function NearbyStations() {
+  const { locale, messages, translate } = useLanguage();
+  const rf = messages.reportFlow;
+  const intlLocale = useMemo(() => getIntlLocaleForApp(locale), [locale]);
+
+  const formatDistanceLabel = useCallback(
+    (value: number): string => {
+      if (locale === "en") {
+        return value < 1000 ? `${Math.round(value)} m` : `${(value / 1000).toFixed(1)} km`;
+      }
+      return value < 1000 ? `${Math.round(value)} م` : `${(value / 1000).toFixed(1)} كم`;
+    },
+    [locale],
+  );
+
+  const formatTimestamp = useCallback(
+    (value?: string): string => {
+      if (!value) {
+        return messages.stations.neverVisited;
+      }
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return messages.common.unavailable;
+      }
+
+      return formatDateTimeRome(date, {
+        locale: intlLocale,
+        unavailableLabel: messages.common.unavailable,
+      });
+    },
+    [intlLocale, messages.common.unavailable, messages.stations.neverVisited],
+  );
+
   const [stations, setStations] = useState<NearbyStation[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "ready">("idle");
   const [message, setMessage] = useState<string | null>(null);
 
-  async function loadNearbyStations(): Promise<void> {
+  const loadNearbyStations = useCallback(async (): Promise<void> => {
     setStatus("loading");
     setMessage(null);
 
     try {
-      const position = await readPosition();
+      const position = await readPosition(rf.geoUnsupported);
       const params = new URLSearchParams({
         lat: String(position.coords.latitude),
         lng: String(position.coords.longitude),
@@ -74,7 +92,7 @@ export function NearbyStations() {
 
       if (!response.ok) {
         const error = payload && typeof payload === "object" && "error" in payload ? String(payload.error) : "";
-        throw new Error(error || "تعذر تحميل المحطات القريبة.");
+        throw new Error(error || rf.nearbyFetchFailed);
       }
 
       setStations(Array.isArray(payload) ? (payload as NearbyStation[]) : []);
@@ -82,22 +100,20 @@ export function NearbyStations() {
     } catch (error: unknown) {
       setStations([]);
       setStatus("idle");
-      setMessage(error instanceof Error ? error.message : "تعذر قراءة موقعك الحالي.");
+      setMessage(error instanceof Error ? error.message : rf.nearbyLocationFailed);
     }
-  }
+  }, [rf.geoUnsupported, rf.nearbyFetchFailed, rf.nearbyLocationFailed]);
 
   useEffect(() => {
     void loadNearbyStations();
-  }, []);
+  }, [loadNearbyStations]);
 
   return (
     <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-control">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-[var(--foreground)]">المحطات القريبة</h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
-            تظهر المحطات النشطة داخل نطاق 100 متر من موقعك الحالي فقط.
-          </p>
+          <h2 className="text-xl font-bold text-[var(--foreground)]">{rf.nearbyTitle}</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{rf.nearbyLead}</p>
         </div>
         <button
           className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)] disabled:cursor-not-allowed disabled:opacity-60"
@@ -105,11 +121,11 @@ export function NearbyStations() {
           onClick={() => void loadNearbyStations()}
           type="button"
         >
-          {status === "loading" ? "جاري التحديد..." : "تحديث الموقع"}
+          {status === "loading" ? rf.locating : rf.refreshLocation}
         </button>
       </div>
 
-      {message ? <p className="mt-4 rounded-lg bg-[var(--surface-subtle)] px-3 py-2 text-sm text-[var(--danger)]">{message}</p> : null}
+      {message ? <p className="mt-4 rounded-lg bg-[var(--surface-subtle)] px-3 py-2 text-sm text-[var(--danger)]">{translate(message)}</p> : null}
 
       {status === "loading" ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -121,7 +137,7 @@ export function NearbyStations() {
 
       {status === "ready" && stations.length === 0 ? (
         <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] p-5 text-sm leading-6 text-[var(--muted)]">
-          لا توجد محطات قريبة من موقعك الحالي. اقترب من المحطة أو استخدم QR المثبت عليها.
+          {rf.nearbyEmpty}
         </div>
       ) : null}
 
@@ -131,7 +147,7 @@ export function NearbyStations() {
             <article className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4" key={station.stationId}>
               {station.photoUrl ? (
                 <Image
-                  alt={`صورة المحطة ${station.label}`}
+                  alt={`${rf.stationPhotoAlt} ${station.label}`}
                   className="mb-3 h-32 w-full rounded-lg border border-[var(--border)] object-cover"
                   height={128}
                   src={station.photoUrl}
@@ -148,18 +164,18 @@ export function NearbyStations() {
                   <p className="mt-1 text-sm leading-6 text-[var(--muted)]">{station.location}</p>
                 </div>
                 <span className="shrink-0 rounded-lg bg-teal-50 px-2 py-1 text-xs font-semibold text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
-                  {formatDistance(station.distanceMeters)}
+                  {formatDistanceLabel(station.distanceMeters)}
                 </span>
               </div>
               <div className="mt-3 rounded-lg bg-[var(--surface-subtle)] px-3 py-2 text-xs leading-5 text-[var(--muted)]">
-                آخر زيارة: {formatTimestamp(station.lastVisitedAt)}
-                {station.lastVisitedBy ? ` بواسطة ${station.lastVisitedBy}` : ""}
+                {rf.lastVisit} {formatTimestamp(station.lastVisitedAt)}
+                {station.lastVisitedBy ? ` · ${rf.by} ${station.lastVisitedBy}` : ""}
               </div>
               <Link
                 className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)] transition-colors hover:bg-[var(--primary-hover)]"
                 href={`/station/${station.stationId}/report`}
               >
-                فتح المحطة
+                {rf.openStation}
               </Link>
             </article>
           ))}

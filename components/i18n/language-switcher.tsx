@@ -47,7 +47,7 @@ export function LanguageSwitcher() {
       aria-label={messages.common.chooseLanguage}
       className={cn(
         "fixed top-3 z-[80] flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)]/95 px-1.5 py-1 shadow-lg shadow-black/5 backdrop-blur-md supports-[backdrop-filter]:bg-[var(--surface)]/80",
-        isRtl ? "left-3 sm:left-5" : "right-3 sm:right-5",
+        isRtl ? "start-3 sm:start-5" : "end-3 sm:end-5",
       )}
       data-no-translate
       role="group"

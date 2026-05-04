@@ -7,6 +7,7 @@ import { StatusPills } from "@/components/reports/status-pills";
 import { ThemeIconToggle } from "@/components/theme/theme-icon-toggle";
 import { requireRole } from "@/lib/auth/server-session";
 import { formatDateTimeRome } from "@/lib/datetime";
+import { getIntlLocaleForApp } from "@/lib/i18n";
 import { getI18nMessages, getRequestLocale } from "@/lib/i18n/server";
 import { getLatestReports, getManagerDashboardStats } from "@/lib/stats/dashboard-stats";
 import type { AppTimestamp } from "@/types";
@@ -125,17 +126,23 @@ function StatCard({ href, label, tone, value }: StatCardProps) {
   );
 }
 
-function formatTimestamp(timestamp?: AppTimestamp): string {
-  if (!timestamp) {
-    return "غير متاح";
-  }
-
-  return formatDateTimeRome(timestamp.toDate(), { locale: "ar-EG" });
-}
-
 export default async function ManagerDashboardPage() {
   await requireRole(["manager"]);
-  const t = getI18nMessages(await getRequestLocale());
+  const locale = await getRequestLocale();
+  const t = getI18nMessages(locale);
+  const intlLocale = getIntlLocaleForApp(locale);
+
+  function formatTimestamp(timestamp?: AppTimestamp): string {
+    if (!timestamp) {
+      return t.common.unavailable;
+    }
+
+    return formatDateTimeRome(timestamp.toDate(), {
+      locale: intlLocale,
+      unavailableLabel: t.common.unavailable,
+    });
+  }
+
   const [stats, latestReports] = await Promise.all([getManagerDashboardStats(), getLatestReports(5)]);
 
   return (
@@ -148,40 +155,40 @@ export default async function ManagerDashboardPage() {
                 className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
                 href="/dashboard/manager/shifts"
               >
-                إدارة الشيفتات
+                {t.managerHome.manageShifts}
               </Link>
               <Link
                 className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--foreground)] transition-colors hover:bg-[var(--surface-subtle)]"
                 href="/dashboard/manager/client-orders"
               >
-                العملاء والطلبات
+                {t.managerHome.clientsAndOrders}
               </Link>
             </>
           }
-          description="نظرة تشغيلية على المحطات والتقارير والفنيين."
+          description={t.managerHome.pageDescription}
           title={t.dashboard.managerTitle}
         />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard href="/dashboard/manager/stations" label="إجمالي المحطات" tone="teal" value={stats.totalStations} />
-          <StatCard href="/dashboard/manager/stations" label="المحطات النشطة" tone="green" value={stats.activeStations} />
-          <StatCard href="/dashboard/manager/reports" label="إجمالي التقارير" tone="blue" value={stats.totalReports} />
-          <StatCard href="/dashboard/manager/reports" label="تقارير آخر 7 أيام" tone="teal" value={stats.reportsThisWeek} />
+          <StatCard href="/dashboard/manager/stations" label={t.managerHome.statTotalStations} tone="teal" value={stats.totalStations} />
+          <StatCard href="/dashboard/manager/stations" label={t.managerHome.statActiveStations} tone="green" value={stats.activeStations} />
+          <StatCard href="/dashboard/manager/reports" label={t.managerHome.statTotalReports} tone="blue" value={stats.totalReports} />
+          <StatCard href="/dashboard/manager/reports" label={t.managerHome.statReportsLast7Days} tone="teal" value={stats.reportsThisWeek} />
           <StatCard
             href="/dashboard/manager/reports?reviewStatus=pending"
-            label="بانتظار المراجعة"
+            label={t.managerHome.statPendingReview}
             tone="amber"
             value={stats.pendingReviewReports}
           />
-          <StatCard href="/dashboard/manager/team" label="الفنيون" tone="blue" value={stats.technicians} />
-          <StatCard href="/dashboard/manager/tasks" label="مهام اليوم" tone="amber" value={stats.pendingReviewReports} />
+          <StatCard href="/dashboard/manager/team" label={t.managerHome.statTechnicians} tone="blue" value={stats.technicians} />
+          <StatCard href="/dashboard/manager/tasks" label={t.managerHome.statTodayTasks} tone="amber" value={stats.pendingReviewReports} />
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-card">
           <div className="flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--surface)] px-5 py-4">
-            <h2 className="section-heading text-base">آخر التقارير</h2>
+            <h2 className="section-heading text-base">{t.managerHome.recentReports}</h2>
             <Link className="text-sm font-semibold text-[var(--primary)] transition-colors hover:text-[var(--primary-hover)]" href="/dashboard/manager/reports">
-              عرض الكل
+              {t.managerHome.viewAll}
             </Link>
           </div>
           <div className="overflow-x-auto">
@@ -189,16 +196,16 @@ export default async function ManagerDashboardPage() {
               <thead className="bg-[var(--surface-subtle)]">
                 <tr>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    الوقت
+                    {t.managerHome.colTime}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    المحطة
+                    {t.managerHome.colStation}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    الفني
+                    {t.managerHome.colTechnician}
                   </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                    الحالة
+                    {t.managerHome.colStatus}
                   </th>
                 </tr>
               </thead>

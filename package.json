@@ -17,7 +17,14 @@
     "mobile:start": "npm --prefix mobile run start",
     "mobile:web": "npm --prefix mobile run web",
     "mobile:lint": "npm --prefix mobile run lint",
-    "mobile:typecheck": "npm --prefix mobile exec -- tsc --noEmit -p mobile/tsconfig.json"
+    "mobile:typecheck": "npm --prefix mobile exec -- tsc --noEmit -p mobile/tsconfig.json",
+    "command-center:dev": "npm --prefix packages/command-center run dev",
+    "command-center:build": "npm --prefix packages/command-center run build",
+    "command-center:typecheck": "npm --prefix packages/command-center run typecheck",
+    "command-center:open": "npm --prefix packages/command-center run open",
+    "command-center:dist-win": "npm --prefix packages/command-center run dist:win",
+    "command-center:mcp": "npm --prefix packages/command-center run mcp:serve",
+    "command-center:cli": "npm --prefix packages/command-center run cli"
   },
   "dependencies": {
     "@better-auth/expo": "^1.6.9",

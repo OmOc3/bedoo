@@ -11,6 +11,7 @@ import { user as usersTable } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createUserSchema, updateUserAccessCodeSchema, updateUserRoleSchema, updateUserProfileSchema } from "@/lib/validation/users";
 import { writeAuditLog } from "@/lib/audit";
+import { getActionMessages } from "@/lib/i18n/action-locale";
 import { recordUserLifecycleAfterActiveChange } from "@/lib/users/user-lifecycle";
 import type { UserRole } from "@/types";
 
@@ -33,6 +34,7 @@ function canSupervisorManageRole(role: UserRole): boolean {
 
 export async function createUserAccountAction(formData: FormData): Promise<UserActionResult> {
   const session = await requireRole(["manager", "supervisor"]);
+  const t = await getActionMessages();
   const parsed = createUserSchema.safeParse({
     displayName: requiredString(formData, "displayName"),
     email: requiredString(formData, "email"),
@@ -43,16 +45,16 @@ export async function createUserAccountAction(formData: FormData): Promise<UserA
 
   if (!parsed.success) {
     return {
-      error: "تحقق من بيانات المستخدم وحاول مرة أخرى.",
+      error: t.actionErrors.users_validationFailed,
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
 
   if (session.role === "supervisor" && !canSupervisorManageRole(parsed.data.role)) {
     return {
-      error: "ليس لدى المشرف صلاحية إنشاء مدير أو مشرف آخر.",
+      error: t.actionErrors.users_supervisorCannotCreateElevated,
       fieldErrors: {
-        role: ["اختر دور عميل أو فني."],
+        role: [t.actionErrors.users_pickClientOrTechnician],
       },
     };
   }
@@ -61,7 +63,7 @@ export async function createUserAccountAction(formData: FormData): Promise<UserA
   const existingUser = await getUserByEmail(email);
 
   if (existingUser) {
-    return { error: "هذا البريد مستخدم بالفعل." };
+    return { error: t.actionErrors.users_emailTaken };
   }
 
   try {
@@ -102,7 +104,7 @@ export async function createUserAccountAction(formData: FormData): Promise<UserA
       success: true,
     };
   } catch (_error: unknown) {
-    return { error: "تعذر إنشاء المستخدم. تحقق من البيانات وحاول مرة أخرى." };
+    return { error: t.actionErrors.users_createFailed };
   }
 }
 
@@ -111,15 +113,16 @@ export async function toggleUserActiveAction(
   intent: "activate" | "deactivate",
 ): Promise<UserActionResult> {
   const session = await requireRole(["manager"]);
+  const t = await getActionMessages();
 
   if (targetUid === session.uid) {
-    return { error: "لا يمكنك تعطيل حسابك" };
+    return { error: t.actionErrors.users_cannotDeactivateSelf };
   }
 
   const user = await getAppUser(targetUid);
 
   if (!user) {
-    return { error: "المستخدم غير موجود" };
+    return { error: t.actionErrors.users_notFound };
   }
 
   const nextIsActive = intent === "activate";
@@ -150,7 +153,7 @@ export async function toggleUserActiveAction(
       });
     }
   } catch (_error: unknown) {
-    return { error: "تعذر تحديث حالة المستخدم." };
+    return { error: t.actionErrors.users_statusUpdateFailed };
   }
 
   await recordUserLifecycleAfterActiveChange(targetUid, session.uid, nextIsActive);
@@ -178,9 +181,10 @@ export async function toggleUserActiveAction(
 
 export async function updateUserRoleAction(targetUid: string, formData: FormData): Promise<UserActionResult> {
   const session = await requireRole(["manager"]);
+  const t = await getActionMessages();
 
   if (targetUid === session.uid) {
-    return { error: "لا يمكنك تغيير دورك" };
+    return { error: t.actionErrors.users_cannotChangeOwnRole };
   }
 
   const parsed = updateUserRoleSchema.safeParse({
@@ -189,7 +193,7 @@ export async function updateUserRoleAction(targetUid: string, formData: FormData
 
   if (!parsed.success) {
     return {
-      error: "تحقق من الدور المختار وحاول مرة أخرى.",
+      error: t.actionErrors.users_roleValidationFailed,
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -197,7 +201,7 @@ export async function updateUserRoleAction(targetUid: string, formData: FormData
   const user = await getAppUser(targetUid);
 
   if (!user) {
-    return { error: "المستخدم غير موجود" };
+    return { error: t.actionErrors.users_notFound };
   }
 
   try {
@@ -209,7 +213,7 @@ export async function updateUserRoleAction(targetUid: string, formData: FormData
       headers: await headers(),
     });
   } catch (_error: unknown) {
-    return { error: "تعذر تحديث دور المستخدم." };
+    return { error: t.actionErrors.users_roleUpdateFailed };
   }
 
   await writeAuditLog({
@@ -233,13 +237,14 @@ export async function updateUserRoleAction(targetUid: string, formData: FormData
 
 export async function updateUserAccessCodeAction(targetUid: string, formData: FormData): Promise<UserActionResult> {
   const session = await requireRole(["manager"]);
+  const t = await getActionMessages();
   const parsed = updateUserAccessCodeSchema.safeParse({
     password: requiredString(formData, "password"),
   });
 
   if (!parsed.success) {
     return {
-      error: "تحقق من كود الدخول وحاول مرة أخرى.",
+      error: t.actionErrors.users_accessCodeValidationFailed,
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -247,7 +252,7 @@ export async function updateUserAccessCodeAction(targetUid: string, formData: Fo
   const user = await getAppUser(targetUid);
 
   if (!user) {
-    return { error: "المستخدم غير موجود" };
+    return { error: t.actionErrors.users_notFound };
   }
 
   try {
@@ -263,7 +268,7 @@ export async function updateUserAccessCodeAction(targetUid: string, formData: Fo
       passwordChangedAt: new Date(),
     }).where(eq(usersTable.id, targetUid));
   } catch (_error: unknown) {
-    return { error: "تعذر تحديث كود الدخول. تحقق من البيانات وحاول مرة أخرى." };
+    return { error: t.actionErrors.users_accessCodeUpdateFailed };
   }
 
   await writeAuditLog({
@@ -287,10 +292,11 @@ export async function updateUserAccessCodeAction(targetUid: string, formData: Fo
 
 export async function updateUserProfileAction(targetUid: string, formData: FormData): Promise<UserActionResult> {
   const session = await requireRole(["manager", "supervisor", "technician", "client"]);
+  const t = await getActionMessages();
 
   // Only manager/supervisor can update OTHER users
   if (targetUid !== session.uid && session.role !== "manager" && session.role !== "supervisor") {
-    return { error: "ليس لديك صلاحية لتعديل حساب شخص آخر." };
+    return { error: t.actionErrors.users_cannotEditOtherProfile };
   }
 
   const parsed = updateUserProfileSchema.safeParse({
@@ -300,7 +306,7 @@ export async function updateUserProfileAction(targetUid: string, formData: FormD
 
   if (!parsed.success) {
     return {
-      error: "تحقق من البيانات المدخلة وحاول مرة أخرى.",
+      error: t.actionErrors.users_profileValidationFailed,
       fieldErrors: parsed.error.flatten().fieldErrors,
     };
   }
@@ -308,11 +314,11 @@ export async function updateUserProfileAction(targetUid: string, formData: FormD
   const targetAppUser = await getAppUser(targetUid);
 
   if (!targetAppUser) {
-    return { error: "المستخدم غير موجود" };
+    return { error: t.actionErrors.users_notFound };
   }
 
   if (targetUid !== session.uid && session.role === "supervisor" && !canSupervisorManageRole(targetAppUser.role)) {
-    return { error: "ليس لدى المشرف صلاحية تعديل حساب مدير أو مشرف آخر." };
+    return { error: t.actionErrors.users_supervisorCannotEditElevated };
   }
 
   try {
@@ -321,7 +327,7 @@ export async function updateUserProfileAction(targetUid: string, formData: FormD
       image: parsed.data.image,
     }).where(eq(usersTable.id, targetUid));
   } catch (_error: unknown) {
-    return { error: "تعذر تحديث بيانات المستخدم." };
+    return { error: t.actionErrors.users_profileUpdateFailed };
   }
 
   await writeAuditLog({
@@ -345,6 +351,7 @@ export async function updateUserProfileAction(targetUid: string, formData: FormD
 
 export async function deleteClientAccountAction(targetUid: string): Promise<void> {
   const session = await requireRole(["manager"]);
+  const t = await getActionMessages();
 
   try {
     await deleteClientIfSafe({
@@ -353,7 +360,9 @@ export async function deleteClientAccountAction(targetUid: string): Promise<void
       clientUid: targetUid,
     });
   } catch (error: unknown) {
-    redirect(`/dashboard/manager/team?error=${encodeURIComponent(error instanceof Error ? error.message : "تعذر حذف العميل.")}`);
+    redirect(
+      `/dashboard/manager/team?error=${encodeURIComponent(error instanceof Error ? error.message : t.actionErrors.users_deleteClientFailed)}`,
+    );
   }
 
   revalidatePath("/dashboard/manager/team");

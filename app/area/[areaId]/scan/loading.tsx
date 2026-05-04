@@ -1,3 +1,5 @@
-export default function AreaScanLoading() {
-  return <div className="p-6 text-sm text-[var(--muted)]">جار تحميل مهمة المنطقة...</div>;
+import { AsyncRouteLoading } from "@/components/i18n/async-route-loading";
+
+export default async function LoadingAreaScanPage() {
+  return <AsyncRouteLoading messageKey="areaScanTask" />;
 }
