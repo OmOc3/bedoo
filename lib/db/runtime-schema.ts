@@ -463,6 +463,7 @@ async function ensureRuntimeSchemaInternal(): Promise<void> {
       document_id text PRIMARY KEY NOT NULL,
       client_uid text NOT NULL REFERENCES user(id) ON DELETE cascade,
       title text NOT NULL,
+      document_category text DEFAULT 'import_source' NOT NULL,
       file_name text NOT NULL,
       file_type text NOT NULL,
       file_url text NOT NULL,
@@ -475,8 +476,28 @@ async function ensureRuntimeSchemaInternal(): Promise<void> {
       updated_at integer
     )
   `);
+  await addMissingColumns("client_analysis_documents", [
+    { name: "title", sql: "ALTER TABLE `client_analysis_documents` ADD `title` text NOT NULL DEFAULT ''" },
+    {
+      name: "document_category",
+      sql: "ALTER TABLE `client_analysis_documents` ADD `document_category` text DEFAULT 'import_source' NOT NULL",
+    },
+    { name: "file_name", sql: "ALTER TABLE `client_analysis_documents` ADD `file_name` text NOT NULL DEFAULT ''" },
+    { name: "file_type", sql: "ALTER TABLE `client_analysis_documents` ADD `file_type` text NOT NULL DEFAULT 'unknown'" },
+    { name: "file_url", sql: "ALTER TABLE `client_analysis_documents` ADD `file_url` text NOT NULL DEFAULT ''" },
+    {
+      name: "is_visible_to_client",
+      sql: "ALTER TABLE `client_analysis_documents` ADD `is_visible_to_client` integer DEFAULT true NOT NULL",
+    },
+    { name: "uploaded_by", sql: "ALTER TABLE `client_analysis_documents` ADD `uploaded_by` text NOT NULL DEFAULT ''" },
+    { name: "uploaded_by_role", sql: "ALTER TABLE `client_analysis_documents` ADD `uploaded_by_role` text NOT NULL DEFAULT 'manager'" },
+    { name: "published_at", sql: "ALTER TABLE `client_analysis_documents` ADD `published_at` integer" },
+    { name: "published_by", sql: "ALTER TABLE `client_analysis_documents` ADD `published_by` text" },
+    { name: "updated_at", sql: "ALTER TABLE `client_analysis_documents` ADD `updated_at` integer" },
+  ]);
   await execute("CREATE INDEX IF NOT EXISTS client_analysis_documents_client_uid_idx ON client_analysis_documents (client_uid)");
   await execute("CREATE INDEX IF NOT EXISTS client_analysis_documents_visible_idx ON client_analysis_documents (is_visible_to_client)");
+  await execute("CREATE INDEX IF NOT EXISTS client_analysis_documents_category_idx ON client_analysis_documents (document_category)");
   await execute("CREATE INDEX IF NOT EXISTS client_analysis_documents_created_at_idx ON client_analysis_documents (created_at)");
 
   await execute(`

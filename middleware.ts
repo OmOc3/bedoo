@@ -105,6 +105,10 @@ async function getMaintenanceEnabledFromSettingsApi(origin: string): Promise<boo
 }
 
 async function isMaintenanceActive(request: NextRequest): Promise<boolean> {
+  if (process.env.NODE_ENV === "development") {
+    return isMaintenanceEnabled();
+  }
+
   if (isMaintenanceEnabled()) {
     return true;
   }

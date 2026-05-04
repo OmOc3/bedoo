@@ -2317,14 +2317,39 @@ export async function listClientAnalysisDocumentsForAdmin(clientUid: string): Pr
   return rows.map(clientAnalysisDocumentFromRow);
 }
 
-export async function listVisibleClientAnalysisDocuments(clientUid: string): Promise<ClientAnalysisDocument[]> {
-  const rows = await db
-    .select()
-    .from(clientAnalysisDocuments)
-    .where(and(eq(clientAnalysisDocuments.clientUid, clientUid), eq(clientAnalysisDocuments.isVisibleToClient, true)))
-    .orderBy(desc(clientAnalysisDocuments.createdAt));
+export async function listVisibleClientAnalysisDocuments(clientUid: string, limit = 40): Promise<ClientAnalysisDocument[]> {
+  const safeLimit = Math.min(Math.max(limit, 1), 200);
+  try {
+    const rows = await db
+      .select()
+      .from(clientAnalysisDocuments)
+      .where(and(eq(clientAnalysisDocuments.clientUid, clientUid), eq(clientAnalysisDocuments.isVisibleToClient, true)))
+      .orderBy(desc(clientAnalysisDocuments.createdAt))
+      .limit(safeLimit);
 
-  return rows.map(clientAnalysisDocumentFromRow);
+    return rows.map(clientAnalysisDocumentFromRow);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+
+    if (!message.includes("no such column: document_category")) {
+      throw error;
+    }
+
+    // Self-heal older local databases that predate document_category.
+    await db.$client.execute({
+      sql: "ALTER TABLE `client_analysis_documents` ADD `document_category` text DEFAULT 'import_source' NOT NULL",
+      args: [],
+    }).catch(() => undefined);
+
+    const rows = await db
+      .select()
+      .from(clientAnalysisDocuments)
+      .where(and(eq(clientAnalysisDocuments.clientUid, clientUid), eq(clientAnalysisDocuments.isVisibleToClient, true)))
+      .orderBy(desc(clientAnalysisDocuments.createdAt))
+      .limit(safeLimit);
+
+    return rows.map(clientAnalysisDocumentFromRow);
+  }
 }
 
 export async function setClientAnalysisDocumentVisibility(input: {
@@ -3376,14 +3401,20 @@ export async function listReportsForClientStationsAdmin(clientUid: string, limit
   return rows.map((row) => withReportPhotos(reportFromRow(row, statuses.get(row.reportId) ?? []), photos.get(row.reportId)));
 }
 
-export async function listOrderedStationsForClient(clientUid: string): Promise<Station[]> {
+export async function listOrderedStationsForClient(clientUid: string, limit = 80): Promise<Station[]> {
   const stationIds = await clientStationIds(clientUid, "station");
 
   if (stationIds.length === 0) {
     return [];
   }
 
-  const rows = await db.select().from(stations).where(inArray(stations.stationId, stationIds)).orderBy(desc(stations.createdAt));
+  const safeLimit = Math.min(Math.max(limit, 1), 300);
+  const rows = await db
+    .select()
+    .from(stations)
+    .where(inArray(stations.stationId, stationIds))
+    .orderBy(desc(stations.createdAt))
+    .limit(safeLimit);
   return rows.map(stationFromRow);
 }
 

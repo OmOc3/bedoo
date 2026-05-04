@@ -47,12 +47,14 @@ export function ThemeIconToggle({ className }: ThemeIconToggleProps) {
   }
 
   const isDark = theme === "dark";
+  const toggleThemeLabel = isDark ? "Switch to light mode" : "Switch to dark mode";
 
   return (
     <button
       onClick={toggleTheme}
       type="button"
-      aria-label={isDark ? "تفعيل الوضع الفاتح" : "تفعيل الوضع الداكن"}
+      aria-label={toggleThemeLabel}
+      title={toggleThemeLabel}
       className={cn(
         "group relative h-10 w-10 rounded-full bg-[var(--surface)] border border-[var(--border)]",
         "shadow-sm hover:shadow-md transition-all duration-300 ease-out",

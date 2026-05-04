@@ -64,10 +64,10 @@ export default async function ClientPortalPage() {
   const intlLocale = getIntlLocaleForApp(locale);
   const session = await requireRole(["client"]);
   const [analysisDocuments, stations, reports, areaTasks] = await Promise.all([
-    listVisibleClientAnalysisDocuments(session.uid),
-    listOrderedStationsForClient(session.uid),
-    listReportsForClientOrderedStations(session.uid),
-    listPublishedDailyAreaTasksForClient(session.uid),
+    listVisibleClientAnalysisDocuments(session.uid, 24),
+    listOrderedStationsForClient(session.uid, 40),
+    listReportsForClientOrderedStations(session.uid, 40),
+    listPublishedDailyAreaTasksForClient(session.uid, 40),
   ]);
   const isRtl = direction === "rtl";
   const headline = locale === "en" ? `Welcome, ${session.user.displayName}` : `أهلا، ${session.user.displayName}`;
@@ -78,7 +78,10 @@ export default async function ClientPortalPage() {
   return (
     <main className="min-h-dvh bg-[var(--background)] px-4 py-5 text-start sm:px-6 lg:px-8" dir={direction}>
       <section className="mx-auto flex max-w-7xl flex-col gap-6">
-        <header className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card lg:flex-row lg:items-center lg:justify-between">
+        <header
+          className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card lg:flex-row lg:items-center lg:justify-between"
+          data-no-translate
+        >
           <div className={`flex min-w-0 items-center gap-4 ${isRtl ? "lg:flex-row-reverse" : "lg:flex-row"}`}>
             <BrandLockup compact />
             <div className={`min-w-0 ${isRtl ? "lg:text-right" : "lg:text-left"}`}>
