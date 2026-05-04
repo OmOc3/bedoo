@@ -36,7 +36,9 @@ function getMaintenanceStatusCacheTtlMs(): number {
     }
   }
 
-  return process.env.NODE_ENV === "development" ? 60_000 : 0;
+  // In production, avoid hitting /api/maintenance/status on every request.
+  // A short cache window prevents request amplification and navigation stalls.
+  return 60_000;
 }
 
 async function fetchMaintenanceEnabledFromSettingsApi(origin: string): Promise<boolean> {
