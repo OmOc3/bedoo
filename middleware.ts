@@ -238,10 +238,20 @@ function isMaintenanceBypassPath(pathname: string): boolean {
 }
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
-  assertEnv();
+  const pathname = request.nextUrl.pathname;
 
   try {
-    const pathname = request.nextUrl.pathname;
+    assertEnv();
+  } catch (error: unknown) {
+    // Avoid silent redirect loops in production when env validation fails.
+    // Let public pages render and surface actionable server logs.
+    console.error("[middleware] Environment validation failed:", error);
+    if (isAlwaysPublic(pathname)) {
+      return nextWithNonce(request);
+    }
+  }
+
+  try {
     const shouldCheckMaintenance = !isMaintenanceBypassPath(pathname);
 
     if (shouldCheckMaintenance && (await isMaintenanceActive(request))) {
@@ -299,7 +309,11 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     }
 
     return nextWithNonce(request);
-  } catch (_error: unknown) {
+  } catch (error: unknown) {
+    console.error("[middleware] Unexpected middleware error:", error);
+    if (isAlwaysPublic(pathname)) {
+      return nextWithNonce(request);
+    }
     return redirectToLogin(request);
   }
 }
