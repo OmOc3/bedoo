@@ -12,6 +12,8 @@ import {
   listReportsForClientOrderedStations,
   listVisibleClientAnalysisDocuments,
 } from "@/lib/db/repositories";
+import { getIntlLocaleForApp } from "@/lib/i18n";
+import { getI18nMessages, getRequestLocale, getRequestLocaleDirection } from "@/lib/i18n/server";
 import type { AppTimestamp, SprayStatus } from "@/types";
 
 export const metadata: Metadata = {
@@ -23,12 +25,12 @@ const sprayLabels: Record<SprayStatus, string> = {
   sprayed: "تم الرش",
 };
 
-function formatTimestamp(timestamp?: AppTimestamp): string {
+function formatTimestamp(timestamp: AppTimestamp | undefined, intlLocale: string, unavailableLabel: string): string {
   if (!timestamp) {
-    return "غير متاح";
+    return unavailableLabel;
   }
 
-  return new Intl.DateTimeFormat("ar-EG", {
+  return new Intl.DateTimeFormat(intlLocale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(timestamp.toDate());
@@ -44,6 +46,10 @@ function SectionHeader({ description, title }: { description: string; title: str
 }
 
 export default async function ClientPortalPage() {
+  const locale = await getRequestLocale();
+  const direction = await getRequestLocaleDirection();
+  const t = getI18nMessages(locale);
+  const intlLocale = getIntlLocaleForApp(locale);
   const session = await requireRole(["client"]);
   const [analysisDocuments, stations, reports, areaTasks] = await Promise.all([
     listVisibleClientAnalysisDocuments(session.uid),
@@ -51,18 +57,22 @@ export default async function ClientPortalPage() {
     listReportsForClientOrderedStations(session.uid),
     listPublishedDailyAreaTasksForClient(session.uid),
   ]);
+  const isRtl = direction === "rtl";
+  const headline = locale === "en" ? `Welcome, ${session.user.displayName}` : `أهلا، ${session.user.displayName}`;
 
   return (
-    <main className="min-h-dvh bg-[var(--background)] px-4 py-5 text-right sm:px-6 lg:px-8" dir="rtl">
+    <main className="min-h-dvh bg-[var(--background)] px-4 py-5 text-start sm:px-6 lg:px-8" dir={direction}>
       <section className="mx-auto flex max-w-7xl flex-col gap-6">
         <header className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-card lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
+          <div className={`flex min-w-0 items-center gap-4 ${isRtl ? "lg:flex-row-reverse" : "lg:flex-row"}`}>
             <BrandLockup compact />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[var(--primary)]">بوابة العميل</p>
-              <h1 className="mt-1 truncate text-2xl font-bold text-[var(--foreground)]">أهلا، {session.user.displayName}</h1>
+            <div className={`min-w-0 ${isRtl ? "lg:text-right" : "lg:text-left"}`}>
+              <p className="text-sm font-semibold text-[var(--primary)]">{locale === "en" ? "Client Portal" : "بوابة العميل"}</p>
+              <h1 className="mt-1 truncate text-2xl font-bold text-[var(--foreground)]">{headline}</h1>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--muted)]">
-                تظهر هنا البيانات التي تم اعتمادها ونشرها من المشرف أو المدير فقط.
+                {locale === "en"
+                  ? "Only data approved and published by a supervisor or manager appears here."
+                  : "تظهر هنا البيانات التي تم اعتمادها ونشرها من المشرف أو المدير فقط."}
               </p>
             </div>
           </div>
@@ -143,7 +153,7 @@ export default async function ClientPortalPage() {
                   <dl className="mt-4 grid gap-3 border-t border-[var(--border)] pt-4 text-sm sm:grid-cols-2">
                     <div>
                       <dt className="font-semibold text-[var(--muted)]">آخر زيارة</dt>
-                      <dd className="mt-1 text-[var(--foreground)]">{formatTimestamp(station.lastVisitedAt)}</dd>
+                      <dd className="mt-1 text-[var(--foreground)]">{formatTimestamp(station.lastVisitedAt, intlLocale, t.common.unavailable)}</dd>
                     </div>
                     <div>
                       <dt className="font-semibold text-[var(--muted)]">عدد التقارير</dt>
@@ -167,7 +177,7 @@ export default async function ClientPortalPage() {
                       <div>
                         <h4 className="text-sm font-bold text-[var(--foreground)]">{report.stationLabel}</h4>
                         <p className="mt-1 text-xs text-[var(--muted)]">
-                          {report.technicianName}، {formatTimestamp(report.submittedAt)}
+                          {report.technicianName}، {formatTimestamp(report.submittedAt, intlLocale, t.common.unavailable)}
                         </p>
                       </div>
                       <StatusPills status={report.status} />
